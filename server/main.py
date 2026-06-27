@@ -3,6 +3,7 @@ from config.db import db
 
 from routes.customer import router as customer_router
 from routes.worker import router as worker_router
+from routes.admin import router as admin_router
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -23,6 +24,7 @@ app.add_middleware(
 
 app.include_router(customer_router)
 app.include_router(worker_router)
+app.include_router(admin_router)
 
 @app.get("/")
 def home():

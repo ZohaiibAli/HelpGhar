@@ -16,6 +16,7 @@ try:
 
     customer_collection = db["customers"]
     worker_collection = db["workers"]
+    admin_collection = db["admin"]
 
     print("MongoDB Connected Successfully")
     print("Database:", DB_NAME)
