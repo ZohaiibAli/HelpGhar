@@ -1,26 +1,29 @@
 from fastapi import APIRouter
-from model.customer_model import CustomerRegister
 from config.db import customer_collection
+from model.customer_model import CustomerRegister
 
-router = APIRouter()
+router = APIRouter(prefix="/customer", tags=["Customer"])
 
 
 @router.post("/register")
-async def register(user: CustomerRegister):
+def register_customer(customer: CustomerRegister):
 
-    existing = customer_collection.find_one({
-        "email": user.email
-    })
+    existing = customer_collection.find_one(
+        {
+            "email": customer.email
+        }
+    )
 
     if existing:
+
         return {
             "success": False,
             "message": "Email already exists"
         }
 
-    customer_collection.insert_one(user.dict())
+    customer_collection.insert_one(customer.dict())
 
     return {
         "success": True,
-        "message": "User Registered Successfully"
+        "message": "Customer Registered Successfully"
     }
