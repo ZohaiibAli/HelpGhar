@@ -26,7 +26,8 @@ export default function AppRouter() {
       <Route path="/workers/:id" element={<WorkerDetailsPage />} />
       <Route path="/booking" element={<BookingPage />} />
       <Route path="/payment" element={<PaymentPage />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/login" element={<LoginPage />} />  // auto-redirects → /login/customer
+      <Route path="/login/:role" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/profile" element={<ProfilePage />} />
