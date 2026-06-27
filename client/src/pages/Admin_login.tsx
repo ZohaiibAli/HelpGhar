@@ -19,9 +19,12 @@ export default function AdminLoginForm() {
     const { mockLoginAs } = useAuthStore();
     const [showPwd, setShowPwd] = useState(false);
 
-    const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormVals>({
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting }
+    } = useForm<FormVals>({
         resolver: zodResolver(schema),
-        defaultValues: { email: "admin@helpghar.pk", password: "admin123", remember: true },
     });
 
     const onSubmit = async (data: FormVals) => {
@@ -88,7 +91,7 @@ export default function AdminLoginForm() {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
                     <Field label="Admin Email" error={errors.email?.message}>
-                        <input {...register("email")} type="email" className="hg-input-admin" placeholder="admin@helpghar.pk" />
+                        <input {...register("email")} type="email" className="hg-input-admin" placeholder="Enter admin email" />
                     </Field>
                     <Field label="Password" error={errors.password?.message}>
                         <div className="relative">
@@ -107,7 +110,7 @@ export default function AdminLoginForm() {
                     <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl bg-slate-900 text-base font-bold text-white hover:bg-slate-700">
                         {isSubmitting ? "Verifying…" : "Sign in as Admin"}
                     </Button>
-                    <p className="text-center text-xs text-muted-foreground">Demo mode — any credentials log you in.</p>
+                    <p className="text-center text-xs text-muted-foreground">Enter your administrator credentials to continue.</p>
                 </form>
             </div>
 
