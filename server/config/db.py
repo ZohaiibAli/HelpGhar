@@ -2,21 +2,20 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 
-# Load environment variables
 load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = os.getenv("DB_NAME")
 
 try:
-    # MongoDB Atlas connection
     client = MongoClient(MONGO_URI)
 
-    # Test connection
     client.admin.command("ping")
 
-    # Select database
     db = client[DB_NAME]
+
+    customer_collection = db["customers"]
+    worker_collection = db["workers"]
 
     print("MongoDB Connected Successfully")
     print("Database:", DB_NAME)

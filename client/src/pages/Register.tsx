@@ -49,10 +49,49 @@ export default function RegisterPage() {
     resolver: zodResolver(schema as any),
   });
 
-  const onSubmit = async (_data: any) => {
-    await new Promise((r) => setTimeout(r, 600));
-    setSubmitted(true);
-    reset();
+  const onSubmit = async (data: any) => {
+
+    try {
+
+      const api =
+        role === "customer"
+          ? "http://127.0.0.1:8000/customer/register"
+          : "http://127.0.0.1:8000/worker/register";
+
+      const response = await fetch(api, {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify(data),
+
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+
+        setSubmitted(true);
+
+        reset();
+
+      } else {
+
+        alert(result.message);
+
+      }
+
+    } catch (error) {
+
+      console.log(error);
+
+      alert("Server Error");
+
+    }
+
   };
 
   if (submitted) {
@@ -116,7 +155,7 @@ export default function RegisterPage() {
                   <F label="Service category" error={errors.category?.message as any}>
                     <select className="hg-input" {...register("category")}>
                       <option value="">Select category</option>
-                      {["House Servants","Drivers","Baby Sitters","Cooks","Home Teachers","Watchmen","Electricians","Plumbers","Cleaners"].map(c => <option key={c}>{c}</option>)}
+                      {["House Servants", "Drivers", "Baby Sitters", "Cooks", "Home Teachers", "Watchmen", "Electricians", "Plumbers", "Cleaners"].map(c => <option key={c}>{c}</option>)}
                     </select>
                   </F>
                   <F label="Experience (years)" error={errors.experience?.message as any}><input type="number" min="0" className="hg-input" {...register("experience")} /></F>
