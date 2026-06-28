@@ -1,3 +1,5 @@
+// This is my api.ts file for the frontend client
+
 import axios from "axios";
 
 export const api = axios.create({

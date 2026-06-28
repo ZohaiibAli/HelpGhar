@@ -1,3 +1,5 @@
+// This is my bookingService.ts file for the frontend client
+
 import { api } from "./api";
 import type { Booking } from "@/types";
 
