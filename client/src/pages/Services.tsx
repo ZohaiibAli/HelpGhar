@@ -3,22 +3,29 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { WorkerCard } from "@/components/workers/WorkerCard";
 import { categories, workers } from "@/data/mock";
+import { useGigStore } from "@/store/gigStore";
 
 export default function ServicesPage() {
+  const userGigs = useGigStore((s) => s.gigs);
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState<string>("All");
   const [minRating, setMinRating] = useState(0);
   const [maxPrice, setMaxPrice] = useState(100000);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
 
-  const filtered = useMemo(() => workers.filter((w) => {
+  const allWorkers = useMemo(() => [
+    ...workers,
+    ...userGigs,   // 👈 no more mapping needed, types already match
+  ], [userGigs]);
+
+  const filtered = useMemo(() => allWorkers.filter((w) => {
     if (activeCat !== "All" && w.category !== activeCat) return false;
     if (query && !`${w.fullName} ${w.category} ${w.city}`.toLowerCase().includes(query.toLowerCase())) return false;
     if (w.rating < minRating) return false;
     if (w.priceMin > maxPrice) return false;
     if (onlyAvailable && !w.available) return false;
     return true;
-  }), [query, activeCat, minRating, maxPrice, onlyAvailable]);
+  }), [query, activeCat, minRating, maxPrice, onlyAvailable, allWorkers]);
 
   return (
     <MainLayout>
