@@ -15,3 +15,8 @@ class WorkerRegister(BaseModel):
     experience:str
     pricing:str
     skills:str
+
+class WorkerLogin(BaseModel):
+
+    email: EmailStr
+    password: str

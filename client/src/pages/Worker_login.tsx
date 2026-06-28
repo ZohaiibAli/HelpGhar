@@ -24,11 +24,63 @@ export default function WorkerLoginForm() {
     defaultValues: { email: "worker@helpghar.pk", password: "demo123", remember: true },
   });
 
-  const onSubmit = async (_data: FormVals) => {
-    await new Promise((r) => setTimeout(r, 500));
-    mockLoginAs("worker");
-    navigate("/dashboard/worker");
-  };
+const onSubmit = async (data: FormVals) => {
+
+  try {
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/worker/login",
+      {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+
+          email: data.email,
+
+          password: data.password,
+
+        }),
+
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+
+      localStorage.setItem(
+        "worker",
+        JSON.stringify(result.worker)
+      );
+
+      mockLoginAs("worker");
+
+      navigate("/dashboard/worker");
+
+    }
+
+    else {
+
+      alert(result.message);
+
+    }
+
+  }
+
+  catch (error) {
+
+    console.log(error);
+
+    alert("Unable to connect to server.");
+
+  }
+
+};
 
   return (
     <div className="mx-auto grid min-h-[calc(100vh-8rem)] max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
