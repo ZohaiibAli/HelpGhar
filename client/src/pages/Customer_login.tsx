@@ -21,14 +21,56 @@ export default function CustomerLoginForm() {
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormVals>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "demo@helpghar.pk", password: "demo123", remember: true },
+    defaultValues: {
+    email: "",
+    password: "",
+    remember: false,
+},
   });
 
-  const onSubmit = async (_data: FormVals) => {
-    await new Promise((r) => setTimeout(r, 500));
-    mockLoginAs("customer");
-    navigate("/dashboard/customer");
-  };
+  const onSubmit = async (data: FormVals) => {
+
+  try {
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/customer/login",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+
+      mockLoginAs("customer");
+
+      localStorage.setItem("customer", JSON.stringify(result.user));
+
+      navigate("/dashboard/customer");
+
+    } else {
+
+      alert(result.message);
+
+    }
+
+  } catch (error) {
+
+    console.log(error);
+
+    alert("Server Error");
+
+  }
+
+};
 
   return (
     <div className="mx-auto grid min-h-[calc(100vh-8rem)] max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
@@ -76,7 +118,7 @@ export default function CustomerLoginForm() {
           <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl bg-primary text-base font-bold hover:bg-primary-dark">
             {isSubmitting ? "Signing in…" : "Sign in as Customer"}
           </Button>
-          <p className="text-center text-xs text-muted-foreground">Demo mode — any credentials log you in.</p>
+          <p className="text-center text-xs text-muted-foreground">Sign in using your registered account.</p>
         </form>
       </div>
 

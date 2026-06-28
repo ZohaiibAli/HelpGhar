@@ -7,3 +7,7 @@ class CustomerRegister(BaseModel):
     phone:str
     address:str
     password:str
+
+class CustomerLogin(BaseModel):
+    email: EmailStr
+    password: str
