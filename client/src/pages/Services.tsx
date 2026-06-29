@@ -37,9 +37,6 @@ export default function ServicesPage() {
             <Search className="ml-2 h-4 w-4 text-muted-foreground" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, service or city"
               className="h-11 flex-1 bg-transparent text-sm outline-none" />
-            <button className="hidden h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold md:inline-flex">
-              <SlidersHorizontal className="h-4 w-4" /> Filters
-            </button>
           </div>
         </div>
       </section>
