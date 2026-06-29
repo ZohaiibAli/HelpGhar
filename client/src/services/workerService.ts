@@ -1,19 +1,25 @@
-import { api } from "./api";
+import axios from "axios";
 import { Worker } from "@/types";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
 /**
- * Upload avatar image to backend
+ * Upload avatar image
  */
 export const uploadAvatar = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await api.post(
-    "/worker/upload-avatar",
+  const token = localStorage.getItem("hg_token");
+
+  const response = await axios.post(
+    `${API_BASE_URL}/worker/upload-avatar`,
     formData,
     {
       headers: {
         "Content-Type": "multipart/form-data",
+        Authorization: token ? `Bearer ${token}` : "",
       },
     }
   );
@@ -22,10 +28,21 @@ export const uploadAvatar = async (file: File): Promise<string> => {
 };
 
 /**
- * Create a new gig
+ * Create gig
  */
 export const createGig = async (gig: Omit<Worker, "id">) => {
-  const response = await api.post("/worker/gig", gig);
+  const token = localStorage.getItem("hg_token");
+
+  const response = await axios.post(
+    `${API_BASE_URL}/worker/gig`,
+    gig,
+    {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    }
+  );
+
   return response.data;
 };
 
@@ -33,6 +50,16 @@ export const createGig = async (gig: Omit<Worker, "id">) => {
  * Get all gigs
  */
 export const getGigs = async (): Promise<Worker[]> => {
-  const response = await api.get("/worker/gigs");
+  const token = localStorage.getItem("hg_token");
+
+  const response = await axios.get(
+    `${API_BASE_URL}/worker/gigs`,
+    {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    }
+  );
+
   return response.data.gigs;
 };
