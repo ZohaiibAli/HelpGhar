@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Eye, EyeOff, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 const schema = z.object({
   email: z.string().trim().email("Enter a valid email"),
@@ -15,6 +16,14 @@ const schema = z.object({
 type FormVals = z.infer<typeof schema>;
 
 export default function CustomerLoginForm() {
+  const [alertState, setAlertState] = useState<{
+  open: boolean;
+  type: "error" | "server";
+  title: string;
+  description: string;
+}>({ open: false, type: "error", title: "", description: "" });
+
+const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const navigate = useNavigate();
   const { mockLoginAs } = useAuthStore();
   const [showPwd, setShowPwd] = useState(false);
@@ -58,7 +67,12 @@ export default function CustomerLoginForm() {
 
     } else {
 
-      alert(result.message);
+      setAlertState({
+  open: true,
+  type: "error",
+  title: "Invalid credentials",
+  description: "The email or password you entered is incorrect. Please try again.",
+});
 
     }
 
@@ -66,7 +80,12 @@ export default function CustomerLoginForm() {
 
     console.log(error);
 
-    alert("Server Error");
+    setAlertState({
+  open: true,
+  type: "server",
+  title: "Something went wrong",
+  description: "We couldn't reach the server. Please check your connection and try again.",
+});
 
   }
 
@@ -121,7 +140,13 @@ export default function CustomerLoginForm() {
           <p className="text-center text-xs text-muted-foreground">Sign in using your registered account.</p>
         </form>
       </div>
-
+      <HgAlert
+  open={alertState.open}
+  onClose={closeAlert}
+  type={alertState.type}
+  title={alertState.title}
+  description={alertState.description}
+/>
       <style>{`
         .hg-input{width:100%;height:48px;border-radius:12px;border:1px solid var(--input);background:var(--card);padding:0 14px;font-size:14px;outline:none;transition:.15s;}
         .hg-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in oklch,var(--primary) 18%,transparent);}
