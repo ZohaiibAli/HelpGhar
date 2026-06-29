@@ -3,9 +3,12 @@ import { LayoutDashboard, Briefcase, Star, Award, Bell, User, Settings, Timer, T
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { bookings, notifications, categories } from "@/data/mock";
 import { useState } from "react";
-import { useGigStore } from "@/store/gigStore";
 import { WorkerCategory } from "@/types";
-import { gigService } from "@/services/gigService";
+import {
+  uploadAvatar,
+  createGig,
+} from "@/services/workerService";
+
 
 const items = [
   { label: "Overview", to: "/dashboard/worker", icon: LayoutDashboard },
@@ -17,7 +20,8 @@ const items = [
 
 export default function WorkerDashboard() {
   const [modalOpen, setModalOpen] = useState(false);
-  const addGig = useGigStore((s) => s.addGig);
+  const [toast, setToast] = useState<"success" | "error" | null>(null);
+
   const [form, setForm] = useState({
     fullName: "Ayesha",
     category: "" as WorkerCategory,
@@ -30,6 +34,7 @@ export default function WorkerDashboard() {
     priceMax: "",
     priceUnit: "month" as "month" | "hour" | "day",
     avatar: "",
+    avatarFile: null as File | null,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -43,35 +48,70 @@ export default function WorkerDashboard() {
     return e;
   }
 
-  async function handleSubmit() {
+  const handleSubmit = async () => {
     const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
-    await addGig({
-      id: crypto.randomUUID(),
-      fullName: form.fullName,
-      avatar: form.avatar || "",
-      category: form.category,
-      city: form.city,
-      gender: form.gender,
-      age: Number(form.age) || 0,
-      experienceYears: Number(form.experience) || 0,
-      memberSince: form.since || String(new Date().getFullYear()),
-      priceMin: Number(form.priceMin),
-      priceMax: Number(form.priceMax),
-      priceUnit: form.priceUnit,
-      rating: 0,
-      reviewsCount: 0,
-      available: true,
-      cnicVerified: false,
-      badges: [],
-      bio: "",
-      skills: [],
-      certificates: [],
-    });
-    setModalOpen(false);
-    setForm({ fullName: "Ayesha", category: "" as WorkerCategory, city: "", gender: "Female" as "Male" | "Female", age: "", experience: "", since: "", priceMin: "", priceMax: "", priceUnit: "month" as "month" | "hour" | "day", avatar: "" });
-    setErrors({});
-  }
+
+    if (Object.keys(e).length) {
+      setErrors(e);
+      return;
+    }
+
+    try {
+      let avatarUrl = "";
+
+      if (form.avatarFile) {
+        avatarUrl = await uploadAvatar(form.avatarFile);
+      }
+
+      await createGig({
+        fullName: form.fullName,
+        avatar: avatarUrl,
+        category: form.category,
+        city: form.city,
+        gender: form.gender,
+        age: Number(form.age),
+        experienceYears: Number(form.experience),
+        memberSince: form.since || String(new Date().getFullYear()),
+        priceMin: Number(form.priceMin),
+        priceMax: Number(form.priceMax),
+        priceUnit: form.priceUnit,
+        rating: 0,
+        reviewsCount: 0,
+        available: true,
+        cnicVerified: false,
+        badges: [],
+        bio: "",
+        skills: [],
+        certificates: [],
+      });
+
+      setToast("success");
+      setTimeout(() => setToast(null), 3000);
+
+      setModalOpen(false);
+
+      setForm({
+        fullName: "Ayesha",
+        category: "" as WorkerCategory,
+        city: "",
+        gender: "Female",
+        age: "",
+        experience: "",
+        since: "",
+        priceMin: "",
+        priceMax: "",
+        priceUnit: "month",
+        avatar: "",
+        avatarFile: null,
+      });
+
+      setErrors({});
+    } catch (err) {
+      console.error(err);
+      setToast("error");
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
 
   function handleClose() {
     setModalOpen(false);
@@ -180,15 +220,14 @@ export default function WorkerDashboard() {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        try {
-                          const url = await gigService.uploadAvatar(file);
-                          setForm(f => ({ ...f, avatar: url }));
-                        } catch {
-                          console.error("Avatar upload failed");
-                        }
+                        setForm((f) => ({
+                          ...f,
+                          avatarFile: file,
+                          avatar: URL.createObjectURL(file),
+                        }));
                       }}
                     />
                     {form.avatar ? "Click to change photo" : "Click to upload photo"}
@@ -324,6 +363,48 @@ export default function WorkerDashboard() {
           </div>
         </div>
       )}
+
+{/* Toast Notification */}
+{toast && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className={`flex flex-col items-center gap-4 rounded-3xl p-10 shadow-xl text-center w-80 ${
+      toast === "success" ? "bg-card" : "bg-card"
+    }`}>
+      <div className={`flex h-16 w-16 items-center justify-center rounded-full ${
+        toast === "success" ? "bg-primary" : "bg-red-500"
+      }`}>
+        {toast === "success" ? (
+          <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        )}
+      </div>
+      <div>
+        <p className="text-xl font-black">
+          {toast === "success" ? "Gig Published!" : "Something went wrong"}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {toast === "success"
+            ? "Your gig is now live on the Services page."
+            : "Failed to create gig. Please try again."}
+        </p>
+      </div>
+      <button
+        onClick={() => setToast(null)}
+        className={`mt-2 rounded-xl px-6 py-2.5 text-sm font-bold text-white transition-colors ${
+          toast === "success" ? "bg-primary hover:bg-primary-dark" : "bg-red-500 hover:bg-red-600"
+        }`}
+      >
+        {toast === "success" ? "Great!" : "Try Again"}
+      </button>
+    </div>
+  </div>
+)}
+
     </DashboardLayout>
   );
 }

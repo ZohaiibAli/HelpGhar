@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useGigStore } from "@/store/gigStore";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Calendar, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { workers } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 
 const slots = ["08:00 – 10:00", "10:00 – 12:00", "12:00 – 14:00", "14:00 – 16:00", "16:00 – 18:00", "18:00 – 20:00"];
@@ -11,7 +11,27 @@ export default function BookingPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const workerId = params.get("workerId");
-  const worker = workers.find(w => w.id === workerId) ?? workers[0];
+
+  const gigs = useGigStore((state) => state.gigs);
+  const fetchGigs = useGigStore((state) => state.fetchGigs);
+
+  useEffect(() => {
+    fetchGigs();
+  }, [fetchGigs]);
+
+  const worker =
+    gigs.find((w) => w.id === workerId) ??
+    gigs[0];
+
+  if (!worker) {
+    return (
+      <MainLayout>
+        <div className="mx-auto max-w-7xl px-4 py-20 text-center">
+          Loading...
+        </div>
+      </MainLayout>
+    );
+  }
 
   const todayStr = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(todayStr);

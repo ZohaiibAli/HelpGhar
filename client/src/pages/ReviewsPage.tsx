@@ -1,13 +1,25 @@
-import { useState } from "react";
 import { Star } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { reviews, workers } from "@/data/mock";
 import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { reviews } from "@/data/mock";
+import { useGigStore } from "@/store/gigStore";
 
 export default function ReviewsPage() {
+  const gigs = useGigStore((state) => state.gigs);
+  const fetchGigs = useGigStore((state) => state.fetchGigs);
+
+  useEffect(() => {
+    fetchGigs();
+  }, [fetchGigs]);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
-  const [workerId, setWorkerId] = useState(workers[0].id);
+  const [workerId, setWorkerId] = useState("");
+  useEffect(() => {
+    if (gigs.length > 0 && !workerId) {
+      setWorkerId(gigs[0].id);
+    }
+  }, [gigs, workerId]);
   const [list, setList] = useState(reviews);
 
   return (
@@ -18,7 +30,7 @@ export default function ReviewsPage() {
           <p className="mt-2 text-sm text-muted-foreground">Hear what real customers say about our workers.</p>
           <div className="mt-6 space-y-4">
             {list.map(r => {
-              const w = workers.find(x => x.id === r.workerId);
+              const w = gigs.find(x => x.id === r.workerId);
               return (
                 <div key={r.id} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
                   <div className="flex items-start justify-between gap-3">
@@ -46,13 +58,17 @@ export default function ReviewsPage() {
                 <label className="mb-1.5 block text-xs font-semibold">Worker</label>
                 <select value={workerId} onChange={(e) => setWorkerId(e.target.value)}
                   className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm">
-                  {workers.map(w => <option key={w.id} value={w.id}>{w.fullName} — {w.category}</option>)}
+                  {gigs.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.fullName} — {w.category}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-semibold">Rating</label>
                 <div className="flex gap-1">
-                  {[1,2,3,4,5].map(n => (
+                  {[1, 2, 3, 4, 5].map(n => (
                     <button key={n} onClick={() => setRating(n)} className="p-1">
                       <Star className={`h-7 w-7 transition ${n <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
                     </button>
