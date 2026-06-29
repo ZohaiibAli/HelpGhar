@@ -1,18 +1,51 @@
 import { Link, useParams } from "react-router-dom";
-import { Star, ShieldCheck, MapPin, Briefcase, Calendar, CheckCircle2, Award } from "lucide-react";
+import { useEffect } from "react";
+import {
+  Star,
+  ShieldCheck,
+  MapPin,
+  Briefcase,
+  Calendar,
+  CheckCircle2,
+  Award,
+} from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { workers, reviews } from "@/data/mock";
+import { reviews } from "@/data/mock";
 import { Button } from "@/components/ui/button";
+import { useGigStore } from "@/store/gigStore";
 
 export default function WorkerDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const worker = workers.find((w) => w.id === id);
+
+  const gigs = useGigStore((state) => state.gigs);
+  const fetchGigs = useGigStore((state) => state.fetchGigs);
+
+  useEffect(() => {
+    fetchGigs();
+  }, [fetchGigs]);
+
+  const worker = gigs.find((w) => w.id === id);
+  if (gigs.length === 0) {
+    return (
+      <MainLayout>
+        <div className="mx-auto max-w-md px-4 py-24 text-center">
+          Loading...
+        </div>
+      </MainLayout>
+    );
+  }
+
   if (!worker) {
     return (
       <MainLayout>
         <div className="mx-auto max-w-md px-4 py-24 text-center">
           <h1 className="text-2xl font-bold">Worker not found</h1>
-          <Button asChild className="mt-6 bg-primary hover:bg-primary-dark"><Link to="/services">Browse workers</Link></Button>
+          <Button
+            asChild
+            className="mt-6 bg-primary hover:bg-primary-dark"
+          >
+            <Link to="/services">Browse workers</Link>
+          </Button>
         </div>
       </MainLayout>
     );

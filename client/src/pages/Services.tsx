@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { WorkerCard } from "@/components/workers/WorkerCard";
@@ -6,26 +6,28 @@ import { categories } from "@/data/mock";
 import { useGigStore } from "@/store/gigStore";
 
 export default function ServicesPage() {
-  const { gigs, loading, fetchGigs } = useGigStore();
+  const gigs = useGigStore((s) => s.gigs);
+  const fetchGigs = useGigStore((s) => s.fetchGigs);
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState<string>("All");
   const [minRating, setMinRating] = useState(0);
   const [maxPrice, setMaxPrice] = useState(100000);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
 
-  // 👇 fetch from DB when page loads
   useEffect(() => {
     fetchGigs();
-  }, []);
+  }, [fetchGigs]);
 
-  const filtered = useMemo(() => gigs.filter((w) => {
+  const allWorkers = useMemo(() => gigs, [gigs]);
+
+  const filtered = useMemo(() => allWorkers.filter((w) => {
     if (activeCat !== "All" && w.category !== activeCat) return false;
     if (query && !`${w.fullName} ${w.category} ${w.city}`.toLowerCase().includes(query.toLowerCase())) return false;
     if (w.rating < minRating) return false;
     if (w.priceMin > maxPrice) return false;
     if (onlyAvailable && !w.available) return false;
     return true;
-  }), [query, activeCat, minRating, maxPrice, onlyAvailable, gigs]);
+  }), [query, activeCat, minRating, maxPrice, onlyAvailable, allWorkers]);
 
   return (
     <MainLayout>
@@ -37,6 +39,9 @@ export default function ServicesPage() {
             <Search className="ml-2 h-4 w-4 text-muted-foreground" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, service or city"
               className="h-11 flex-1 bg-transparent text-sm outline-none" />
+            {/* <button className="hidden h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold md:inline-flex">
+              <SlidersHorizontal className="h-4 w-4" /> Filters
+            </button> */}
           </div>
         </div>
       </section>
@@ -77,12 +82,7 @@ export default function ServicesPage() {
               <option>Sort: Top rated</option><option>Price: Low to high</option><option>Price: High to low</option>
             </select>
           </div>
-
-          {loading ? (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
-              <p className="text-base font-bold">Loading workers...</p>
-            </div>
-          ) : filtered.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
               <p className="text-base font-bold">No workers match these filters</p>
               <p className="mt-1 text-sm text-muted-foreground">Try widening your price or rating range.</p>

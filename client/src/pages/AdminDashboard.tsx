@@ -1,6 +1,8 @@
 import { LayoutDashboard, Users, ShieldCheck, Calendar, CreditCard, Star, MessageSquareWarning, BarChart3, Settings, TrendingUp, DollarSign } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { workers, complaints } from "@/data/mock";
+import { complaints } from "@/data/mock";
+import { useEffect } from "react";
+import { useGigStore } from "@/store/gigStore";
 import { Button } from "@/components/ui/button";
 
 const items = [
@@ -15,7 +17,15 @@ const items = [
   { label: "Settings", to: "/dashboard/admin", icon: Settings },
 ];
 
+
 export default function AdminDashboard() {
+  const gigs = useGigStore((state) => state.gigs);
+  const fetchGigs = useGigStore((state) => state.fetchGigs);
+
+  useEffect(() => {
+    fetchGigs();
+  }, [fetchGigs]);
+
   return (
     <DashboardLayout title="Admin" items={items}>
       <div className="space-y-6">
@@ -26,7 +36,7 @@ export default function AdminDashboard() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Stat label="Total users" value="12,480" trend="+8.2%" icon={Users} />
-          <Stat label="Total workers" value="3,260" trend="+5.1%" icon={ShieldCheck} />
+          <Stat label="Total workers" value={String(gigs.length)} trend="+5.1%" icon={ShieldCheck} />
           <Stat label="Pending verifications" value="48" trend="urgent" warn icon={ShieldCheck} />
           <Stat label="Total bookings" value="22,940" trend="+12%" icon={Calendar} />
           <Stat label="Revenue" value="Rs. 4.2M" trend="+18%" icon={DollarSign} />
@@ -37,7 +47,7 @@ export default function AdminDashboard() {
           <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold">Worker verification queue</h2>
-              <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-[10px] font-bold uppercase text-yellow-800">{workers.length} pending</span>
+              <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-[10px] font-bold uppercase text-yellow-800">{gigs.length} pending</span>
             </div>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm">
@@ -45,7 +55,7 @@ export default function AdminDashboard() {
                   <tr><th className="py-2">Worker</th><th>CNIC</th><th>Applied</th><th></th></tr>
                 </thead>
                 <tbody>
-                  {workers.slice(0, 4).map(w => (
+                  {gigs.slice(0, 4).map((w) => (
                     <tr key={w.id} className="border-t border-border">
                       <td className="py-3">
                         <div className="flex items-center gap-2">
@@ -53,7 +63,7 @@ export default function AdminDashboard() {
                           <div className="min-w-0"><p className="truncate text-xs font-bold">{w.fullName}</p><p className="truncate text-[10px] text-muted-foreground">{w.category}</p></div>
                         </div>
                       </td>
-                      <td className="text-xs text-muted-foreground">35202-{Math.floor(Math.random()*9999999)}-1</td>
+                      <td className="text-xs text-muted-foreground">35202-{Math.floor(Math.random() * 9999999)}-1</td>
                       <td className="text-xs text-muted-foreground">{w.memberSince}</td>
                       <td className="space-x-1 text-right">
                         <button className="rounded-lg bg-primary px-2.5 py-1.5 text-[10px] font-bold text-primary-foreground hover:bg-primary-dark">Approve</button>
@@ -76,7 +86,7 @@ export default function AdminDashboard() {
                       <p className="text-xs font-bold">#{c.id} • {c.subject}</p>
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.customerName} vs {c.workerName}</p>
                     </div>
-                    <span className="rounded-full bg-yellow-100 px-2 py-1 text-[10px] font-bold uppercase text-yellow-800">{c.status.replace("_"," ")}</span>
+                    <span className="rounded-full bg-yellow-100 px-2 py-1 text-[10px] font-bold uppercase text-yellow-800">{c.status.replace("_", " ")}</span>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">{c.description}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
