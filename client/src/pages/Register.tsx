@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+import { HgAlert } from "@/components/ui/HgAlert";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -8,7 +10,9 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import type { UserRole } from "@/types";
 
+
 const cnicRegex = /^\d{5}-\d{7}-\d$/;
+
 
 const baseCustomerSchema = z.object({
   fullName: z.string().trim().min(2, "Required").max(80),
@@ -41,8 +45,17 @@ const workerSchema = baseCustomerSchema.extend({
 }).refine((d) => d.password === d.confirmPassword, { message: "Passwords don't match", path: ["confirmPassword"] });
 
 export default function RegisterPage() {
+  const navigate = useNavigate()
   const [role, setRole] = useState<UserRole>("customer");
   const [submitted, setSubmitted] = useState(false);
+  const [alertState, setAlertState] = useState<{
+  open: boolean;
+  type: "error" | "server";
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}>({ open: false, type: "error", title: "", description: "" });
 
   const schema = role === "worker" ? workerSchema : customerSchema;
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<any>({
@@ -80,7 +93,14 @@ export default function RegisterPage() {
 
       } else {
 
-        alert(result.message);
+       setAlertState({
+          open: true,
+          type: "error",
+          title: "Email already exists",
+          description: "An account with this email is already registered. Try signing in instead, or use a different email.",
+          actionLabel: "Sign in",
+          onAction: () => navigate("/login"),  // add: import { useNavigate } from "react-router-dom" and const navigate = useNavigate()
+});
 
       }
 
@@ -88,7 +108,12 @@ export default function RegisterPage() {
 
       console.log(error);
 
-      alert("Server Error");
+      setAlertState({
+        open: true,
+        type: "server",
+        title: "Something went wrong",
+        description: "We couldn't reach the server. Please check your connection and try again.",
+});
 
     }
 
@@ -189,7 +214,15 @@ export default function RegisterPage() {
           <p className="text-center text-xs text-muted-foreground">Already have an account? <Link to="/login" className="font-semibold text-primary hover:underline">Sign in</Link></p>
         </form>
       </div>
-
+      <HgAlert
+        open={alertState.open}
+        onClose={() => setAlertState((s) => ({ ...s, open: false }))}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+        actionLabel={alertState.actionLabel}
+        onAction={alertState.onAction}
+/>
       <style>{`.hg-input{width:100%;height:44px;border-radius:12px;border:1px solid var(--input);background:var(--card);padding:0 14px;font-size:14px;outline:none;transition:.15s;}
       .hg-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in oklch,var(--primary) 18%,transparent);}`}</style>
     </MainLayout>

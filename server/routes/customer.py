@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from config.db import customer_collection
 from model.customer_model import CustomerRegister, CustomerLogin
+from helper.password import hash_password, verify_password
 
 router = APIRouter(prefix="/customer", tags=["Customer"])
 
@@ -21,7 +22,12 @@ def register_customer(customer: CustomerRegister):
             "message": "Email already exists"
         }
 
-    customer_collection.insert_one(customer.dict())
+    #customer_collection.insert_one(customer.dict())
+    customer_data = customer.dict()
+
+    customer_data["password"] = hash_password(customer.password)
+
+    customer_collection.insert_one(customer_data)
 
     return {
         "success": True,
@@ -43,11 +49,14 @@ def login_customer(customer: CustomerLogin):
             "message": "Email not found"
         }
 
-    if existing["password"] != customer.password:
+    if not verify_password(
+    customer.password,
+    existing["password"]
+    ):
         return {
             "success": False,
             "message": "Incorrect password"
-        }
+    }
 
     return {
         "success": True,
