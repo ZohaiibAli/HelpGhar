@@ -5,6 +5,7 @@ import { bookings, notifications, categories } from "@/data/mock";
 import { useState } from "react";
 import { useGigStore } from "@/store/gigStore";
 import { WorkerCategory } from "@/types";
+import { gigService } from "@/services/gigService";
 
 const items = [
   { label: "Overview", to: "/dashboard/worker", icon: LayoutDashboard },
@@ -42,10 +43,10 @@ export default function WorkerDashboard() {
     return e;
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    addGig({
+    await addGig({
       id: crypto.randomUUID(),
       fullName: form.fullName,
       avatar: form.avatar || "",
@@ -68,19 +69,7 @@ export default function WorkerDashboard() {
       certificates: [],
     });
     setModalOpen(false);
-    setForm({
-      fullName: "Ayesha",
-      category: "" as WorkerCategory,
-      city: "",
-      gender: "Female" as "Male" | "Female",
-      age: "",
-      experience: "",
-      since: "",
-      priceMin: "",
-      priceMax: "",
-      priceUnit: "month" as "month" | "hour" | "day",
-      avatar: "",
-    });
+    setForm({ fullName: "Ayesha", category: "" as WorkerCategory, city: "", gender: "Female" as "Male" | "Female", age: "", experience: "", since: "", priceMin: "", priceMax: "", priceUnit: "month" as "month" | "hour" | "day", avatar: "" });
     setErrors({});
   }
 
@@ -191,12 +180,15 @@ export default function WorkerDashboard() {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = () => setForm(f => ({ ...f, avatar: reader.result as string }));
-                        reader.readAsDataURL(file);
+                        try {
+                          const url = await gigService.uploadAvatar(file);
+                          setForm(f => ({ ...f, avatar: url }));
+                        } catch {
+                          console.error("Avatar upload failed");
+                        }
                       }}
                     />
                     {form.avatar ? "Click to change photo" : "Click to upload photo"}

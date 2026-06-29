@@ -9,14 +9,13 @@ DB_NAME = os.getenv("DB_NAME")
 
 try:
     client = MongoClient(MONGO_URI)
-
     client.admin.command("ping")
-
     db = client[DB_NAME]
 
     customer_collection = db["customers"]
     worker_collection = db["workers"]
     admin_collection = db["admin"]
+    gig_collection = db["gigs"]          # 👈 new
 
     print("MongoDB Connected Successfully")
     print("Database:", DB_NAME)
