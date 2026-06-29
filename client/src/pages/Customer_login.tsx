@@ -17,13 +17,13 @@ type FormVals = z.infer<typeof schema>;
 
 export default function CustomerLoginForm() {
   const [alertState, setAlertState] = useState<{
-  open: boolean;
-  type: "error" | "server";
-  title: string;
-  description: string;
-}>({ open: false, type: "error", title: "", description: "" });
+    open: boolean;
+    type: "error" | "server";
+    title: string;
+    description: string;
+  }>({ open: false, type: "error", title: "", description: "" });
 
-const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
+  const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const navigate = useNavigate();
   const { mockLoginAs } = useAuthStore();
   const [showPwd, setShowPwd] = useState(false);
@@ -31,65 +31,67 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormVals>({
     resolver: zodResolver(schema),
     defaultValues: {
-    email: "",
-    password: "",
-    remember: false,
-},
+      email: "",
+      password: "",
+      remember: false,
+    },
   });
+
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const onSubmit = async (data: FormVals) => {
 
-  try {
+    try {
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/customer/login",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-        }),
+      const response = await fetch(
+        `${API_BASE_URL}/customer/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+
+        mockLoginAs("customer");
+
+        localStorage.setItem("customer", JSON.stringify(result.user));
+
+        navigate("/dashboard/customer");
+
+      } else {
+
+        setAlertState({
+          open: true,
+          type: "error",
+          title: "Invalid credentials",
+          description: "The email or password you entered is incorrect. Please try again.",
+        });
+
       }
-    );
 
-    const result = await response.json();
+    } catch (error) {
 
-    if (result.success) {
-
-      mockLoginAs("customer");
-
-      localStorage.setItem("customer", JSON.stringify(result.user));
-
-      navigate("/dashboard/customer");
-
-    } else {
+      console.log(error);
 
       setAlertState({
-  open: true,
-  type: "error",
-  title: "Invalid credentials",
-  description: "The email or password you entered is incorrect. Please try again.",
-});
+        open: true,
+        type: "server",
+        title: "Something went wrong",
+        description: "We couldn't reach the server. Please check your connection and try again.",
+      });
 
     }
 
-  } catch (error) {
-
-    console.log(error);
-
-    setAlertState({
-  open: true,
-  type: "server",
-  title: "Something went wrong",
-  description: "We couldn't reach the server. Please check your connection and try again.",
-});
-
-  }
-
-};
+  };
 
   return (
     <div className="mx-auto grid min-h-[calc(100vh-8rem)] max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
@@ -141,12 +143,12 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
         </form>
       </div>
       <HgAlert
-  open={alertState.open}
-  onClose={closeAlert}
-  type={alertState.type}
-  title={alertState.title}
-  description={alertState.description}
-/>
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+      />
       <style>{`
         .hg-input{width:100%;height:48px;border-radius:12px;border:1px solid var(--input);background:var(--card);padding:0 14px;font-size:14px;outline:none;transition:.15s;}
         .hg-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in oklch,var(--primary) 18%,transparent);}
