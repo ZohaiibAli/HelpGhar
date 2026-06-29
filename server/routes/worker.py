@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from config.db import worker_collection, gig_collection
 from model.worker_model import WorkerRegister, WorkerLogin, GigCreate
 from bson import ObjectId
+from helper.password import hash_password, verify_password
 import uuid
 import os
 
@@ -15,20 +16,54 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/register")
 def register_worker(worker: WorkerRegister):
-    existing = worker_collection.find_one({"email": worker.email})
+
+    existing = worker_collection.find_one(
+        {
+            "email": worker.email
+        }
+    )
+
     if existing:
-        return {"success": False, "message": "Email already exists"}
-    worker_collection.insert_one(worker.dict())
-    return {"success": True, "message": "Worker Registered Successfully"}
+        return {
+            "success": False,
+            "message": "Email already exists"
+        }
+
+    worker_data = worker.dict()
+
+    worker_data["password"] = hash_password(worker.password)
+
+    worker_collection.insert_one(worker_data)
+
+    return {
+        "success": True,
+        "message": "Worker Registered Successfully"
+    }
 
 
 @router.post("/login")
 def worker_login(worker: WorkerLogin):
-    existing_worker = worker_collection.find_one({"email": worker.email})
+
+    existing_worker = worker_collection.find_one(
+        {
+            "email": worker.email
+        }
+    )
     if existing_worker is None:
-        return {"success": False, "message": "Worker not found"}
-    if existing_worker["password"] != worker.password:
-        return {"success": False, "message": "Incorrect password"}
+        return {
+            "success": False,
+            "message": "Worker not found"
+        }
+
+    if not verify_password(
+        worker.password,
+        existing_worker["password"]
+    ):
+        return {
+            "success": False,
+            "message": "Incorrect password"
+        }
+
     return {
         "success": True,
         "message": "Login Successful",
@@ -39,7 +74,6 @@ def worker_login(worker: WorkerLogin):
             "category": existing_worker["category"]
         }
     }
-
 
 # 👇 new: upload avatar image, returns a URL
 @router.post("/upload-avatar")

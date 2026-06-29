@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Eye, EyeOff, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 const schema = z.object({
   email: z.string().trim().email("Enter a valid email"),
@@ -15,13 +16,25 @@ const schema = z.object({
 type FormVals = z.infer<typeof schema>;
 
 export default function WorkerLoginForm() {
+  const [alertState, setAlertState] = useState<{
+  open: boolean;
+  type: "error" | "server";
+  title: string;
+  description: string;
+}>({ open: false, type: "error", title: "", description: "" });
+
+const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const navigate = useNavigate();
   const { mockLoginAs } = useAuthStore();
   const [showPwd, setShowPwd] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormVals>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "worker@helpghar.pk", password: "demo123", remember: true },
+    defaultValues: { 
+      email: "", 
+      password: "", 
+      remember: false,
+},
   });
 
 const onSubmit = async (data: FormVals) => {
@@ -62,21 +75,25 @@ const onSubmit = async (data: FormVals) => {
 
       navigate("/dashboard/worker");
 
+    } else {
+
+      setAlertState({
+  open: true,
+  type: "error",
+  title: "Invalid credentials",
+  description: result.message || "The email or password you entered is incorrect. Please try again.",
+});
     }
 
-    else {
-
-      alert(result.message);
-
-    }
-
-  }
-
-  catch (error) {
+  }catch (error) {
 
     console.log(error);
-
-    alert("Unable to connect to server.");
+    setAlertState({
+  open: true,
+  type: "server",
+  title: "Something went wrong",
+  description: "We couldn't reach the server. Please check your connection and try again.",
+});
 
   }
 
@@ -131,6 +148,13 @@ const onSubmit = async (data: FormVals) => {
           <p className="text-center text-xs text-muted-foreground">Demo mode — any credentials log you in.</p>
         </form>
       </div>
+      <HgAlert
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+      />
 
       <style>{`
         .hg-input-worker{width:100%;height:48px;border-radius:12px;border:1px solid var(--input);background:var(--card);padding:0 14px;font-size:14px;outline:none;transition:.15s;}
