@@ -20,8 +20,7 @@ const baseCustomerSchema = z.object({
   phone: z.string().trim().min(10, "Enter a valid phone"),
   address: z.string().trim().min(5).max(200),
   password: z.string()
-    .min(8, "Min 8 chars")
-    .regex(/[A-Z]/, "Add an uppercase")
+    .min(6, "Min 6 chars")
     .regex(/\d/, "Add a number"),
   confirmPassword: z.string(),
 });
@@ -49,13 +48,13 @@ export default function RegisterPage() {
   const [role, setRole] = useState<UserRole>("customer");
   const [submitted, setSubmitted] = useState(false);
   const [alertState, setAlertState] = useState<{
-  open: boolean;
-  type: "error" | "server";
-  title: string;
-  description: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}>({ open: false, type: "error", title: "", description: "" });
+    open: boolean;
+    type: "error" | "server";
+    title: string;
+    description: string;
+    actionLabel?: string;
+    onAction?: () => void;
+  }>({ open: false, type: "error", title: "", description: "" });
 
   const schema = role === "worker" ? workerSchema : customerSchema;
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<any>({
@@ -93,14 +92,14 @@ export default function RegisterPage() {
 
       } else {
 
-       setAlertState({
+        setAlertState({
           open: true,
           type: "error",
           title: "Email already exists",
           description: "An account with this email is already registered. Try signing in instead, or use a different email.",
           actionLabel: "Sign in",
           onAction: () => navigate("/login"),  // add: import { useNavigate } from "react-router-dom" and const navigate = useNavigate()
-});
+        });
 
       }
 
@@ -113,7 +112,7 @@ export default function RegisterPage() {
         type: "server",
         title: "Something went wrong",
         description: "We couldn't reach the server. Please check your connection and try again.",
-});
+      });
 
     }
 
@@ -222,7 +221,7 @@ export default function RegisterPage() {
         description={alertState.description}
         actionLabel={alertState.actionLabel}
         onAction={alertState.onAction}
-/>
+      />
       <style>{`.hg-input{width:100%;height:44px;border-radius:12px;border:1px solid var(--input);background:var(--card);padding:0 14px;font-size:14px;outline:none;transition:.15s;}
       .hg-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in oklch,var(--primary) 18%,transparent);}`}</style>
     </MainLayout>
