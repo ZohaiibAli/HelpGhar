@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from config.db import db
 from routes.customer_routes import router as customer_router
 from routes.worker_routes import router as worker_router
-from routes.admin import router as admin_router
+from server.routes.admin_routes import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="HelpGhar API", version="1.0.0")
