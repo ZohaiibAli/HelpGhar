@@ -2,8 +2,8 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from config.db import db
-from routes.customer import router as customer_router
-from routes.worker import router as worker_router
+from routes.customer_routes import router as customer_router
+from routes.worker_routes import router as worker_router
 from routes.admin import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 

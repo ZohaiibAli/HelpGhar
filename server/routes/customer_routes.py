@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from config.db import customer_collection
 from model.customer_model import CustomerRegister, CustomerLogin
-from helper.password import hash_password, verify_password
+from helper.password_helper import hash_password, verify_password
 
 router = APIRouter(prefix="/customer", tags=["Customer"])
 

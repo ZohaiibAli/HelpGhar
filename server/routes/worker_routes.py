@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from config.db import worker_collection, gig_collection
 from model.worker_model import WorkerRegister, WorkerLogin, GigCreate
 from bson import ObjectId
-from helper.password import hash_password, verify_password
+from helper.password_helper import hash_password, verify_password
 import uuid
 import os
 
