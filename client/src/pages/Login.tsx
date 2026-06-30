@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import CustomerLoginForm from "@/pages/customer_login";
-import WorkerLoginForm from "@/pages/worker_login";
+import CustomerLoginForm from "@/pages/Customer_login";
+import WorkerLoginForm from "@/pages/Worker_login";
 import AdminLoginForm from "@/pages/Admin_login";
 import type { UserRole } from "@/types";
 
