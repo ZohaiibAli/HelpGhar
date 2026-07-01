@@ -25,7 +25,7 @@ export default function WorkerLoginForm() {
 
   const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const navigate = useNavigate();
-  const { mockLoginAs } = useAuthStore();
+  const { setSession } = useAuthStore();
   const [showPwd, setShowPwd] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormVals>({
@@ -62,14 +62,20 @@ export default function WorkerLoginForm() {
 
         localStorage.setItem("token", result.token);
 
-        localStorage.setItem(
-          "worker",
-          JSON.stringify(result.worker)
-        );
+          setSession(
+            {
+              id: result.worker.id,
+              fullName: result.worker.fullName,
+              email: result.worker.email,
+              phone: result.worker.phone,
+              address: result.worker.address,
+              role: "worker",
+              createdAt: result.worker.createdAt ?? new Date().toISOString(),
+            },
+            result.token
+          );
 
-        mockLoginAs("worker");
-
-        navigate("/dashboard/worker");
+          navigate("/dashboard/worker");
 
       } else {
 

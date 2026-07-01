@@ -87,6 +87,57 @@ def worker_login(worker: WorkerLogin):
         }
     }
 
+@router.get("/profile")
+def get_worker_profile(user=Depends(verify_token)):
+
+    if user["role"] != "worker":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
+    worker = worker_collection.find_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    if not worker:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Worker not found"
+        )
+
+    return {
+
+        "id": str(worker["_id"]),
+
+        "fullName": worker["fullName"],
+
+        "email": worker["email"],
+
+        "phone": worker["phone"],
+
+        "address": worker["address"],
+
+        "cnic": worker["cnic"],
+
+        "dob": worker["dob"],
+
+        "gender": worker["gender"],
+
+        "category": worker["category"],
+
+        "experience": worker["experience"],
+
+        "pricing": worker["pricing"],
+
+        "skills": worker["skills"]
+
+    }
+
 # 👇 new: upload avatar image, returns a URL
 @router.post("/upload-avatar")
 async def upload_avatar(file: UploadFile = File(...)):
