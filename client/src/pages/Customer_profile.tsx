@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { customerItems } from "@/data/customerMenu";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Camera } from "lucide-react";
@@ -405,7 +406,10 @@ export default function ProfilePage() {
   };
   if (!user) {
     return (
-      <MainLayout>
+      <DashboardLayout
+        title="Customer"
+        items={customerItems}
+      >
         <div className="flex h-screen flex-col items-center justify-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
 
@@ -417,12 +421,15 @@ export default function ProfilePage() {
             Please wait while we fetch your details.
           </p>
         </div>
-      </MainLayout>
+      </DashboardLayout>
     );
   }
 
   return (
-    <MainLayout>
+    <DashboardLayout
+      title="Customer"
+      items={customerItems}
+    >
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-black md:text-4xl">Profile</h1>
         <div className="mt-8 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -530,7 +537,7 @@ export default function ProfilePage() {
         title={alertState.title}
         description={alertState.description}
       />
-    </MainLayout>
+    </DashboardLayout>
   );
 }
 

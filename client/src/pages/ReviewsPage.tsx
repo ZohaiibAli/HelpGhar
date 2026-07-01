@@ -1,5 +1,6 @@
 import { Star } from "lucide-react";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { reviews } from "@/data/mock";
@@ -23,7 +24,10 @@ export default function ReviewsPage() {
   const [list, setList] = useState(reviews);
 
   return (
-    <MainLayout>
+    <DashboardLayout
+      title="Customer"
+      items={customerItems}
+    >
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8">
         <div>
           <h1 className="text-3xl font-black md:text-4xl">Reviews</h1>
@@ -91,6 +95,6 @@ export default function ReviewsPage() {
           </div>
         </aside>
       </div>
-    </MainLayout>
+    </DashboardLayout>
   );
 }

@@ -1,9 +1,13 @@
-import { MainLayout } from "@/components/layout/MainLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
 
 export default function SettingsPage() {
   return (
-    <MainLayout>
+    <DashboardLayout
+      title="Customer"
+      items={customerItems}
+    >
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-black md:text-4xl">Settings</h1>
         <p className="mt-2 text-sm text-muted-foreground">Manage notifications, language and security.</p>
@@ -32,7 +36,7 @@ export default function SettingsPage() {
           </Card>
         </div>
       </div>
-    </MainLayout>
+    </DashboardLayout>
   );
 }
 

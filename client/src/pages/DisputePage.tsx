@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { customerItems } from "@/data/customerMenu";
 import { complaints as seed } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import type { Complaint } from "@/types";
@@ -10,7 +11,10 @@ export default function DisputePage() {
   const [form, setForm] = useState({ workerName: "", subject: "", description: "" });
 
   return (
-    <MainLayout>
+    <DashboardLayout
+      title="Customer"
+      items={customerItems}
+    >
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:px-8">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-card">
@@ -58,7 +62,7 @@ export default function DisputePage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </DashboardLayout>
   );
 }
 
