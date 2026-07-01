@@ -16,7 +16,7 @@ cloudinary.config(
 def upload_image(file):
     result = cloudinary.uploader.upload(
         file.file,
-        folder="HelpGhar/workers"
+        folder="HelpGhar/gigs"
     )
 
     return result["secure_url"]
