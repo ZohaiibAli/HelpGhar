@@ -3,7 +3,8 @@ from config.db import customer_collection
 from model.customer_model import (
     CustomerRegister,
     CustomerLogin,
-    CustomerUpdate
+    CustomerUpdate,
+    ChangePassword
 )
 from helper.password_helper import hash_password, verify_password
 from helper.jwt_helper import create_access_token
@@ -141,7 +142,24 @@ def update_profile(
             status_code=403,
             detail="Customer Only"
         )
+    existing = customer_collection.find_one(
+    {
+        "email": customer.email,
+        "_id": {
+            "$ne": ObjectId(user["id"])
+        }
+    }
+)
 
+    if existing:
+
+        return {
+
+        "success": False,
+
+        "message": "Email already exists"
+
+ }
     customer_collection.update_one(
 
         {
@@ -156,8 +174,90 @@ def update_profile(
 
     return {
 
+    "success": True,
+
+    "message": "Profile Updated Successfully",
+
+    "user":{
+
+        "id":user["id"],
+
+        "fullName":customer.fullName,
+
+        "email":customer.email,
+
+        "phone":customer.phone,
+
+        "address":customer.address
+
+    }
+
+}
+
+@router.put("/change-password")
+def change_password(
+
+    password: ChangePassword,
+
+    user=Depends(verify_token)
+
+):
+
+    if user["role"] != "customer":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Customer Only"
+        )
+
+    customer = customer_collection.find_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    if not customer:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+
+    if not verify_password(
+        password.currentPassword,
+        customer["password"]
+    ):
+
+        return {
+
+            "success": False,
+
+            "message": "Current password is incorrect"
+
+        }
+
+    hashed = hash_password(
+        password.newPassword
+    )
+
+    customer_collection.update_one(
+
+        {
+            "_id": ObjectId(user["id"])
+        },
+
+        {
+            "$set": {
+                "password": hashed
+            }
+        }
+
+    )
+
+    return {
+
         "success": True,
 
-        "message": "Profile Updated Successfully"
+        "message": "Password Updated Successfully"
 
     }

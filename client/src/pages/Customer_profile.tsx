@@ -27,7 +27,183 @@ export default function ProfilePage() {
 
   const [address, setAddress] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const handleChangePassword = async () => {
+
+    if (!currentPassword || !newPassword) {
+
+      setAlertState({
+
+        open: true,
+
+        type: "error",
+
+        title: "Missing Fields",
+
+        description: "Please fill in both password fields."
+
+      });
+
+      return;
+
+    }
+
+    if (newPassword.length < 8) {
+
+      setAlertState({
+
+        open: true,
+
+        type: "error",
+
+        title: "Weak Password",
+
+        description:
+          "New password must be at least 8 characters."
+
+      });
+
+      return;
+
+    }
+
+    if (currentPassword === newPassword) {
+
+      setAlertState({
+
+        open: true,
+
+        type: "error",
+
+        title: "Invalid Password",
+
+        description:
+          "New password must be different from your current password."
+
+      });
+
+      return;
+
+    }
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+
+      navigate("/customer-login");
+
+      return;
+
+    }
+
+    setChangingPassword(true);
+
+    try {
+
+      const response = await fetch(
+
+        `${API_BASE_URL}/customer/change-password`,
+
+        {
+
+          method: "PUT",
+
+          headers: {
+
+            "Content-Type": "application/json",
+
+            Authorization: `Bearer ${token}`
+
+          },
+
+          body: JSON.stringify({
+
+            currentPassword,
+
+            newPassword
+
+          })
+
+        }
+
+      );
+
+      const result = await response.json();
+
+      if (response.status === 401) {
+
+        localStorage.removeItem("token");
+
+        navigate("/customer-login");
+
+        return;
+
+      }
+
+      if (result.success) {
+
+        setCurrentPassword("");
+
+        setNewPassword("");
+
+        setAlertState({
+
+          open: true,
+
+          type: "success",
+
+          title: "Password Updated",
+
+          description: result.message
+
+        });
+
+      }
+
+      else {
+
+        setAlertState({
+
+          open: true,
+
+          type: "error",
+
+          title: "Password Change Failed",
+
+          description: result.message
+
+        });
+
+      }
+
+    }
+
+    catch {
+
+      setAlertState({
+
+        open: true,
+
+        type: "server",
+
+        title: "Server Error",
+
+        description: "Unable to change password."
+
+      });
+
+    }
+
+    finally {
+
+      setChangingPassword(false);
+
+    }
+
+  }
 
   const [alertState, setAlertState] = useState<{
     open: boolean;
@@ -114,6 +290,7 @@ export default function ProfilePage() {
         setPhone(data.phone);
 
         setAddress(data.address);
+        setEmail(data.email);
 
       }
 
@@ -150,6 +327,7 @@ export default function ProfilePage() {
           },
           body: JSON.stringify({
             fullName,
+            email,
             phone,
             address,
           }),
@@ -173,7 +351,7 @@ export default function ProfilePage() {
           {
             id: user!.id,
             fullName,
-            email: user!.email,
+            email,
             phone,
             address,
             role: "customer",
@@ -272,9 +450,13 @@ export default function ProfilePage() {
 
                 />
                 <F
+
                   label="Email"
-                  value={user?.email ?? ""}
-                  onChange={() => { }}
+
+                  value={email}
+
+                  onChange={(e) => setEmail(e.target.value)}
+
                 />
                 <F
 
@@ -302,16 +484,31 @@ export default function ProfilePage() {
                   label="Current password"
                   type="password"
                   value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  onChange={(e) =>
+                    setCurrentPassword(e.target.value)
+                  }
                 />
 
                 <F
                   label="New password"
                   type="password"
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={(e) =>
+                    setNewPassword(e.target.value)
+                  }
                 />
               </Grid>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={changingPassword}
+                  className="bg-primary hover:bg-primary-dark"
+                >
+                  {changingPassword
+                    ? "Updating..."
+                    : "Change Password"}
+                </Button>
+              </div>
             </Card>
             <div className="flex justify-end gap-3">
               <Button variant="outline">Cancel</Button>

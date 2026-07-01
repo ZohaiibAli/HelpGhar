@@ -15,7 +15,13 @@ class CustomerLogin(BaseModel):
 class CustomerUpdate(BaseModel):
 
     fullName: str
-
+    email: EmailStr
     phone: str
 
     address: str
+
+class ChangePassword(BaseModel):
+
+    currentPassword: str
+
+    newPassword: str
