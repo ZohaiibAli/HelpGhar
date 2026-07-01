@@ -1,5 +1,3 @@
-// src/data/customerMenu.ts
-
 import {
   LayoutDashboard,
   Calendar,
