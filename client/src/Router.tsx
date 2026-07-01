@@ -15,6 +15,7 @@ import MyBookingsPage from "@/pages/MyBookings";
 import TransactionsPage from "@/pages/Transactions";
 import ReviewsPage from "@/pages/Customer_review";
 import DisputePage from "@/pages/DisputePage";
+import WorkerDisputePage from "@/pages/Worker_dispute";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import WorkerDashboard from "@/pages/WorkerDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -57,6 +58,7 @@ export default function AppRouter() {
       <Route path="/worker/reviews" element={<WorkerReviewsPage />} />
       <Route path="/worker/profile" element={<WorkerProfilePage />} />
       <Route path="/worker/settings" element={<WorkerSettingsPage />} />
+      <Route path="/worker/dispute" element={<WorkerDisputePage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

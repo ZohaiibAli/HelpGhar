@@ -12,7 +12,7 @@ import {
 
 const items = [
   { label: "Overview", to: "/dashboard/worker", icon: LayoutDashboard },
-  // { label: "Jobs", to: "/my-bookings", icon: Briefcase },
+  { label: "Dispute", to: "/worker/dispute", icon: Briefcase },
   { label: "Reviews", to: "/worker/reviews", icon: Star },
   { label: "Profile", to: "/worker/profile", icon: User },
   { label: "Settings", to: "/worker/settings", icon: Settings },

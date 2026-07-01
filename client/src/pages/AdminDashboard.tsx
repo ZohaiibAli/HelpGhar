@@ -8,11 +8,9 @@ import { Button } from "@/components/ui/button";
 const items = [
   { label: "Dashboard", to: "/dashboard/admin", icon: LayoutDashboard },
   { label: "Users", to: "/dashboard/admin", icon: Users },
-  { label: "Worker Verification", to: "/dashboard/admin", icon: ShieldCheck },
   { label: "Bookings", to: "/dashboard/admin", icon: Calendar },
-  { label: "Payments", to: "/dashboard/admin", icon: CreditCard },
-  { label: "Reviews", to: "/dashboard/admin", icon: Star },
   { label: "Complaints", to: "/dashboard/admin", icon: MessageSquareWarning },
+  { label: "Reviews", to: "/dashboard/admin", icon: Star },
   { label: "Analytics", to: "/dashboard/admin", icon: BarChart3 },
   { label: "Settings", to: "/dashboard/admin", icon: Settings },
 ];

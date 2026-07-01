@@ -12,6 +12,11 @@ export const workerItems = [
     icon: LayoutDashboard,
   },
   {
+    label: "Dispute",
+    to: "/worker/dispute",
+    icon: Star,
+  },
+  {
     label: "Reviews",
     to: "/worker/reviews",
     icon: Star,
