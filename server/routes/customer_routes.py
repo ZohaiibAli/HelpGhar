@@ -141,7 +141,24 @@ def update_profile(
             status_code=403,
             detail="Customer Only"
         )
+    existing = customer_collection.find_one(
+    {
+        "email": customer.email,
+        "_id": {
+            "$ne": ObjectId(user["id"])
+        }
+    }
+)
 
+    if existing:
+
+        return {
+
+        "success": False,
+
+        "message": "Email already exists"
+
+ }
     customer_collection.update_one(
 
         {
@@ -156,8 +173,22 @@ def update_profile(
 
     return {
 
-        "success": True,
+    "success": True,
 
-        "message": "Profile Updated Successfully"
+    "message": "Profile Updated Successfully",
+
+    "user":{
+
+        "id":user["id"],
+
+        "fullName":customer.fullName,
+
+        "email":customer.email,
+
+        "phone":customer.phone,
+
+        "address":customer.address
 
     }
+
+}

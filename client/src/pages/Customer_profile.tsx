@@ -27,6 +27,7 @@ export default function ProfilePage() {
 
   const [address, setAddress] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
   const [alertState, setAlertState] = useState<{
@@ -114,6 +115,7 @@ export default function ProfilePage() {
         setPhone(data.phone);
 
         setAddress(data.address);
+        setEmail(data.email);
 
       }
 
@@ -150,6 +152,7 @@ export default function ProfilePage() {
           },
           body: JSON.stringify({
             fullName,
+            email,
             phone,
             address,
           }),
@@ -173,7 +176,7 @@ export default function ProfilePage() {
           {
             id: user!.id,
             fullName,
-            email: user!.email,
+            email,
             phone,
             address,
             role: "customer",
@@ -272,9 +275,13 @@ export default function ProfilePage() {
 
                 />
                 <F
+
                   label="Email"
-                  value={user?.email ?? ""}
-                  onChange={() => { }}
+
+                  value={email}
+
+                  onChange={(e) => setEmail(e.target.value)}
+
                 />
                 <F
 
