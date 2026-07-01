@@ -26,27 +26,34 @@ export default function AdminLoginForm() {
     } = useForm<FormVals>({
         resolver: zodResolver(schema),
     });
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     const onSubmit = async (data: FormVals) => {
         try {
 
-            const response = await fetch(
-                "http://127.0.0.1:8000/admin/login",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        email: data.email,
-                        password: data.password,
-                    }),
-                }
-            );
+            const token = localStorage.getItem("token");
+
+            const response = await fetch(`${API_BASE_URL}/admin/login`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email: data.email,
+                    password: data.password,
+                }),
+            });
 
             const result = await response.json();
 
             if (result.success) {
+
+                localStorage.setItem("token", result.token);
+
+                localStorage.setItem(
+                    "admin",
+                    JSON.stringify(result.admin)
+                );
 
                 mockLoginAs("admin");
 

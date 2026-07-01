@@ -7,6 +7,9 @@ from bson import ObjectId
 from helper.password_helper import hash_password, verify_password
 import uuid
 import os
+from helper.jwt_helper import create_access_token
+from helper.auth_helper import verify_token
+from fastapi import HTTPException, Depends
 
 router = APIRouter(prefix="/worker", tags=["Worker"])
 
@@ -64,9 +67,18 @@ def worker_login(worker: WorkerLogin):
             "message": "Incorrect password"
         }
 
+    token = create_access_token(
+    {
+        "id": str(existing_worker["_id"]),
+        "email": existing_worker["email"],
+        "role": "worker"
+    }
+)
+
     return {
         "success": True,
         "message": "Login Successful",
+        "token": token,
         "worker": {
             "id": str(existing_worker["_id"]),
             "fullName": existing_worker["fullName"],
@@ -116,3 +128,16 @@ def get_gigs():
         del gig["_id"]
         gigs.append(gig)
     return {"success": True, "gigs": gigs}
+
+
+@router.get("/worker/profile")
+def profile(user=Depends(verify_token)):
+
+    if user["role"] != "worker":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
+    return user

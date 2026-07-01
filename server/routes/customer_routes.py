@@ -2,6 +2,9 @@ from fastapi import APIRouter
 from config.db import customer_collection
 from model.customer_model import CustomerRegister, CustomerLogin
 from helper.password_helper import hash_password, verify_password
+from helper.jwt_helper import create_access_token
+from helper.auth_helper import verify_token
+from fastapi import HTTPException, Depends
 
 router = APIRouter(prefix="/customer", tags=["Customer"])
 
@@ -58,12 +61,34 @@ def login_customer(customer: CustomerLogin):
             "message": "Incorrect password"
     }
 
+    token = create_access_token(
+    {
+        "id": str(existing["_id"]),
+        "email": existing["email"],
+        "role": "customer"
+    }
+)
+
     return {
         "success": True,
         "message": "Login Successful",
+        "token": token,
         "user": {
             "id": str(existing["_id"]),
             "fullName": existing["fullName"],
             "email": existing["email"]
         }
     }
+
+
+@router.get("/customer/profile")
+def profile(user=Depends(verify_token)):
+
+    if user["role"] != "customer":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Customer Only"
+        )
+
+    return user

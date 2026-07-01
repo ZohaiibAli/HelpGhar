@@ -43,29 +43,24 @@ export default function WorkerLoginForm() {
 
     try {
 
-      const response = await fetch(
-        `${API_BASE_URL}/worker/login`,
-        {
-          method: "POST",
+      const token = localStorage.getItem("token");
 
-          headers: {
-            "Content-Type": "application/json",
-          },
-
-          body: JSON.stringify({
-
-            email: data.email,
-
-            password: data.password,
-
-          }),
-
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/worker/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
 
       const result = await response.json();
 
       if (result.success) {
+
+        localStorage.setItem("token", result.token);
 
         localStorage.setItem(
           "worker",

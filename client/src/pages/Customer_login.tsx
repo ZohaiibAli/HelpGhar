@@ -43,27 +43,30 @@ export default function CustomerLoginForm() {
 
     try {
 
-      const response = await fetch(
-        `${API_BASE_URL}/customer/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: data.email,
-            password: data.password,
-          }),
-        }
-      );
+      const token = localStorage.getItem("token");
 
+      const response = await fetch(`${API_BASE_URL}/customer/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
       const result = await response.json();
 
       if (result.success) {
 
-        mockLoginAs("customer");
+        localStorage.setItem("token", result.token);
 
-        localStorage.setItem("customer", JSON.stringify(result.user));
+        localStorage.setItem(
+          "customer",
+          JSON.stringify(result.user)
+        );
+
+        mockLoginAs("customer");
 
         navigate("/dashboard/customer");
 
