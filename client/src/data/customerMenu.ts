@@ -1,3 +1,5 @@
+// this is customerMenu.ts
+
 import {
   LayoutDashboard,
   Calendar,

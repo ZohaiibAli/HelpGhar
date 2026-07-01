@@ -1,3 +1,5 @@
+// this is DashboardLayout.tsx
+
 import { Link, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
