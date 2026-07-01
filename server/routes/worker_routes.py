@@ -1,20 +1,15 @@
-# This is worker.py, which contains the routes for worker registration, login, and gig management. It uses FastAPI to define the API endpoints and interacts with a MongoDB database to store worker and gig information. The code also includes functionality for uploading avatar images and returning their URLs.
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import JSONResponse
 from config.db import worker_collection, gig_collection
 from model.worker_model import WorkerRegister, WorkerLogin, GigCreate, WorkerUpdate, WorkerPasswordUpdate
 from bson import ObjectId
 from helper.password_helper import hash_password, verify_password
-import uuid
-import os
+from helper.cloudinary_helper import upload_image
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
 
 router = APIRouter(prefix="/worker", tags=["Worker"])
-
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/register")
@@ -138,7 +133,6 @@ def get_worker_profile(user=Depends(verify_token)):
 
     }
 
-# 👇 new: update worker profile
 @router.put("/profile")
 def update_worker_profile(
 
@@ -251,42 +245,65 @@ def update_worker_password(
 
     }
 
-# 👇 save gig — avatar is now a short URL, not base64
 @router.post("/gig")
-def create_gig(gig: GigCreate):
+def create_gig(
+    gig: GigCreate,
+    user=Depends(verify_token)
+):
+    if user["role"] != "worker":
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
     gig_data = gig.dict()
-    
-    # Safety: if somehow base64 slips through, strip it
-    if gig_data.get("avatar", "").startswith("data:image"):
-        gig_data["avatar"] = ""
-    
+
     result = gig_collection.insert_one(gig_data)
+
     return {
         "success": True,
         "message": "Gig created successfully",
         "id": str(result.inserted_id)
     }
 
-
-# 👇 fetch all gigs
 @router.get("/gigs")
 def get_gigs():
     gigs = []
+
     for gig in gig_collection.find():
         gig["id"] = str(gig["_id"])
         del gig["_id"]
         gigs.append(gig)
-    return {"success": True, "gigs": gigs}
 
+    return {
+        "success": True,
+        "gigs": gigs
+    }
 
-@router.get("/worker/profile")
-def profile(user=Depends(verify_token)):
-
+@router.post("/upload-avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    user=Depends(verify_token)
+):
     if user["role"] != "worker":
+        raise HTTPException(status_code=403, detail="Worker Only")
 
-        raise HTTPException(
-            status_code=403,
-            detail="Worker Only"
-        )
+    image_url = upload_image(file)
 
-    return user
+    return {
+        "success": True,
+        "url": image_url
+    }
+
+
+# @router.get("/worker/profile")
+# def profile(user=Depends(verify_token)):
+
+#     if user["role"] != "worker":
+
+#         raise HTTPException(
+#             status_code=403,
+#             detail="Worker Only"
+#         )
+
+#     return user

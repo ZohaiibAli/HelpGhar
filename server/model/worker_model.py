@@ -1,4 +1,3 @@
-# this is worker_model.py file which contains the pydantic models for worker registration, login, and gig creation.
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 

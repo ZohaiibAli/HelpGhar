@@ -11,7 +11,7 @@ export const uploadAvatar = async (file: File): Promise<string> => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const token = localStorage.getItem("hg_token");
+  const token = localStorage.getItem("token");
 
   const response = await axios.post(
     `${API_BASE_URL}/worker/upload-avatar`,
@@ -31,7 +31,7 @@ export const uploadAvatar = async (file: File): Promise<string> => {
  * Create gig
  */
 export const createGig = async (gig: Omit<Worker, "id">) => {
-  const token = localStorage.getItem("hg_token");
+  const token = localStorage.getItem("token");
 
   const response = await axios.post(
     `${API_BASE_URL}/worker/gig`,
@@ -50,7 +50,7 @@ export const createGig = async (gig: Omit<Worker, "id">) => {
  * Get all gigs
  */
 export const getGigs = async (): Promise<Worker[]> => {
-  const token = localStorage.getItem("hg_token");
+  const token = localStorage.getItem("token");
 
   const response = await axios.get(
     `${API_BASE_URL}/worker/gigs`,
