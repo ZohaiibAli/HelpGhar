@@ -1,10 +1,15 @@
 from fastapi import APIRouter
 from config.db import customer_collection
-from model.customer_model import CustomerRegister, CustomerLogin
+from model.customer_model import (
+    CustomerRegister,
+    CustomerLogin,
+    CustomerUpdate
+)
 from helper.password_helper import hash_password, verify_password
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
+from bson import ObjectId
 
 router = APIRouter(prefix="/customer", tags=["Customer"])
 
@@ -81,8 +86,54 @@ def login_customer(customer: CustomerLogin):
     }
 
 
-@router.get("/customer/profile")
-def profile(user=Depends(verify_token)):
+@router.get("/profile")
+def get_profile(user=Depends(verify_token)):
+
+    #print("User received:", user)   # <-- ADD THIS
+
+    if user["role"] != "customer":
+
+
+        raise HTTPException(
+            status_code=403,
+            detail="Customer Only"
+        )
+
+    customer = customer_collection.find_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    if not customer:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+
+    return {
+
+        "id": str(customer["_id"]),
+
+        "fullName": customer["fullName"],
+
+        "email": customer["email"],
+
+        "phone": customer["phone"],
+
+        "address": customer["address"]
+
+    }
+
+@router.put("/profile")
+def update_profile(
+
+    customer: CustomerUpdate,
+
+    user=Depends(verify_token)
+
+):
 
     if user["role"] != "customer":
 
@@ -91,4 +142,22 @@ def profile(user=Depends(verify_token)):
             detail="Customer Only"
         )
 
-    return user
+    customer_collection.update_one(
+
+        {
+            "_id": ObjectId(user["id"])
+        },
+
+        {
+            "$set": customer.dict()
+        }
+
+    )
+
+    return {
+
+        "success": True,
+
+        "message": "Profile Updated Successfully"
+
+    }

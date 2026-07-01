@@ -26,6 +26,8 @@ def verify_token(
             algorithms=[ALGORITHM]
         )
 
+        #print("Decoded Payload:", payload)   # <-- ADD THIS
+
         return payload
 
     except JWTError:

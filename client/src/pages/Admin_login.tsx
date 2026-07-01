@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 const schema = z.object({
     email: z.string().trim().email("Enter a valid email"),
@@ -15,8 +16,16 @@ const schema = z.object({
 type FormVals = z.infer<typeof schema>;
 
 export default function AdminLoginForm() {
+    const [alertState, setAlertState] = useState<{
+        open: boolean;
+        type: "error" | "server";
+        title: string;
+        description: string;
+    }>({ open: false, type: "error", title: "", description: "" });
+
+    const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
     const navigate = useNavigate();
-    const { mockLoginAs } = useAuthStore();
+    const { setSession } = useAuthStore();
     const [showPwd, setShowPwd] = useState(false);
 
     const {
@@ -31,7 +40,7 @@ export default function AdminLoginForm() {
     const onSubmit = async (data: FormVals) => {
         try {
 
-            const token = localStorage.getItem("token");
+            // const token = localStorage.getItem("token");
 
             const response = await fetch(`${API_BASE_URL}/admin/login`, {
                 method: "POST",
@@ -48,20 +57,18 @@ export default function AdminLoginForm() {
 
             if (result.success) {
 
-                localStorage.setItem("token", result.token);
-
-                localStorage.setItem(
-                    "admin",
-                    JSON.stringify(result.admin)
-                );
-
-                mockLoginAs("admin");
+                setSession(result.admin, result.token);
 
                 navigate("/dashboard/admin");
 
             } else {
 
-                alert(result.message);
+                setAlertState({
+                    open: true,
+                    type: "error",
+                    title: "Invalid credentials",
+                    description: "The email or password you entered is incorrect. Please try again.",
+                });
 
             }
 
@@ -69,7 +76,12 @@ export default function AdminLoginForm() {
 
             console.log(error);
 
-            alert("Server Error");
+            setAlertState({
+                open: true,
+                type: "server",
+                title: "Something went wrong",
+                description: "We couldn't reach the server. Please check your connection and try again.",
+            });
 
         }
     };
@@ -120,6 +132,14 @@ export default function AdminLoginForm() {
                     <p className="text-center text-xs text-muted-foreground">Enter your administrator credentials to continue.</p>
                 </form>
             </div>
+
+            <HgAlert
+                open={alertState.open}
+                onClose={closeAlert}
+                type={alertState.type}
+                title={alertState.title}
+                description={alertState.description}
+            />
 
             <style>{`
         .hg-input-admin{width:100%;height:48px;border-radius:12px;border:1px solid var(--input);background:var(--card);padding:0 14px;font-size:14px;outline:none;transition:.15s;}

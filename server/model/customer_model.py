@@ -11,3 +11,11 @@ class CustomerRegister(BaseModel):
 class CustomerLogin(BaseModel):
     email: EmailStr
     password: str
+
+class CustomerUpdate(BaseModel):
+
+    fullName: str
+
+    phone: str
+
+    address: str
