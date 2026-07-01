@@ -19,3 +19,9 @@ class CustomerUpdate(BaseModel):
     phone: str
 
     address: str
+
+class ChangePassword(BaseModel):
+
+    currentPassword: str
+
+    newPassword: str
