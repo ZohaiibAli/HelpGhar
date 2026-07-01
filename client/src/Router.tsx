@@ -7,7 +7,7 @@ import PaymentPage from "@/pages/PaymentPage";
 import LoginPage from "@/pages/Login";
 import RegisterPage from "@/pages/Register";
 import ForgotPasswordPage from "@/pages/ForgotPassword";
-import ProfilePage from "@/pages/Profile";
+import ProfilePage from "@/pages/Customer_profile";
 import SettingsPage from "@/pages/Settings";
 import MyBookingsPage from "@/pages/MyBookings";
 import TransactionsPage from "@/pages/Transactions";

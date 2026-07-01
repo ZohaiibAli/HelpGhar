@@ -3,7 +3,7 @@ from config.db import admin_collection
 from model.admin_model import AdminLogin
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
-from helper.password_helper import verify_password
+#from helper.password_helper import verify_password
 from fastapi import HTTPException, Depends
 
 
@@ -28,14 +28,21 @@ def admin_login(admin: AdminLogin):
             "message": "Invalid Email or Password"
         }
 
-    if not verify_password(
-            admin.password,
-            admin_data["password"]
-        ):
+    #hashing password check
+    # if not verify_password(
+    #         admin.password,
+    #         admin_data["password"]
+    #     ):
+    #     return {
+    #         "success": False,
+    #         "message": "Invalid Email or Password"
+    #     }
+
+    if admin.password != admin_data["password"]:
         return {
             "success": False,
             "message": "Invalid Email or Password"
-        }
+    }
 
     token = create_access_token(
     {

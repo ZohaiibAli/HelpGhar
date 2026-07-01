@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 import { HgAlert } from "@/components/ui/HgAlert";
 
+
 const schema = z.object({
   email: z.string().trim().email("Enter a valid email"),
   password: z.string().min(6, "At least 6 characters"),
@@ -25,7 +26,7 @@ export default function CustomerLoginForm() {
 
   const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const navigate = useNavigate();
-  const { mockLoginAs } = useAuthStore();
+  const { setSession } = useAuthStore();
   const [showPwd, setShowPwd] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormVals>({
@@ -43,7 +44,7 @@ export default function CustomerLoginForm() {
 
     try {
 
-      const token = localStorage.getItem("token");
+      // const token = localStorage.getItem("token");
 
       const response = await fetch(`${API_BASE_URL}/customer/login`, {
         method: "POST",
@@ -59,16 +60,12 @@ export default function CustomerLoginForm() {
 
       if (result.success) {
 
+        setSession(result.user, result.token);
         localStorage.setItem("token", result.token);
 
-        localStorage.setItem(
-          "customer",
-          JSON.stringify(result.user)
-        );
-
-        mockLoginAs("customer");
-
         navigate("/dashboard/customer");
+
+
 
       } else {
 
