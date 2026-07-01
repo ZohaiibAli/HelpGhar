@@ -10,15 +10,17 @@ import RegisterPage from "@/pages/Register";
 import ForgotPasswordPage from "@/pages/ForgotPassword";
 import ProfilePage from "@/pages/Customer_profile";
 import WorkerProfilePage from "@/pages/Worker_profile";
-import SettingsPage from "@/pages/Settings";
+import SettingsPage from "@/pages/Customer_settings";
 import MyBookingsPage from "@/pages/MyBookings";
 import TransactionsPage from "@/pages/Transactions";
-import ReviewsPage from "@/pages/ReviewsPage";
+import ReviewsPage from "@/pages/Customer_review";
 import DisputePage from "@/pages/DisputePage";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import WorkerDashboard from "@/pages/WorkerDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/NotFound";
+import WorkerSettingsPage from "./pages/Worker_settings";
+import WorkerReviewsPage from "./pages/Worker_review";
 
 function ProfileRouter() {
   const { user } = useAuthStore();
@@ -51,6 +53,10 @@ export default function AppRouter() {
       <Route path="/dashboard/customer" element={<CustomerDashboard />} />
       <Route path="/dashboard/worker" element={<WorkerDashboard />} />
       <Route path="/dashboard/admin" element={<AdminDashboard />} />
+      <Route path="/dashboard/worker" element={<WorkerDashboard />} />
+      <Route path="/worker/reviews" element={<WorkerReviewsPage />} />
+      <Route path="/worker/profile" element={<WorkerProfilePage />} />
+      <Route path="/worker/settings" element={<WorkerSettingsPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

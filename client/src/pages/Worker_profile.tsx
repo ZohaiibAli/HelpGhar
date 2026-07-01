@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { workerItems } from "@/data/workerMenu";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Camera, Upload } from "lucide-react";
@@ -210,7 +211,7 @@ export default function WorkerProfilePage() {
 
   if (!user) {
     return (
-      <MainLayout>
+      <DashboardLayout title="Worker" items={workerItems}>
         <div className="flex h-screen flex-col items-center justify-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
           <h2 className="text-lg font-semibold">Loading your profile...</h2>
@@ -218,12 +219,12 @@ export default function WorkerProfilePage() {
             Please wait while we fetch your details.
           </p>
         </div>
-      </MainLayout>
+      </DashboardLayout>
     );
   }
 
   return (
-    <MainLayout>
+    <DashboardLayout title="Worker" items={workerItems}>
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-black md:text-4xl">Profile</h1>
 
@@ -356,7 +357,7 @@ export default function WorkerProfilePage() {
         title={alertState.title}
         description={alertState.description}
         />
-    </MainLayout>
+    </DashboardLayout>
   );
 }
 

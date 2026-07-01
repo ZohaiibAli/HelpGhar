@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
 
-export default function SettingsPage() {
+export default function CustomerSettingsPage() {
   return (
     <DashboardLayout
       title="Customer"
