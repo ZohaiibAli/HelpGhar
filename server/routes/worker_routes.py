@@ -2,7 +2,7 @@
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import JSONResponse
 from config.db import worker_collection, gig_collection
-from model.worker_model import WorkerRegister, WorkerLogin, GigCreate, WorkerUpdate
+from model.worker_model import WorkerRegister, WorkerLogin, GigCreate, WorkerUpdate, WorkerPasswordUpdate
 from bson import ObjectId
 from helper.password_helper import hash_password, verify_password
 import uuid
@@ -143,14 +143,34 @@ def get_worker_profile(user=Depends(verify_token)):
 def update_worker_profile(
 
     worker: WorkerUpdate,
+
     user=Depends(verify_token)
+
 ):
+
     if user["role"] != "worker":
 
         raise HTTPException(
             status_code=403,
             detail="Worker Only"
         )
+
+    if worker.email:
+
+        existing_email = worker_collection.find_one(
+            {
+                "email": worker.email,
+                "_id": {"$ne": ObjectId(user["id"])}
+            }
+        )
+
+        if existing_email:
+
+            raise HTTPException(
+                status_code=400,
+                detail="Email already in use"
+            )
+
     worker_collection.update_one(
 
         {
@@ -162,26 +182,74 @@ def update_worker_profile(
         }
 
     )
+
     return {
 
         "success": True,
+
         "message": "Profile Updated Successfully"
     }
 
-# 👇 new: upload avatar image, returns a URL
-@router.post("/upload-avatar")
-async def upload_avatar(file: UploadFile = File(...)):
-    ext = os.path.splitext(file.filename)[1]  # e.g. .jpg .png
-    filename = f"{uuid.uuid4()}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
-    
-    with open(filepath, "wb") as f:
-        content = await file.read()
-        f.write(content)
-    
-    url = f"http://localhost:8000/uploads/{filename}"
-    return {"success": True, "url": url}
+@router.put("/password")
+def update_worker_password(
 
+    payload: WorkerPasswordUpdate,
+
+    user=Depends(verify_token)
+
+):
+
+    if user["role"] != "worker":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
+    worker = worker_collection.find_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    if not worker:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Worker not found"
+        )
+
+    if not verify_password(
+        payload.currentPassword,
+        worker["password"]
+    ):
+
+        raise HTTPException(
+            status_code=401,
+            detail="Current password is incorrect"
+        )
+
+    worker_collection.update_one(
+
+        {
+            "_id": ObjectId(user["id"])
+        },
+
+        {
+            "$set": {
+                "password": hash_password(payload.newPassword)
+            }
+        }
+
+    )
+
+    return {
+
+        "success": True,
+
+        "message": "Password Updated Successfully"
+
+    }
 
 # 👇 save gig — avatar is now a short URL, not base64
 @router.post("/gig")

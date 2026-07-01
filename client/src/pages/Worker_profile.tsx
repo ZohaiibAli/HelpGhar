@@ -33,6 +33,10 @@ export default function WorkerProfilePage() {
   const [experience, setExperience] = useState("");
   const [pricing, setPricing] = useState("");
   const [skills, setSkills] = useState("");
+  const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [savingCredentials, setSavingCredentials] = useState(false);
 
   const [user, setUser] = useState<WorkerProfile | null>(null);
   const [saving, setSaving] = useState(false);
@@ -42,14 +46,14 @@ export default function WorkerProfilePage() {
     title: string;
     description: string;
   }>({
-  open: false,
-  type: "success",
-  title: "",
-  description: "",
-});
+    open: false,
+    type: "success",
+    title: "",
+    description: "",
+  });
 
   const closeAlert = () =>
-  setAlertState((s) => ({ ...s, open: false }));
+    setAlertState((s) => ({ ...s, open: false }));
   const navigate = useNavigate();
   const { token, setSession } = useAuthStore();
 
@@ -91,6 +95,7 @@ export default function WorkerProfilePage() {
         setExperience(data.experience);
         setPricing(data.pricing);
         setSkills(data.skills);
+        setEmail(data.email);
       } catch (error) {
         console.error(error);
       }
@@ -98,30 +103,71 @@ export default function WorkerProfilePage() {
 
     fetchProfile();
   }, []);
- 
+
   const handleUpdate = async () => {
 
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  if (!token) {
-    navigate("/login/worker");
-    return;
-  }
+    if (!token) {
+      navigate("/login/worker");
+      return;
+    }
 
-  setSaving(true);
+    setSaving(true);
 
-  try {
+    try {
 
-    const response = await fetch(
-      `${API_BASE_URL}/worker/profile`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const response = await fetch(
+        `${API_BASE_URL}/worker/profile`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            fullName,
+            email,
+            phone,
+            address,
+            cnic,
+            dob,
+            gender,
+            category,
+            experience,
+            pricing,
+            skills,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login/worker");
+        return;
+      }
+
+      if (response.ok) {
+
+        setSession(
+          {
+            id: user!.id,
+            fullName,
+            email,
+            phone,
+            address,
+            role: "worker",
+            createdAt: new Date().toISOString(),
+          },
+          token
+        );
+
+        setUser({
+          ...user!,
           fullName,
+          email,
           phone,
           address,
           cnic,
@@ -131,83 +177,142 @@ export default function WorkerProfilePage() {
           experience,
           pricing,
           skills,
-        }),
+        });
+
+        setAlertState({
+          open: true,
+          type: "success",
+          title: "Profile Updated",
+          description: result.message,
+        });
+
+      } else {
+
+        setAlertState({
+          open: true,
+          type: "error",
+          title: "Update Failed",
+          description: result.detail || result.message,
+        });
+
       }
-    );
 
-    const result = await response.json();
+    } catch (error) {
 
-    if (response.status === 401) {
-      localStorage.removeItem("token");
+      console.log(error);
+
+      setAlertState({
+        open: true,
+        type: "server",
+        title: "Server Error",
+        description: "Unable to update profile.",
+      });
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
+  };
+
+  const handlePasswordUpdate = async () => {
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
       navigate("/login/worker");
       return;
     }
 
-    if (response.ok) {
-
-      setSession(
-        {
-          id: user!.id,
-          fullName,
-          email: user!.email,
-          phone,
-          address,
-          role: "worker",
-          createdAt: new Date().toISOString(),
-        },
-        token
-      );
-
-      setUser({
-        ...user!,
-        fullName,
-        phone,
-        address,
-        cnic,
-        dob,
-        gender,
-        category,
-        experience,
-        pricing,
-        skills,
-      });
-
-      setAlertState({
-        open: true,
-        type: "success",
-        title: "Profile Updated",
-        description: result.message,
-      });
-
-    } else {
+    if (!currentPassword || !newPassword) {
 
       setAlertState({
         open: true,
         type: "error",
-        title: "Update Failed",
-        description: result.detail || result.message,
+        title: "Missing fields",
+        description: "Please enter both your current and new password.",
       });
+
+      return;
 
     }
 
-  } catch (error) {
+    setSavingCredentials(true);
 
-    console.log(error);
+    try {
 
-    setAlertState({
-      open: true,
-      type: "server",
-      title: "Server Error",
-      description: "Unable to update profile.",
-    });
+      const response = await fetch(
+        `${API_BASE_URL}/worker/password`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+          }),
+        }
+      );
 
-  } finally {
+      const result = await response.json();
 
-    setSaving(false);
+      if (response.status === 401) {
 
-  }
+        setAlertState({
+          open: true,
+          type: "error",
+          title: "Incorrect password",
+          description: result.detail || "Current password is incorrect.",
+        });
 
-};
+        return;
+
+      }
+
+      if (response.ok) {
+
+        setCurrentPassword("");
+        setNewPassword("");
+
+        setAlertState({
+          open: true,
+          type: "success",
+          title: "Password Updated",
+          description: result.message,
+        });
+
+      } else {
+
+        setAlertState({
+          open: true,
+          type: "error",
+          title: "Update Failed",
+          description: result.detail || result.message,
+        });
+
+      }
+
+    } catch (error) {
+
+      console.log(error);
+
+      setAlertState({
+        open: true,
+        type: "server",
+        title: "Server Error",
+        description: "Unable to update password.",
+      });
+
+    } finally {
+
+      setSavingCredentials(false);
+
+    }
+
+  };
 
   if (!user) {
     return (
@@ -253,7 +358,7 @@ export default function WorkerProfilePage() {
             <Card title="Personal information">
               <Grid>
                 <F label="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-                <F label="Email" value={user?.email ?? ""} onChange={() => {}} />
+                <F label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
                 <F label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 <F label="Address" value={address} onChange={(e) => setAddress(e.target.value)} />
               </Grid>
@@ -321,12 +426,33 @@ export default function WorkerProfilePage() {
               />
             </Card>
 
-            {/* Change Password Card */}
             <Card title="Change password">
               <Grid>
-                <F label="Current password" type="password" value="" onChange={() => {}} />
-                <F label="New password" type="password" value="" onChange={() => {}} />
+                <F
+                  label="Current password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                />
+                <F
+                  label="New password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                />
               </Grid>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={handlePasswordUpdate}
+                  disabled={savingCredentials}
+                  className="bg-primary hover:bg-primary-dark"
+                >
+                  {savingCredentials ? "Saving..." : "Change Password"}
+                </Button>
+              </div>
             </Card>
 
             <Card title="Documents">
@@ -338,15 +464,15 @@ export default function WorkerProfilePage() {
             </Card>
 
             <div className="flex justify-end gap-3">
-                <Button variant="outline">Cancel</Button>
-                <Button
-                    onClick={handleUpdate}
-                    disabled={saving}
-                    className="bg-primary hover:bg-primary-dark"
-                >
-                    {saving ? "Saving..." : "Save Changes"}
-                </Button>
-                </div>
+              <Button variant="outline">Cancel</Button>
+              <Button
+                onClick={handleUpdate}
+                disabled={saving}
+                className="bg-primary hover:bg-primary-dark"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

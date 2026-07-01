@@ -22,6 +22,7 @@ class WorkerLogin(BaseModel):
     
 class WorkerUpdate(BaseModel):
     fullName: str
+    email: EmailStr
     phone: str
     address: str
     cnic: str
@@ -31,6 +32,11 @@ class WorkerUpdate(BaseModel):
     experience: str
     pricing: str
     skills: str
+
+class WorkerPasswordUpdate(BaseModel):
+    currentPassword: str
+    newPassword: str
+    
 # 👇 new
 class GigCreate(BaseModel):
     fullName: str
