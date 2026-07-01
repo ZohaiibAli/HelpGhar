@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { useAuthStore } from "@/store/authStore";
 import LandingPage from "@/pages/LandingPage";
 import ServicesPage from "@/pages/Services";
 import WorkerDetailsPage from "@/pages/WorkerDetails";
@@ -8,6 +9,7 @@ import LoginPage from "@/pages/Login";
 import RegisterPage from "@/pages/Register";
 import ForgotPasswordPage from "@/pages/ForgotPassword";
 import ProfilePage from "@/pages/Customer_profile";
+import WorkerProfilePage from "@/pages/Worker_profile";
 import SettingsPage from "@/pages/Settings";
 import MyBookingsPage from "@/pages/MyBookings";
 import TransactionsPage from "@/pages/Transactions";
@@ -17,6 +19,16 @@ import CustomerDashboard from "@/pages/CustomerDashboard";
 import WorkerDashboard from "@/pages/WorkerDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/NotFound";
+
+function ProfileRouter() {
+  const { user } = useAuthStore();
+
+  if (user?.role === "worker") {
+    return <WorkerProfilePage />;
+  }
+
+  return <ProfilePage />;
+}
 
 export default function AppRouter() {
   return (
@@ -30,7 +42,7 @@ export default function AppRouter() {
       <Route path="/login/:role" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/profile" element={<ProfileRouter />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/my-bookings" element={<MyBookingsPage />} />
       <Route path="/transactions" element={<TransactionsPage />} />

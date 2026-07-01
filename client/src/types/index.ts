@@ -11,6 +11,15 @@ export interface User {
   avatar?: string;
   role: UserRole;
   createdAt: string;
+
+  cnic?: string;
+  dob?: string;
+  gender?: "Male" | "Female";
+  category?: WorkerCategory;
+  experience?: string;
+  pricing?: string;
+  skills?: string;
+
 }
 
 export type WorkerCategory =
