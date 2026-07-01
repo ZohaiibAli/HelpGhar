@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { LayoutDashboard, Calendar, CreditCard, Star, MessageSquareWarning, User, Settings, Bell, ArrowRight } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { bookings, notifications } from "@/data/mock";
+import { customerItems } from "@/data/customerMenu";
 
 const items = [
   { label: "Overview", to: "/dashboard/customer", icon: LayoutDashboard },
@@ -15,7 +16,10 @@ const items = [
 
 export default function CustomerDashboard() {
   return (
-    <DashboardLayout title="Customer" items={items}>
+    <DashboardLayout
+      title="Customer"
+      items={customerItems}
+    >
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-black md:text-3xl">Welcome back 👋</h1>

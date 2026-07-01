@@ -58,9 +58,9 @@ export function Navbar() {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1.5 text-sm hover:bg-accent/40">
                   <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">
-                    {user.fullName.charAt(0)}
+                    {(user.fullName ?? "U").charAt(0)}
                   </span>
-                  <span className="pr-2 font-medium">{user.fullName.split(" ")[0]}</span>
+                  <span className="pr-2 font-medium">{(user.fullName ?? "User").split(" ")[0]}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">

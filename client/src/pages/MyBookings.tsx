@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, MapPin, X } from "lucide-react";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { customerItems } from "@/data/customerMenu";
 import { bookings } from "@/data/mock";
 import type { Booking, BookingStatus } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,10 @@ export default function MyBookingsPage() {
   const filtered = bookings.filter(b => tab === "upcoming" ? isUpcoming(b.status) : b.status === tab);
 
   return (
-    <MainLayout>
+    <DashboardLayout
+      title="Customer"
+      items={customerItems}
+    >
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -48,7 +52,7 @@ export default function MyBookingsPage() {
           {filtered.map(b => <BookingRow key={b.id} booking={b} />)}
         </div>
       </div>
-    </MainLayout>
+    </DashboardLayout>
   );
 }
 

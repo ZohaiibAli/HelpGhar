@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { customerItems } from "@/data/customerMenu";
 import { transactions } from "@/data/mock";
 import type { PaymentStatus } from "@/types";
 
@@ -12,8 +13,12 @@ export default function TransactionsPage() {
   const [filter, setFilter] = useState<typeof filters[number]["id"]>("all");
   const rows = transactions.filter(t => filter === "all" || t.status === filter);
 
+
   return (
-    <MainLayout>
+    <DashboardLayout
+      title="Customer"
+      items={customerItems}
+    >
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-black md:text-4xl">Transactions</h1>
         <p className="mt-2 text-sm text-muted-foreground">All your payments in one place.</p>
@@ -49,7 +54,7 @@ export default function TransactionsPage() {
           </table>
         </div>
       </div>
-    </MainLayout>
+    </DashboardLayout>
   );
 }
 

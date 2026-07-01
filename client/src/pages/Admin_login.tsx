@@ -40,7 +40,7 @@ export default function AdminLoginForm() {
     const onSubmit = async (data: FormVals) => {
         try {
 
-            // const token = localStorage.getItem("token");
+            const token = localStorage.getItem("token");
 
             const response = await fetch(`${API_BASE_URL}/admin/login`, {
                 method: "POST",
@@ -58,6 +58,7 @@ export default function AdminLoginForm() {
             if (result.success) {
 
                 setSession(result.admin, result.token);
+                console.log(result.admin);
 
                 navigate("/dashboard/admin");
 
