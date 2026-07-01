@@ -19,7 +19,18 @@ class WorkerRegister(BaseModel):
 class WorkerLogin(BaseModel):
     email: EmailStr
     password: str
-
+    
+class WorkerUpdate(BaseModel):
+    fullName: str
+    phone: str
+    address: str
+    cnic: str
+    dob: str
+    gender: str
+    category: str
+    experience: str
+    pricing: str
+    skills: str
 # 👇 new
 class GigCreate(BaseModel):
     fullName: str

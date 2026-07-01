@@ -4,6 +4,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Camera, Upload } from "lucide-react";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 interface WorkerProfile {
   id: string;
@@ -33,8 +34,23 @@ export default function WorkerProfilePage() {
   const [skills, setSkills] = useState("");
 
   const [user, setUser] = useState<WorkerProfile | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [alertState, setAlertState] = useState<{
+    open: boolean;
+    type: "success" | "error" | "server";
+    title: string;
+    description: string;
+  }>({
+  open: false,
+  type: "success",
+  title: "",
+  description: "",
+});
+
+  const closeAlert = () =>
+  setAlertState((s) => ({ ...s, open: false }));
   const navigate = useNavigate();
-  const { token } = useAuthStore();
+  const { token, setSession } = useAuthStore();
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -81,6 +97,116 @@ export default function WorkerProfilePage() {
 
     fetchProfile();
   }, []);
+ 
+  const handleUpdate = async () => {
+
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    navigate("/login/worker");
+    return;
+  }
+
+  setSaving(true);
+
+  try {
+
+    const response = await fetch(
+      `${API_BASE_URL}/worker/profile`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fullName,
+          phone,
+          address,
+          cnic,
+          dob,
+          gender,
+          category,
+          experience,
+          pricing,
+          skills,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.status === 401) {
+      localStorage.removeItem("token");
+      navigate("/login/worker");
+      return;
+    }
+
+    if (response.ok) {
+
+      setSession(
+        {
+          id: user!.id,
+          fullName,
+          email: user!.email,
+          phone,
+          address,
+          role: "worker",
+          createdAt: new Date().toISOString(),
+        },
+        token
+      );
+
+      setUser({
+        ...user!,
+        fullName,
+        phone,
+        address,
+        cnic,
+        dob,
+        gender,
+        category,
+        experience,
+        pricing,
+        skills,
+      });
+
+      setAlertState({
+        open: true,
+        type: "success",
+        title: "Profile Updated",
+        description: result.message,
+      });
+
+    } else {
+
+      setAlertState({
+        open: true,
+        type: "error",
+        title: "Update Failed",
+        description: result.detail || result.message,
+      });
+
+    }
+
+  } catch (error) {
+
+    console.log(error);
+
+    setAlertState({
+      open: true,
+      type: "server",
+      title: "Server Error",
+      description: "Unable to update profile.",
+    });
+
+  } finally {
+
+    setSaving(false);
+
+  }
+
+};
 
   if (!user) {
     return (
@@ -211,14 +337,25 @@ export default function WorkerProfilePage() {
             </Card>
 
             <div className="flex justify-end gap-3">
-              <Button variant="outline">Cancel</Button>
-              <Button className="bg-primary hover:bg-primary-dark">
-                Save changes
-              </Button>
-            </div>
+                <Button variant="outline">Cancel</Button>
+                <Button
+                    onClick={handleUpdate}
+                    disabled={saving}
+                    className="bg-primary hover:bg-primary-dark"
+                >
+                    {saving ? "Saving..." : "Save Changes"}
+                </Button>
+                </div>
           </div>
         </div>
       </div>
+      <HgAlert
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+        />
     </MainLayout>
   );
 }

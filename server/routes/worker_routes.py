@@ -2,7 +2,7 @@
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import JSONResponse
 from config.db import worker_collection, gig_collection
-from model.worker_model import WorkerRegister, WorkerLogin, GigCreate
+from model.worker_model import WorkerRegister, WorkerLogin, GigCreate, WorkerUpdate
 from bson import ObjectId
 from helper.password_helper import hash_password, verify_password
 import uuid
@@ -136,6 +136,36 @@ def get_worker_profile(user=Depends(verify_token)):
 
         "skills": worker["skills"]
 
+    }
+
+# 👇 new: update worker profile
+@router.put("/profile")
+def update_worker_profile(
+
+    worker: WorkerUpdate,
+    user=Depends(verify_token)
+):
+    if user["role"] != "worker":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+    worker_collection.update_one(
+
+        {
+            "_id": ObjectId(user["id"])
+        },
+
+        {
+            "$set": worker.dict()
+        }
+
+    )
+    return {
+
+        "success": True,
+        "message": "Profile Updated Successfully"
     }
 
 # 👇 new: upload avatar image, returns a URL
