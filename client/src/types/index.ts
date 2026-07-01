@@ -1,5 +1,3 @@
-// Shared domain types for HelpGhar
-
 export type UserRole = "customer" | "worker" | "admin";
 
 export interface User {

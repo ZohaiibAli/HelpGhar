@@ -1,3 +1,5 @@
+// this is mock.ts
+
 import type {
   Worker, Booking, Transaction, Review, Complaint,
   NotificationItem, WorkerCategory,

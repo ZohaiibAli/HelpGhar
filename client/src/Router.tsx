@@ -19,6 +19,12 @@ import WorkerDisputePage from "@/pages/Worker_dispute";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import WorkerDashboard from "@/pages/WorkerDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminUsers from "@/pages/Admin_users";
+import AdminBookings from "@/pages/Admin_bookings";
+import AdminComplaints from "@/pages/Admin_complaints";
+import AdminReviews from "@/pages/Admin_reviews";
+import AdminAnalytics from "@/pages/Admin_analytics";
+import AdminSettings from "@/pages/Admin_settings";
 import NotFound from "@/pages/NotFound";
 import WorkerSettingsPage from "./pages/Worker_settings";
 import WorkerReviewsPage from "./pages/Worker_review";
@@ -41,7 +47,7 @@ export default function AppRouter() {
       <Route path="/workers/:id" element={<WorkerDetailsPage />} />
       <Route path="/booking" element={<BookingPage />} />
       <Route path="/payment" element={<PaymentPage />} />
-      <Route path="/login" element={<LoginPage />} />  // auto-redirects → /login/customer
+      <Route path="/login" element={<LoginPage />} />
       <Route path="/login/:role" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -54,7 +60,12 @@ export default function AppRouter() {
       <Route path="/dashboard/customer" element={<CustomerDashboard />} />
       <Route path="/dashboard/worker" element={<WorkerDashboard />} />
       <Route path="/dashboard/admin" element={<AdminDashboard />} />
-      <Route path="/dashboard/worker" element={<WorkerDashboard />} />
+      <Route path="/dashboard/admin/users" element={<AdminUsers />} />
+      <Route path="/dashboard/admin/bookings" element={<AdminBookings />} />
+      <Route path="/dashboard/admin/complaints" element={<AdminComplaints />} />
+      <Route path="/dashboard/admin/reviews" element={<AdminReviews />} />
+      <Route path="/dashboard/admin/analytics" element={<AdminAnalytics />} />
+      <Route path="/dashboard/admin/settings" element={<AdminSettings />} />
       <Route path="/worker/reviews" element={<WorkerReviewsPage />} />
       <Route path="/worker/profile" element={<WorkerProfilePage />} />
       <Route path="/worker/settings" element={<WorkerSettingsPage />} />

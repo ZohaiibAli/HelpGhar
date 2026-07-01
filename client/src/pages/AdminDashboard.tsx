@@ -1,20 +1,10 @@
-import { LayoutDashboard, Users, ShieldCheck, Calendar, CreditCard, Star, MessageSquareWarning, BarChart3, Settings, TrendingUp, DollarSign } from "lucide-react";
+import { Users, ShieldCheck, Calendar, Star, MessageSquareWarning, BarChart3, TrendingUp, DollarSign } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { complaints } from "@/data/mock";
 import { useEffect } from "react";
 import { useGigStore } from "@/store/gigStore";
 import { Button } from "@/components/ui/button";
-
-const items = [
-  { label: "Dashboard", to: "/dashboard/admin", icon: LayoutDashboard },
-  { label: "Users", to: "/dashboard/admin", icon: Users },
-  { label: "Bookings", to: "/dashboard/admin", icon: Calendar },
-  { label: "Complaints", to: "/dashboard/admin", icon: MessageSquareWarning },
-  { label: "Reviews", to: "/dashboard/admin", icon: Star },
-  { label: "Analytics", to: "/dashboard/admin", icon: BarChart3 },
-  { label: "Settings", to: "/dashboard/admin", icon: Settings },
-];
-
+import { adminItems } from "@/data/adminMenu";
 
 export default function AdminDashboard() {
   const gigs = useGigStore((state) => state.gigs);
@@ -25,7 +15,7 @@ export default function AdminDashboard() {
   }, [fetchGigs]);
 
   return (
-    <DashboardLayout title="Admin" items={items}>
+    <DashboardLayout title="Admin" items={adminItems}>
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-black md:text-3xl">Admin overview</h1>
