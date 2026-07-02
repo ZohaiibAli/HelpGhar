@@ -2,14 +2,8 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Trash2, X } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
-import { complaints as customerComplaintsData } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import type { Complaint } from "@/types";
-
-const workerComplaintsData: Complaint[] = [
-  { id: "W-101", customerName: "Hassan Iqbal", workerName: "Ayesha Khan", subject: "Unreasonable refund request", description: "Customer demanded a full refund despite completed service.", status: "open", date: "2025-11-19" },
-  { id: "W-102", customerName: "Omar Sheikh", workerName: "Bilal Ahmed", subject: "Unsafe pickup location", description: "Pickup address was in an unsafe area, requested reassignment.", status: "in_review", date: "2025-11-23" },
-];
 
 const statusStyles: Record<Complaint["status"], string> = {
   open: "bg-red-100 text-red-700",
@@ -81,9 +75,45 @@ function ComplaintSection({
 }
 
 export default function AdminComplaints() {
-  const [customerComplaints, setCustomerComplaints] = useState(customerComplaintsData);
-  const [workerComplaints, setWorkerComplaints] = useState(workerComplaintsData);
+  const [customerComplaints, setCustomerComplaints] = useState<Complaint[]>([]);
+  const [workerComplaints, setWorkerComplaints] = useState<Complaint[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  const fetchCustomerDisputes = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/admin/disputes/customer`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setCustomerComplaints(result.complaints);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const fetchWorkerDisputes = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/admin/disputes/worker`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (result.success) {
+        setWorkerComplaints(result.complaints);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomerDisputes();
+    fetchWorkerDisputes();
+  }, []);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -91,17 +121,41 @@ export default function AdminComplaints() {
     return () => clearTimeout(t);
   }, [successMessage]);
 
-  function resolve(id: string, source: "customer" | "worker") {
-    const updater = (list: Complaint[]) =>
-      list.map((c) => (c.id === id ? { ...c, status: "resolved" as const } : c));
-    if (source === "customer") setCustomerComplaints(updater);
-    else setWorkerComplaints(updater);
-    setSuccessMessage(`Complaint #${id} has been resolved.`);
+  async function resolve(id: string, source: "customer" | "worker") {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/admin/dispute/${id}/resolve`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (result.success) {
+        const updater = (list: Complaint[]) =>
+          list.map((c) => (c.id === id ? { ...c, status: "resolved" as const } : c));
+        if (source === "customer") setCustomerComplaints(updater);
+        else setWorkerComplaints(updater);
+        setSuccessMessage(`Complaint #${id} has been resolved.`);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  function remove(id: string, source: "customer" | "worker") {
-    if (source === "customer") setCustomerComplaints((list) => list.filter((c) => c.id !== id));
-    else setWorkerComplaints((list) => list.filter((c) => c.id !== id));
+  async function remove(id: string, source: "customer" | "worker") {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/admin/dispute/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (result.success) {
+        if (source === "customer") setCustomerComplaints((list) => list.filter((c) => c.id !== id));
+        else setWorkerComplaints((list) => list.filter((c) => c.id !== id));
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   return (
