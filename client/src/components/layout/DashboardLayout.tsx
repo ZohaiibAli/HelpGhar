@@ -1,9 +1,10 @@
 // this is DashboardLayout.tsx
 
-import { Link, useLocation } from "react-router-dom";
-import type { ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, type ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { Navbar } from "./Navbar";
+import { useAuthStore } from "@/store/authStore";
 
 export interface DashSidebarItem { label: string; to: string; icon: LucideIcon }
 
@@ -15,6 +16,18 @@ export function DashboardLayout({
   children: ReactNode;
 }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/login/customer");
+    }
+  }, [user, navigate]);
+
+  if (!user) {
+    return null;
+  }
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
@@ -31,9 +44,8 @@ export function DashboardLayout({
                 return (
                   <Link
                     key={it.to + it.label} to={it.to}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                      active ? "bg-primary text-primary-foreground shadow-soft" : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                    }`}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-primary text-primary-foreground shadow-soft" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      }`}
                   >
                     <Icon className="h-4 w-4" />
                     {it.label}

@@ -14,7 +14,7 @@ import SettingsPage from "@/pages/Customer_settings";
 import MyBookingsPage from "@/pages/MyBookings";
 import TransactionsPage from "@/pages/Transactions";
 import ReviewsPage from "@/pages/Customer_review";
-import DisputePage from "@/pages/DisputePage";
+import DisputePage from "@/pages/Customer_Dispute_Page";
 import WorkerDisputePage from "@/pages/Worker_dispute";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import WorkerDashboard from "@/pages/WorkerDashboard";

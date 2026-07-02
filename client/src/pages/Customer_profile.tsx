@@ -52,7 +52,7 @@ export default function ProfilePage() {
 
     }
 
-    if (newPassword.length < 8) {
+    if (newPassword.length < 6) {
 
       setAlertState({
 
@@ -63,7 +63,7 @@ export default function ProfilePage() {
         title: "Weak Password",
 
         description:
-          "New password must be at least 8 characters."
+          "New password must be at least 6 characters."
 
       });
 
