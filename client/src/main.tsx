@@ -6,6 +6,13 @@ import { Toaster } from "@/components/ui/sonner";
 import App from "./App";
 import "./styles.css";
 
+import { applyTheme, getStoredTheme } from "@/lib/theme";
+
+const savedTheme = getStoredTheme();
+if (savedTheme) {
+  applyTheme(savedTheme);
+}
+
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(

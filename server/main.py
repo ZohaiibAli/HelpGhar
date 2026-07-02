@@ -7,6 +7,8 @@ from routes.admin_routes import router as admin_router
 from fastapi.middleware.cors import CORSMiddleware
 from routes.dispute import router as dispute_router
 from routes.worker_dispute import router as worker_dispute_router
+from fastapi.staticfiles import StaticFiles
+from routes.theme_routes import router as website_settings_router
 
 
 app = FastAPI(title="HelpGhar API", version="1.0.0")
@@ -25,7 +27,7 @@ app.include_router(dispute_router)
 app.include_router(worker_dispute_router)
 app.include_router(worker_router)
 app.include_router(admin_router)
-
+app.include_router(website_settings_router)
 
 @app.get("/")
 def home():
