@@ -45,20 +45,14 @@ def create_dispute(
         )
 
     dispute_collection.insert_one({
-
-        "customerId": user["id"],
-
-        "workerId": dispute.workerId,
-
-        "subject": dispute.subject,
-
-        "description": dispute.description,
-
-        "status": "Open",
-
-        "createdAt": datetime.utcnow()
-
-    })
+    "customerId": user["id"],
+    "workerId": dispute.workerId,
+    "subject": dispute.subject,
+    "description": dispute.description,
+    "status": "Open",
+    "filedBy": "customer",          # 👈 added
+    "createdAt": datetime.utcnow()
+})
 
     return {
 

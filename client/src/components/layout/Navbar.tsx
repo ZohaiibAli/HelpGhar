@@ -26,10 +26,18 @@ export function Navbar() {
       : user?.role === "worker" ? "/dashboard/worker"
         : "/dashboard/customer";
   const handleLogout = () => {
-    logout();
-    navigate("/login/customer");
-  };
+    const role = user?.role;
 
+    logout();
+
+    if (role === "worker") {
+      navigate("/login/worker");
+    } else if (role === "admin") {
+      navigate("/login/admin");
+    } else {
+      navigate("/login/customer");
+    }
+  };
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
