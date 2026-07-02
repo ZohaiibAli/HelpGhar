@@ -17,8 +17,50 @@ export default function DisputePage() {
 
   const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const [list, setList] = useState<Complaint[]>([]);
-  const [form, setForm] = useState({ workerName: "", subject: "", description: "" });
+  const [form, setForm] = useState({
+
+    workerId: "",
+
+    subject: "",
+
+    description: ""
+
+  });
+  const [workers, setWorkers] = useState<
+    {
+      id: string;
+      fullName: string;
+    }[]
+  >([]);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  const fetchWorkers = async () => {
+
+    try {
+
+      const response = await fetch(
+
+        `${API_BASE_URL}/customer/workers`
+
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+
+        setWorkers(result.workers);
+
+      }
+
+    }
+
+    catch (error) {
+
+      console.log(error);
+
+    }
+
+  }
 
   const fetchComplaints = async () => {
 
@@ -62,6 +104,8 @@ export default function DisputePage() {
   useEffect(() => {
 
     fetchComplaints();
+    fetchWorkers();
+
 
   }, []);
 
@@ -76,7 +120,63 @@ export default function DisputePage() {
             <h2 className="text-base font-bold">File a complaint</h2>
             <p className="mt-1 text-xs text-muted-foreground">We typically respond within 24 hours.</p>
             <div className="mt-4 space-y-3">
-              <Input label="Worker name" value={form.workerName} onChange={(v) => setForm(f => ({ ...f, workerName: v }))} />
+              <div>
+
+                <label className="mb-1.5 block text-xs font-semibold">
+
+                  Worker
+
+                </label>
+
+                <select
+
+                  value={form.workerId}
+
+                  onChange={(e) =>
+
+                    setForm({
+
+                      ...form,
+
+                      workerId: e.target.value
+
+                    })
+
+                  }
+
+                  className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+
+                >
+
+                  <option value="">
+
+                    Select Worker
+
+                  </option>
+
+                  {
+
+                    workers.map(worker => (
+
+                      <option
+
+                        key={worker.id}
+
+                        value={worker.id}
+
+                      >
+
+                        {worker.fullName}
+
+                      </option>
+
+                    ))
+
+                  }
+
+                </select>
+
+              </div>
               <Input label="Subject" value={form.subject} onChange={(v) => setForm(f => ({ ...f, subject: v }))} />
               <div>
                 <label className="mb-1.5 block text-xs font-semibold">Describe the issue</label>
@@ -86,7 +186,7 @@ export default function DisputePage() {
               <Button
                 onClick={async () => {
 
-                  if (!form.subject || !form.workerName)
+                  if (!form.subject || !form.workerId)
                     return;
 
                   try {
@@ -109,7 +209,7 @@ export default function DisputePage() {
 
                         body: JSON.stringify({
 
-                          workerName: form.workerName,
+                          workerId: form.workerId,
 
                           subject: form.subject,
 
@@ -133,7 +233,7 @@ export default function DisputePage() {
 
                       setForm({
 
-                        workerName: "",
+                        workerId: "",
 
                         subject: "",
 

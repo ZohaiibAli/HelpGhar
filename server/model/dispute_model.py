@@ -1,6 +1,9 @@
 from pydantic import BaseModel
 
 class DisputeCreate(BaseModel):
-    workerName: str
+
+    workerId: str
+
     subject: str
+
     description: str

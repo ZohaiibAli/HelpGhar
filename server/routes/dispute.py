@@ -28,10 +28,14 @@ def create_dispute(
     #)
 
     worker = worker_collection.find_one(
-        {
-            "fullName": dispute.workerName
-        }
-    )
+
+    {
+
+        "_id": ObjectId(dispute.workerId)
+
+    }
+
+)
 
     if worker is None:
 
@@ -44,7 +48,7 @@ def create_dispute(
 
         "customerId": user["id"],
 
-        "workerId": str(worker["_id"]),
+        "workerId": dispute.workerId,
 
         "subject": dispute.subject,
 
@@ -104,5 +108,30 @@ def get_customer_disputes(user=Depends(verify_token)):
         "success": True,
 
         "complaints": result
+
+    }
+
+@router.get("/workers")
+def get_workers():
+
+    workers = worker_collection.find()
+
+    result = []
+
+    for worker in workers:
+
+        result.append({
+
+            "id": str(worker["_id"]),
+
+            "fullName": worker["fullName"]
+
+        })
+
+    return {
+
+        "success": True,
+
+        "workers": result
 
     }
