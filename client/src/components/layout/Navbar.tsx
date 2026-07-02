@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Menu, X, Search, User as UserIcon, LogOut, LayoutDashboard } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -19,11 +19,16 @@ export function Navbar() {
   const { user, logout } = useAuthStore();
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
 
   const dashHref =
     user?.role === "admin" ? "/dashboard/admin"
       : user?.role === "worker" ? "/dashboard/worker"
         : "/dashboard/customer";
+  const handleLogout = () => {
+    logout();
+    navigate("/login/customer");
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-md">
@@ -69,7 +74,7 @@ export function Navbar() {
                 <DropdownMenuItem asChild><Link to={dashHref}><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Link></DropdownMenuItem>
                 <DropdownMenuItem asChild><Link to="/profile"><UserIcon className="mr-2 h-4 w-4" />Profile</Link></DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
@@ -106,7 +111,11 @@ export function Navbar() {
             {user ? (
               <>
                 <Link to={dashHref} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent">Dashboard</Link>
-                <button onClick={() => { logout(); setOpen(false); }} className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-accent">Log out</button>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setOpen(false);
+                  }} className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-accent">Log out</button>
               </>
             ) : (
               <div className="flex gap-2 pt-1">
