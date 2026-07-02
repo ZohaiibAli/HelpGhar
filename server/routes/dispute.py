@@ -7,6 +7,7 @@ from config.db import (
 from model.dispute_model import DisputeCreate
 from helper.auth_helper import verify_token
 from datetime import datetime
+from bson import ObjectId
 
 router = APIRouter(
     prefix="/customer",
@@ -60,5 +61,48 @@ def create_dispute(
         "success": True,
 
         "message": "Dispute Submitted Successfully"
+
+    }
+
+@router.get("/disputes")
+def get_customer_disputes(user=Depends(verify_token)):
+
+    disputes = dispute_collection.find(
+        {
+            "customerId": user["id"]
+        }
+    )
+
+    result = []
+
+    for dispute in disputes:
+
+        worker = worker_collection.find_one(
+            {
+                "_id": ObjectId(dispute["workerId"])
+            }
+        )
+
+        result.append({
+
+            "id": str(dispute["_id"]),
+
+            "workerName": worker["fullName"] if worker else "Unknown Worker",
+
+            "subject": dispute["subject"],
+
+            "description": dispute["description"],
+
+            "status": dispute["status"].lower(),
+
+            "date": dispute["createdAt"].strftime("%Y-%m-%d")
+
+        })
+
+    return {
+
+        "success": True,
+
+        "complaints": result
 
     }

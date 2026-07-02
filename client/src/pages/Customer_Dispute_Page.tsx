@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { customerItems } from "@/data/customerMenu";
-import { complaints as seed } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import type { Complaint } from "@/types";
 import { HgAlert } from "@/components/ui/HgAlert";
@@ -17,8 +16,54 @@ export default function DisputePage() {
   }>({ open: false, type: "success", title: "", description: "" });
 
   const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
-  const [list, setList] = useState<Complaint[]>(seed);
+  const [list, setList] = useState<Complaint[]>([]);
   const [form, setForm] = useState({ workerName: "", subject: "", description: "" });
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  const fetchComplaints = async () => {
+
+    try {
+
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+
+        `${API_BASE_URL}/customer/disputes`,
+
+        {
+
+          headers: {
+
+            Authorization: `Bearer ${token}`
+
+          }
+
+        }
+
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+
+        setList(result.complaints);
+
+      }
+
+    }
+
+    catch (error) {
+
+      console.log(error);
+
+    }
+
+  };
+  useEffect(() => {
+
+    fetchComplaints();
+
+  }, []);
 
   return (
     <DashboardLayout
@@ -95,6 +140,7 @@ export default function DisputePage() {
                         description: ""
 
                       });
+                      fetchComplaints();
 
                     }
 
