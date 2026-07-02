@@ -5,8 +5,18 @@ import { customerItems } from "@/data/customerMenu";
 import { complaints as seed } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import type { Complaint } from "@/types";
+import { HgAlert } from "@/components/ui/HgAlert";
+
 
 export default function DisputePage() {
+  const [alertState, setAlertState] = useState<{
+    open: boolean;
+    type: "error" | "server" | "success";
+    title: string;
+    description: string;
+  }>({ open: false, type: "success", title: "", description: "" });
+
+  const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const [list, setList] = useState<Complaint[]>(seed);
   const [form, setForm] = useState({ workerName: "", subject: "", description: "" });
 
@@ -29,10 +39,90 @@ export default function DisputePage() {
                   className="w-full rounded-xl border border-input bg-background p-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
               </div>
               <Button
-                onClick={() => {
-                  if (!form.subject || !form.workerName) return;
-                  setList(l => [{ id: "C-" + Math.floor(Math.random() * 999), customerName: "You", workerName: form.workerName, subject: form.subject, description: form.description, status: "open", date: new Date().toISOString().slice(0,10) }, ...l]);
-                  setForm({ workerName: "", subject: "", description: "" });
+                onClick={async () => {
+
+                  if (!form.subject || !form.workerName)
+                    return;
+
+                  try {
+
+                    const token = localStorage.getItem("token");
+
+                    const response = await fetch(
+                      `${import.meta.env.VITE_API_BASE_URL}/customer/dispute`,
+                      {
+
+                        method: "POST",
+
+                        headers: {
+
+                          "Content-Type": "application/json",
+
+                          Authorization: `Bearer ${token}`
+
+                        },
+
+                        body: JSON.stringify({
+
+                          workerName: form.workerName,
+
+                          subject: form.subject,
+
+                          description: form.description
+
+                        })
+
+                      }
+                    );
+
+                    const result = await response.json();
+
+                    if (result.success) {
+
+                      setAlertState({
+                        open: true,
+                        type: "success",
+                        title: "Complaint submitted",
+                        description: result.message || "We've received your complaint and will respond within 24 hours.",
+                      });
+
+                      setForm({
+
+                        workerName: "",
+
+                        subject: "",
+
+                        description: ""
+
+                      });
+
+                    }
+
+                    else {
+
+                      setAlertState({
+                        open: true,
+                        type: "error",
+                        title: "Submission failed",
+                        description: result.message || "Something went wrong. Please try again.",
+                      });
+
+
+                    }
+
+                  }
+
+                  catch (error) {
+
+                    setAlertState({
+                      open: true,
+                      type: "server",
+                      title: "Something went wrong",
+                      description: "We couldn't reach the server. Please check your connection and try again.",
+                    });
+
+                  }
+
                 }}
                 className="h-11 w-full bg-primary hover:bg-primary-dark">Submit complaint</Button>
             </div>
@@ -62,6 +152,13 @@ export default function DisputePage() {
           </div>
         </div>
       </div>
+      <HgAlert
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+      />
     </DashboardLayout>
   );
 }
@@ -82,5 +179,5 @@ function StatusBadge({ status }: { status: Complaint["status"] }) {
     resolved: "bg-primary-soft text-primary-dark",
     closed: "bg-muted text-muted-foreground",
   };
-  return <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${map[status]}`}>{status.replace("_"," ")}</span>;
+  return <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${map[status]}`}>{status.replace("_", " ")}</span>;
 }

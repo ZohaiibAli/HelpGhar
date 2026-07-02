@@ -16,7 +16,8 @@ try:
     worker_collection = db["workers"]
     admin_collection = db["admin"]
     gig_collection = db["gigs"]          # 👈 new
-
+    dispute_collection = db["disputes"]
+    
     print("MongoDB Connected Successfully")
     print("Database:", DB_NAME)
 
