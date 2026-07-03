@@ -2,6 +2,8 @@ export type UserRole = "customer" | "worker" | "admin";
 
 export interface User {
   id: string;
+  customerId?: string;
+  status?: string;
   fullName: string;
   email: string;
   phone: string;
@@ -19,6 +21,7 @@ export interface User {
   skills?: string;
 
 }
+
 
 export type WorkerCategory =
   | "House Servants"
