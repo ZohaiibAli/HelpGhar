@@ -11,6 +11,7 @@ from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
 from bson import ObjectId
+from helper.id_helper import generate_customer_id
 
 router = APIRouter(prefix="/customer", tags=["Customer"])
 
@@ -33,6 +34,9 @@ def register_customer(customer: CustomerRegister):
 
     #customer_collection.insert_one(customer.dict())
     customer_data = customer.dict()
+    customer_data["customerId"] = generate_customer_id()
+
+    customer_data["status"] = "Active"
 
     customer_data["password"] = hash_password(customer.password)
 
@@ -40,7 +44,8 @@ def register_customer(customer: CustomerRegister):
 
     return {
         "success": True,
-        "message": "Customer Registered Successfully"
+        "message": "Customer Registered Successfully",
+        "customerId": customer_data["customerId"]
     }
 
 @router.post("/login")
@@ -79,11 +84,23 @@ def login_customer(customer: CustomerLogin):
         "success": True,
         "message": "Login Successful",
         "token": token,
-        "user": {
-            "id": str(existing["_id"]),
-            "fullName": existing["fullName"],
-            "email": existing["email"]
-        }
+        "user":{
+
+"id":str(existing["_id"]),
+
+"customerId":existing["customerId"],
+
+"fullName":existing["fullName"],
+
+"email":existing["email"],
+
+"phone":existing["phone"],
+
+"address":existing["address"],
+
+"status":existing["status"]
+
+}
     }
 
 
@@ -115,17 +132,16 @@ def get_profile(user=Depends(verify_token)):
 
     return {
 
-        "id": str(customer["_id"]),
+    "id": str(customer["_id"]),
+    "customerId": customer["customerId"],
+    "status": customer["status"],
 
-        "fullName": customer["fullName"],
+    "fullName": customer["fullName"],
+    "email": customer["email"],
+    "phone": customer["phone"],
+    "address": customer["address"]
 
-        "email": customer["email"],
-
-        "phone": customer["phone"],
-
-        "address": customer["address"]
-
-    }
+}
 
 @router.put("/profile")
 def update_profile(

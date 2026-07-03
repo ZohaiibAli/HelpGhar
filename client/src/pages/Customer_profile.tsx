@@ -8,17 +8,14 @@ import { Camera } from "lucide-react";
 import { HgAlert } from "@/components/ui/HgAlert";
 
 interface CustomerProfile {
-
   id: string;
+  customerId: string;
+  status: string;
 
   fullName: string;
-
   email: string;
-
   phone: string;
-
   address: string;
-
 }
 
 export default function ProfilePage() {
@@ -351,6 +348,8 @@ export default function ProfilePage() {
         setSession(
           {
             id: user!.id,
+            customerId: user!.customerId,
+            status: user!.status,
             fullName,
             email,
             phone,
@@ -442,6 +441,26 @@ export default function ProfilePage() {
             <p className="text-xs text-muted-foreground capitalize">
               Customer
             </p>
+
+            <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Customer ID
+              </p>
+
+              <p className="mt-1 text-lg font-bold text-primary">
+                {user.customerId}
+              </p>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-border bg-muted/40 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Status
+              </p>
+
+              <p className="mt-1 font-semibold text-green-600">
+                {user.status}
+              </p>
+            </div>
           </div>
 
           <div className="space-y-6">

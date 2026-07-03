@@ -18,6 +18,7 @@ try:
     gig_collection = db["gigs"]          # 👈 new
     dispute_collection = db["disputes"]
     website_theme_collection = db["website_themes"]
+    counter_collection = db["counters"]
     
     print("MongoDB Connected Successfully")
     print("Database:", DB_NAME)
