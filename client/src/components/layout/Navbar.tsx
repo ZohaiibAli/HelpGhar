@@ -11,8 +11,8 @@ import {
 const NAV = [
   { to: "/", label: "Home" },
   { to: "/services", label: "Services" },
-  // { to: "/my-bookings", label: "My Bookings" },
   { to: "/reviews", label: "Reviews" },
+  { to: "/chat", label: "Chat" },
 ];
 
 export function Navbar() {
