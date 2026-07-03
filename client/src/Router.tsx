@@ -28,6 +28,7 @@ import AdminSettings from "@/pages/Admin_settings";
 import NotFound from "@/pages/NotFound";
 import WorkerSettingsPage from "./pages/Worker_settings";
 import WorkerReviewsPage from "./pages/Worker_review";
+import { ChatPage } from "./pages/Main_ChatBot";
 
 function ProfileRouter() {
   const { user } = useAuthStore();
@@ -70,6 +71,7 @@ export default function AppRouter() {
       <Route path="/worker/profile" element={<WorkerProfilePage />} />
       <Route path="/worker/settings" element={<WorkerSettingsPage />} />
       <Route path="/worker/dispute" element={<WorkerDisputePage />} />
+      <Route path="/chat" element={<ChatPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

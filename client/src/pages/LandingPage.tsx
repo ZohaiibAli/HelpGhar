@@ -4,6 +4,7 @@ import { PopularWorkers } from "@/components/home/PopularWorkers";
 import { HowItWorks } from "@/components/home/HowItWorks";
 import { Testimonials } from "@/components/home/Testimonials";
 import { CTASection } from "@/components/home/CTASection";
+import { ChatbotTeaserSection } from "@/components/home/ChatBot";
 import { MainLayout } from "@/components/layout/MainLayout";
 
 export default function LandingPage() {
@@ -15,6 +16,7 @@ export default function LandingPage() {
       <HowItWorks />
       <Testimonials />
       <CTASection />
+      <ChatbotTeaserSection />
     </MainLayout>
   );
 }
