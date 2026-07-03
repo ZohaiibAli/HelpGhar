@@ -87,11 +87,11 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div className="mx-auto grid min-h-[calc(100vh-8rem)] max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-8rem)] max-w-7xl items-stretch gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
         {/* Left Side — Hero */}
         <div className="hidden lg:block">
           <div
-            className="relative overflow-hidden rounded-3xl p-10 shadow-2xl"
+            className="relative h-full overflow-hidden rounded-3xl p-10 shadow-2xl"
             style={{
               backgroundColor: "#101a2b",
               backgroundImage:
@@ -167,7 +167,7 @@ export default function LoginPage() {
         </div>
 
         {/* Right Side — Form */}
-        <div className="mx-auto w-full max-w-md">
+        <div className="mx-auto flex w-full max-w-md flex-col">
           {/* Mobile-only role badge (hero is hidden below lg) */}
           <span
             className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] lg:hidden"
@@ -201,7 +201,8 @@ export default function LoginPage() {
           </div>
 
           {/* Form card */}
-          <div className="relative overflow-hidden rounded-[28px] border border-black/5 bg-card p-8 shadow-[0_20px_60px_-15px_rgba(20,36,51,0.25)] sm:p-10">
+          {/* Form card */}
+          <div className="relative flex flex-1 flex-col justify-center overflow-hidden rounded-[28px] border border-black/5 bg-card p-8 shadow-[0_20px_60px_-15px_rgba(20,36,51,0.25)] sm:p-10">
             <div
               className="absolute inset-x-0 top-0 h-1 transition-colors duration-500"
               style={{ backgroundColor: config.accent }}
