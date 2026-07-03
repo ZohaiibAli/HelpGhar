@@ -9,6 +9,8 @@ import { HgAlert } from "@/components/ui/HgAlert";
 
 interface WorkerProfile {
   id: string;
+  workerId: string;
+  status: string;
   fullName: string;
   email: string;
   phone: string;
@@ -154,6 +156,8 @@ export default function WorkerProfilePage() {
         setSession(
           {
             id: user!.id,
+            workerId: user!.workerId,
+            status: user!.status,
             fullName,
             email,
             phone,
@@ -352,8 +356,26 @@ export default function WorkerProfilePage() {
             <p className="text-xs text-muted-foreground capitalize">
               Worker
             </p>
-          </div>
+            <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Worker ID
+              </p>
 
+              <p className="mt-1 text-lg font-bold text-primary">
+                {user.workerId}
+              </p>
+            </div>
+
+            <div className="mt-3 rounded-xl border border-border bg-muted/40 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Status
+              </p>
+
+              <p className="mt-1 font-semibold text-green-600">
+                {user.status}
+              </p>
+            </div>
+          </div>
           <div className="space-y-6">
             <Card title="Personal information">
               <Grid>
@@ -482,7 +504,7 @@ export default function WorkerProfilePage() {
         type={alertState.type}
         title={alertState.title}
         description={alertState.description}
-        />
+      />
     </DashboardLayout>
   );
 }

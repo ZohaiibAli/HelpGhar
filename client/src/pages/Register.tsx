@@ -46,6 +46,7 @@ const workerSchema = baseCustomerSchema.extend({
 export default function RegisterPage() {
   const navigate = useNavigate()
   const [customerId, setCustomerId] = useState("");
+  const [workerId, setWorkerId] = useState("");
   const [role, setRole] = useState<UserRole>("customer");
   const [submitted, setSubmitted] = useState(false);
   const [alertState, setAlertState] = useState<{
@@ -91,9 +92,12 @@ export default function RegisterPage() {
           setCustomerId(result.customerId);
         }
 
+        if (role === "worker") {
+          setWorkerId(result.workerId);
+        }
+
         setSubmitted(true);
         reset();
-
       } else {
 
         setAlertState({
@@ -128,28 +132,40 @@ export default function RegisterPage() {
         <div className="mx-auto max-w-lg px-4 py-24 text-center">
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary-soft text-primary"><CheckCircle2 className="h-8 w-8" /></div>
           <h1 className="mt-6 text-3xl font-black">Account created</h1>
-          {role === "worker" ? (
+          role === "worker" ? (
+          <>
             <p className="mt-3 text-sm text-muted-foreground">
               Your account is pending admin verification.
               We'll notify you within 24 hours.
             </p>
-          ) : (
-            <>
-              <p className="mt-3 text-sm text-muted-foreground">
-                You're all set! Log in to start booking trusted workers.
+
+            <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4">
+              <p className="text-sm text-muted-foreground">
+                Your Worker ID
               </p>
 
-              <div className="mt-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
-                <p className="text-sm text-muted-foreground">
-                  Your Customer ID
-                </p>
+              <p className="mt-1 text-2xl font-black text-amber-600">
+                {workerId}
+              </p>
+            </div>
+          </>
+          )  : (
+          <>
+            <p className="mt-3 text-sm text-muted-foreground">
+              You're all set! Log in to start booking trusted workers.
+            </p>
 
-                <p className="mt-1 text-2xl font-black text-primary">
-                  {customerId}
-                </p>
-              </div>
-            </>
-          )}
+            <div className="mt-5 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <p className="text-sm text-muted-foreground">
+                Your Customer ID
+              </p>
+
+              <p className="mt-1 text-2xl font-black text-primary">
+                {customerId}
+              </p>
+            </div>
+          </>
+          )
           <div className="mt-6 flex justify-center gap-3">
             <Button asChild className="bg-primary hover:bg-primary-dark"><Link to="/login">Go to login</Link></Button>
             <Button asChild variant="outline"><Link to="/">Back home</Link></Button>

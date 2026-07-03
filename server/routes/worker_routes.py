@@ -8,6 +8,7 @@ from helper.cloudinary_helper import upload_image
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
+from helper.id_helper import generate_worker_id
 
 router = APIRouter(prefix="/worker", tags=["Worker"])
 
@@ -31,11 +32,16 @@ def register_worker(worker: WorkerRegister):
 
     worker_data["password"] = hash_password(worker.password)
 
+    worker_data["workerId"] = generate_worker_id()
+
+    worker_data["status"] = "Active"
+
     worker_collection.insert_one(worker_data)
 
     return {
         "success": True,
-        "message": "Worker Registered Successfully"
+        "message": "Worker Registered Successfully",
+        "workerId": worker_data["workerId"]
     }
 
 
@@ -76,9 +82,11 @@ def worker_login(worker: WorkerLogin):
         "token": token,
         "worker": {
             "id": str(existing_worker["_id"]),
+            "workerId": existing_worker["workerId"],
             "fullName": existing_worker["fullName"],
             "email": existing_worker["email"],
-            "category": existing_worker["category"]
+            "category": existing_worker["category"],
+             "status": existing_worker["status"]
         }
     }
 
@@ -109,6 +117,8 @@ def get_worker_profile(user=Depends(verify_token)):
 
         "id": str(worker["_id"]),
 
+        "workerId":worker["workerId"],
+
         "fullName": worker["fullName"],
 
         "email": worker["email"],
@@ -129,7 +139,9 @@ def get_worker_profile(user=Depends(verify_token)):
 
         "pricing": worker["pricing"],
 
-        "skills": worker["skills"]
+        "skills": worker["skills"],
+
+        "status": worker["status"],
 
     }
 

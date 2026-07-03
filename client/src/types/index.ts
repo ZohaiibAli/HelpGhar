@@ -3,6 +3,7 @@ export type UserRole = "customer" | "worker" | "admin";
 export interface User {
   id: string;
   customerId?: string;
+  workerId?: string;   // <-- ADD THIS
   status?: string;
   fullName: string;
   email: string;

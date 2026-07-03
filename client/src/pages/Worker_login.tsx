@@ -65,6 +65,8 @@ export default function WorkerLoginForm() {
           setSession(
             {
               id: result.worker.id,
+              workerId: result.worker.workerId,
+              status: result.worker.status,
               fullName: result.worker.fullName,
               email: result.worker.email,
               phone: result.worker.phone,
