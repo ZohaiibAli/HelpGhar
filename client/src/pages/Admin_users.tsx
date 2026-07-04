@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Search, ShieldCheck, ShieldOff, Mail, Phone, MoreVertical, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
+import { adminService } from "@/services/adminService";
 
 interface PlatformUser {
   id: string;
@@ -14,15 +15,7 @@ interface PlatformUser {
   joined: string;
 }
 
-const platformUsers: PlatformUser[] = [
-  { id: "u1", fullName: "Hassan Iqbal", email: "hassan.iqbal@mail.com", phone: "0300-1234567", avatar: "https://i.pravatar.cc/300?img=11", role: "customer", status: "active", joined: "2024-02-14" },
-  { id: "u2", fullName: "Mariam Saeed", email: "mariam.saeed@mail.com", phone: "0321-9876543", avatar: "https://i.pravatar.cc/300?img=25", role: "customer", status: "active", joined: "2024-05-02" },
-  { id: "u3", fullName: "Omar Sheikh", email: "omar.sheikh@mail.com", phone: "0333-4567890", avatar: "https://i.pravatar.cc/300?img=15", role: "customer", status: "suspended", joined: "2023-11-19" },
-  { id: "u4", fullName: "Ayesha Khan", email: "ayesha.khan@mail.com", phone: "0301-1122334", avatar: "https://i.pravatar.cc/300?img=12", role: "worker", status: "active", joined: "2022-03-14" },
-  { id: "u5", fullName: "Bilal Ahmed", email: "bilal.ahmed@mail.com", phone: "0345-5566778", avatar: "https://i.pravatar.cc/300?img=22", role: "worker", status: "active", joined: "2021-08-02" },
-  { id: "u6", fullName: "Rashid Mehmood", email: "rashid.mehmood@mail.com", phone: "0312-9988776", avatar: "https://i.pravatar.cc/300?img=59", role: "worker", status: "active", joined: "2022-11-19" },
-  { id: "u7", fullName: "Sana Tariq", email: "sana.tariq@mail.com", phone: "0335-6677889", avatar: "https://i.pravatar.cc/300?img=51", role: "worker", status: "suspended", joined: "2023-09-05" },
-];
+
 
 function UserActionsMenu({
   user,
@@ -95,7 +88,20 @@ function UserActionsMenu({
 export default function AdminUsers() {
   const [tab, setTab] = useState<"all" | "customer" | "worker">("all");
   const [query, setQuery] = useState("");
-  const [users, setUsers] = useState(platformUsers);
+  const [users, setUsers] = useState<PlatformUser[]>([]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await adminService.getUsers();
+      setUsers(response.data.users);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const filtered = users.filter(
     (u) =>
@@ -103,14 +109,44 @@ export default function AdminUsers() {
       u.fullName.toLowerCase().includes(query.toLowerCase())
   );
 
-  function toggleStatus(id: string) {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, status: u.status === "active" ? "suspended" : "active" } : u))
-    );
+  async function toggleStatus(id: string) {
+
+    const selected = users.find(u => u.id === id);
+
+    if (!selected) return;
+
+    try {
+
+      await adminService.toggleUserStatus(
+        selected.role,
+        selected.id
+      );
+
+      fetchUsers();
+
+    } catch (error) {
+      console.error(error);
+    }
   }
 
-  function deleteUser(id: string) {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+  async function deleteUser(id: string) {
+
+    const selected = users.find(u => u.id === id);
+
+    if (!selected) return;
+
+    try {
+
+      await adminService.deleteUser(
+        selected.role,
+        selected.id
+      );
+
+      fetchUsers();
+
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   return (
@@ -128,9 +164,8 @@ export default function AdminUsers() {
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`rounded-full px-4 py-2 text-xs font-bold capitalize transition ${
-                    tab === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`rounded-full px-4 py-2 text-xs font-bold capitalize transition ${tab === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   {t}
                 </button>
@@ -175,9 +210,8 @@ export default function AdminUsers() {
                     <td className="text-xs font-semibold capitalize text-muted-foreground">{u.role}</td>
                     <td className="text-xs text-muted-foreground">{u.joined}</td>
                     <td>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${
-                        u.status === "active" ? "bg-primary-soft text-primary-dark" : "bg-red-100 text-red-700"
-                      }`}>{u.status}</span>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${u.status === "active" ? "bg-primary-soft text-primary-dark" : "bg-red-100 text-red-700"
+                        }`}>{u.status}</span>
                     </td>
                     <td className="text-right">
                       <UserActionsMenu user={u} onToggleStatus={toggleStatus} onDelete={deleteUser} />
