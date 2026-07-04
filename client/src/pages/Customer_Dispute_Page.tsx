@@ -28,7 +28,7 @@ export default function DisputePage() {
   });
   const [workers, setWorkers] = useState<
     {
-      id: string;
+      workerId: string;
       fullName: string;
     }[]
   >([]);
@@ -159,11 +159,8 @@ export default function DisputePage() {
                     workers.map(worker => (
 
                       <option
-
-                        key={worker.id}
-
-                        value={worker.id}
-
+                        key={worker.workerId}
+                        value={worker.workerId}
                       >
 
                         {worker.fullName}
@@ -285,9 +282,25 @@ export default function DisputePage() {
                   <div className="flex items-start gap-3">
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-yellow-100 text-yellow-700"><AlertTriangle className="h-5 w-5" /></div>
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">#{c.id}</p>
-                      <p className="text-base font-bold">{c.subject}</p>
-                      <p className="text-xs text-muted-foreground">Against {c.workerName} • {c.date}</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Complaint
+                      </p>
+
+                      <p className="text-base font-bold">
+                        {c.subject}
+                      </p>
+
+                      <p className="text-xs text-muted-foreground">
+                        Worker ID: {c.workerId}
+                      </p>
+
+                      <p className="text-xs text-muted-foreground">
+                        Against {c.workerName}
+                      </p>
+
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                   <StatusBadge status={c.status} />

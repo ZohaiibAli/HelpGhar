@@ -31,7 +31,7 @@ def create_dispute(
 
     {
 
-        "_id": ObjectId(dispute.workerId)
+         "workerId": dispute.workerId
 
     }
 
@@ -45,8 +45,9 @@ def create_dispute(
         )
 
     dispute_collection.insert_one({
-    "customerId": user["id"],
-    "workerId": dispute.workerId,
+     "customerId": user["customerId"],
+    "workerId": worker["workerId"],
+    "workerName": worker["fullName"],
     "subject": dispute.subject,
     "description": dispute.description,
     "status": "Open",
@@ -61,13 +62,48 @@ def create_dispute(
         "message": "Dispute Submitted Successfully"
 
     }
+"""
+@router.get("/disputes")
+def get_customer_disputes(
 
+    user=Depends(verify_token)
+
+):
+
+    disputes = list(
+
+        dispute_collection.find(
+
+            {
+
+                "customerId": user["customerId"]
+
+            },
+
+            {
+
+                "_id":0
+
+            }
+
+        )
+
+    )
+
+    return {
+
+        "success":True,
+
+        "data":disputes
+
+    }
+"""
 @router.get("/disputes")
 def get_customer_disputes(user=Depends(verify_token)):
 
     disputes = dispute_collection.find(
         {
-            "customerId": user["id"]
+            "customerId": user["customerId"]
         }
     )
 
@@ -75,27 +111,23 @@ def get_customer_disputes(user=Depends(verify_token)):
 
     for dispute in disputes:
 
-        worker = worker_collection.find_one(
-            {
-                "_id": ObjectId(dispute["workerId"])
-            }
-        )
-
         result.append({
 
-            "id": str(dispute["_id"]),
+    "id": str(dispute["_id"]),
 
-            "workerName": worker["fullName"] if worker else "Unknown Worker",
+    "workerId": dispute["workerId"],
 
-            "subject": dispute["subject"],
+    "workerName": dispute["workerName"],
 
-            "description": dispute["description"],
+    "subject": dispute["subject"],
 
-            "status": dispute["status"].lower(),
+    "description": dispute["description"],
 
-            "date": dispute["createdAt"].strftime("%Y-%m-%d")
+    "status": dispute["status"].lower(),
 
-        })
+    "createdAt": dispute["createdAt"]
+
+})
 
     return {
 
@@ -116,11 +148,11 @@ def get_workers():
 
         result.append({
 
-            "id": str(worker["_id"]),
+    "workerId": worker["workerId"],
 
-            "fullName": worker["fullName"]
+    "fullName": worker["fullName"]
 
-        })
+})
 
     return {
 
