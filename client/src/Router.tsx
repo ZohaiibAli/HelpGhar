@@ -25,6 +25,7 @@ import AdminComplaints from "@/pages/Admin_complaints";
 import AdminReviews from "@/pages/Admin_reviews";
 import AdminAnalytics from "@/pages/Admin_analytics";
 import AdminSettings from "@/pages/Admin_settings";
+import AdminProfile from "@/pages/Admin_profile";
 import NotFound from "@/pages/NotFound";
 import WorkerSettingsPage from "./pages/Worker_settings";
 import WorkerReviewsPage from "./pages/Worker_review";
@@ -67,6 +68,7 @@ export default function AppRouter() {
       <Route path="/dashboard/admin/reviews" element={<AdminReviews />} />
       <Route path="/dashboard/admin/analytics" element={<AdminAnalytics />} />
       <Route path="/dashboard/admin/settings" element={<AdminSettings />} />
+      <Route path="/dashboard/admin/profile" element={<AdminProfile />} />
       <Route path="/worker/reviews" element={<WorkerReviewsPage />} />
       <Route path="/worker/profile" element={<WorkerProfilePage />} />
       <Route path="/worker/settings" element={<WorkerSettingsPage />} />
