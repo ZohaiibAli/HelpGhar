@@ -1,34 +1,104 @@
-import { useState } from "react";
-import { Search, ShieldCheck, ShieldOff, Mail, Phone } from "lucide-react";
+// import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { Search, ShieldCheck, ShieldOff, Mail, Phone, MoreVertical, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
-import { Button } from "@/components/ui/button";
+import { adminService } from "@/services/adminService";
+import DeleteConfirmModal from "@/components/modals/DeleteConfirmModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PlatformUser {
   id: string;
+  customerId?: string;
+  workerId?: string;
   fullName: string;
   email: string;
   phone: string;
-  avatar: string;
   role: "customer" | "worker";
   status: "active" | "suspended";
   joined: string;
 }
 
-const platformUsers: PlatformUser[] = [
-  { id: "u1", fullName: "Hassan Iqbal", email: "hassan.iqbal@mail.com", phone: "0300-1234567", avatar: "https://i.pravatar.cc/300?img=11", role: "customer", status: "active", joined: "2024-02-14" },
-  { id: "u2", fullName: "Mariam Saeed", email: "mariam.saeed@mail.com", phone: "0321-9876543", avatar: "https://i.pravatar.cc/300?img=25", role: "customer", status: "active", joined: "2024-05-02" },
-  { id: "u3", fullName: "Omar Sheikh", email: "omar.sheikh@mail.com", phone: "0333-4567890", avatar: "https://i.pravatar.cc/300?img=15", role: "customer", status: "suspended", joined: "2023-11-19" },
-  { id: "u4", fullName: "Ayesha Khan", email: "ayesha.khan@mail.com", phone: "0301-1122334", avatar: "https://i.pravatar.cc/300?img=12", role: "worker", status: "active", joined: "2022-03-14" },
-  { id: "u5", fullName: "Bilal Ahmed", email: "bilal.ahmed@mail.com", phone: "0345-5566778", avatar: "https://i.pravatar.cc/300?img=22", role: "worker", status: "active", joined: "2021-08-02" },
-  { id: "u6", fullName: "Rashid Mehmood", email: "rashid.mehmood@mail.com", phone: "0312-9988776", avatar: "https://i.pravatar.cc/300?img=59", role: "worker", status: "active", joined: "2022-11-19" },
-  { id: "u7", fullName: "Sana Tariq", email: "sana.tariq@mail.com", phone: "0335-6677889", avatar: "https://i.pravatar.cc/300?img=51", role: "worker", status: "suspended", joined: "2023-09-05" },
-];
+
+
+function UserActionsMenu({
+  user,
+  onToggleStatus,
+  onDelete,
+}: {
+  user: PlatformUser;
+  onToggleStatus: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="rounded-lg border border-border p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+          aria-label="User actions"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem
+          onClick={() => onToggleStatus(user.id)}
+          className="cursor-pointer"
+        >
+          {user.status === "active" ? (
+            <>
+              <ShieldOff className="mr-2 h-4 w-4" />
+              Suspend
+            </>
+          ) : (
+            <>
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              Activate
+            </>
+          )}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="cursor-pointer text-red-600 focus:text-red-600"
+          onClick={() => {
+            onDelete(user.id);
+          }}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export default function AdminUsers() {
   const [tab, setTab] = useState<"all" | "customer" | "worker">("all");
   const [query, setQuery] = useState("");
-  const [users, setUsers] = useState(platformUsers);
+  const [users, setUsers] = useState<PlatformUser[]>([]);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<PlatformUser | null>(null);
+
+  // Fetch users from backend
+  const fetchUsers = async () => {
+    try {
+      const response = await adminService.getUsers();
+      setUsers(response.data.users);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Run once when page opens
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const filtered = users.filter(
     (u) =>
@@ -36,10 +106,39 @@ export default function AdminUsers() {
       u.fullName.toLowerCase().includes(query.toLowerCase())
   );
 
-  function toggleStatus(id: string) {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, status: u.status === "active" ? "suspended" : "active" } : u))
-    );
+
+  async function toggleStatus(id: string) {
+    const selected = users.find((u) => u.id === id);
+
+    if (!selected) return;
+
+    try {
+      await adminService.toggleUserStatus(
+        selected.role,
+        selected.id
+      );
+
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function deleteUser(id: string) {
+    const selected = users.find((u) => u.id === id);
+
+    if (!selected) return;
+
+    try {
+      await adminService.deleteUser(
+        selected.role,
+        selected.id
+      );
+
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   return (
@@ -57,9 +156,8 @@ export default function AdminUsers() {
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`rounded-full px-4 py-2 text-xs font-bold capitalize transition ${
-                    tab === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`rounded-full px-4 py-2 text-xs font-bold capitalize transition ${tab === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   {t}
                 </button>
@@ -80,20 +178,22 @@ export default function AdminUsers() {
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="py-2">User</th>
-                  <th>Contact</th>
-                  <th>Role</th>
-                  <th>Joined</th>
-                  <th>Status</th>
-                  <th></th>
+                  <th className="w-32 py-2">User ID</th>
+                  <th className="w-48">User</th>
+                  <th className="w-96">Contact</th>
+                  <th className="w-32">Role</th>
+                  <th className="w-32">Status</th>
+                  <th className="w-16"></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((u) => (
                   <tr key={u.id} className="border-t border-border">
+                    <td className="py-3 text-xs font-semibold text-muted-foreground">
+                      {u.role === "customer" ? u.customerId : u.workerId}
+                    </td>
                     <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <img src={u.avatar} className="h-9 w-9 rounded-full object-cover" alt="" />
+                      <div>
                         <p className="text-xs font-bold">{u.fullName}</p>
                       </div>
                     </td>
@@ -102,25 +202,25 @@ export default function AdminUsers() {
                       <div className="mt-0.5 flex items-center gap-1"><Phone className="h-3 w-3" /> {u.phone}</div>
                     </td>
                     <td className="text-xs font-semibold capitalize text-muted-foreground">{u.role}</td>
-                    <td className="text-xs text-muted-foreground">{u.joined}</td>
                     <td>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${
-                        u.status === "active" ? "bg-primary-soft text-primary-dark" : "bg-red-100 text-red-700"
-                      }`}>{u.status}</span>
+                      <span
+                        className={`inline-flex w-24 justify-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${u.status === "active"
+                          ? "bg-primary-soft text-primary-dark"
+                          : "bg-red-100 text-red-700"
+                          }`}
+                      >
+                        {u.status}
+                      </span>
                     </td>
                     <td className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-lg"
-                        onClick={() => toggleStatus(u.id)}
-                      >
-                        {u.status === "active" ? (
-                          <><ShieldOff className="h-3.5 w-3.5" /> Suspend</>
-                        ) : (
-                          <><ShieldCheck className="h-3.5 w-3.5" /> Activate</>
-                        )}
-                      </Button>
+                      <UserActionsMenu
+                        user={u}
+                        onToggleStatus={toggleStatus}
+                        onDelete={() => {
+                          setSelectedUser(u);
+                          setDeleteModalOpen(true);
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -132,6 +232,22 @@ export default function AdminUsers() {
           </div>
         </div>
       </div>
+      <DeleteConfirmModal
+        open={deleteModalOpen}
+        userName={selectedUser?.fullName || ""}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onConfirm={async () => {
+          if (!selectedUser) return;
+
+          await deleteUser(selectedUser.id);
+
+          setDeleteModalOpen(false);
+          setSelectedUser(null);
+        }}
+      />
     </DashboardLayout>
   );
 }

@@ -1,13 +1,27 @@
 import { api } from "./api";
-import type { User, Worker, Complaint } from "@/types";
 
 export const adminService = {
-  listUsers: () => api.get<User[]>("/admin/users"),
-  suspendUser: (id: string) => api.post(`/admin/users/${id}/suspend`),
-  listPendingWorkers: () => api.get<Worker[]>("/admin/workers/pending"),
-  approveWorker: (id: string) => api.post(`/admin/workers/${id}/approve`),
-  rejectWorker: (id: string, reason: string) =>
-    api.post(`/admin/workers/${id}/reject`, { reason }),
-  listComplaints: () => api.get<Complaint[]>("/admin/complaints"),
-  resolveComplaint: (id: string) => api.post(`/admin/complaints/${id}/resolve`),
+  // Get all customers + workers
+  getUsers: () => api.get("/admin/users"),
+
+  // Suspend / Activate
+  toggleUserStatus: (role: string, id: string) =>
+    api.patch(`/admin/users/${role}/${id}/status`),
+
+  // Delete user
+  deleteUser: (role: string, id: string) =>
+    api.delete(`/admin/users/${role}/${id}`),
+
+  // Existing complaint APIs
+  getCustomerComplaints: () =>
+    api.get("/admin/disputes/customer"),
+
+  getWorkerComplaints: () =>
+    api.get("/admin/disputes/worker"),
+
+  resolveComplaint: (id: string) =>
+    api.patch(`/admin/dispute/${id}/resolve`),
+
+  deleteComplaint: (id: string) =>
+    api.delete(`/admin/dispute/${id}`),
 };
