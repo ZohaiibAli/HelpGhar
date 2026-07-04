@@ -10,15 +10,15 @@ import {
 
 const NAV = [
   { to: "/", label: "Home" },
-  { to: "/services", label: "Services" },
-  { to: "/reviews", label: "Reviews" },
-  { to: "/chat", label: "Chat" },
+  { to: "/#services", label: "Services" },
+  { to: "/#reviews", label: "Reviews" },
+  { to: "/#chat", label: "Chat" },
 ];
 
 export function Navbar() {
   const { user, logout } = useAuthStore();
   const [open, setOpen] = useState(false);
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const navigate = useNavigate();
 
   const dashHref =
@@ -56,7 +56,7 @@ export function Navbar() {
 
         <nav className="hidden items-center gap-1 md:flex">
           {NAV.map((n) => {
-            const active = pathname === n.to;
+            const active = n.to === "/" ? pathname === "/" && !hash : pathname + hash === n.to;
             return (
               <Link
                 key={n.to} to={n.to}

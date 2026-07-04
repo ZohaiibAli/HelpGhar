@@ -61,7 +61,7 @@ export function ChatbotTeaserSection() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-hero-gradient">
+    <section id="chat" className="relative overflow-hidden bg-hero-gradient">
       {/* Dot grid, consistent with hero */}
       <div
         className="pointer-events-none absolute inset-0 opacity-40"

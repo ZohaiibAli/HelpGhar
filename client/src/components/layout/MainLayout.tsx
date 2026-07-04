@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
+import { useHashScroll } from "@/hooks/useHashScroll";
 
+export default function LandingPage() {
+  useHashScroll();
+}
 export function MainLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">

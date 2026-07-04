@@ -6,8 +6,11 @@ import { Testimonials } from "@/components/home/Testimonials";
 import { CTASection } from "@/components/home/CTASection";
 import { ChatbotTeaserSection } from "@/components/home/ChatBot";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { useHashScroll } from "@/hooks/useHashScroll";
 
 export default function LandingPage() {
+  useHashScroll();
+
   return (
     <MainLayout>
       <HeroSection />
