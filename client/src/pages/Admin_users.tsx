@@ -4,6 +4,7 @@ import { Search, ShieldCheck, ShieldOff, Mail, Phone, MoreVertical, Trash2 } fro
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 import { adminService } from "@/services/adminService";
+import DeleteConfirmModal from "@/components/modals/DeleteConfirmModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,13 +67,7 @@ function UserActionsMenu({
         <DropdownMenuItem
           className="cursor-pointer text-red-600 focus:text-red-600"
           onClick={() => {
-            if (
-              window.confirm(
-                `Delete ${user.fullName}? This action cannot be undone.`
-              )
-            ) {
-              onDelete(user.id);
-            }
+            onDelete(user.id);
           }}
         >
           <Trash2 className="mr-2 h-4 w-4" />
@@ -87,6 +82,8 @@ export default function AdminUsers() {
   const [tab, setTab] = useState<"all" | "customer" | "worker">("all");
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<PlatformUser[]>([]);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<PlatformUser | null>(null);
 
   // Fetch users from backend
   const fetchUsers = async () => {
@@ -208,15 +205,22 @@ export default function AdminUsers() {
                     <td>
                       <span
                         className={`inline-flex w-24 justify-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${u.status === "active"
-                            ? "bg-primary-soft text-primary-dark"
-                            : "bg-red-100 text-red-700"
+                          ? "bg-primary-soft text-primary-dark"
+                          : "bg-red-100 text-red-700"
                           }`}
                       >
                         {u.status}
                       </span>
                     </td>
                     <td className="text-right">
-                      <UserActionsMenu user={u} onToggleStatus={toggleStatus} onDelete={deleteUser} />
+                      <UserActionsMenu
+                        user={u}
+                        onToggleStatus={toggleStatus}
+                        onDelete={() => {
+                          setSelectedUser(u);
+                          setDeleteModalOpen(true);
+                        }}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -228,6 +232,22 @@ export default function AdminUsers() {
           </div>
         </div>
       </div>
+      <DeleteConfirmModal
+        open={deleteModalOpen}
+        userName={selectedUser?.fullName || ""}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onConfirm={async () => {
+          if (!selectedUser) return;
+
+          await deleteUser(selectedUser.id);
+
+          setDeleteModalOpen(false);
+          setSelectedUser(null);
+        }}
+      />
     </DashboardLayout>
   );
 }
