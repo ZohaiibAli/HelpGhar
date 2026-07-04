@@ -10,6 +10,10 @@ from model.admin_model import AdminLogin
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from helper.password_helper import verify_password
+from fastapi import HTTPException, Depends
+from model.admin_model import AdminLogin, AdminUpdate, ChangePassword
+from helper.password_helper import hash_password, verify_password
+
 
 router = APIRouter(
     prefix="/admin",
@@ -60,6 +64,90 @@ def admin_login(admin: AdminLogin):
         }
     }
 
+
+@router.get("/profile")
+def get_admin_profile(user=Depends(verify_token)):
+
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin Only")
+
+    admin = admin_collection.find_one({"_id": ObjectId(user["id"])})
+
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+
+    return {
+        "id": str(admin["_id"]),
+        "fullName": admin.get("fullName") or admin.get("name", ""),
+        "email": admin["email"],
+        "phone": admin.get("phone", ""),
+        "address": admin.get("address", "")
+    }
+
+
+@router.put("/profile")
+def update_admin_profile(admin: AdminUpdate, user=Depends(verify_token)):
+
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin Only")
+
+    existing = admin_collection.find_one({
+        "email": admin.email,
+        "_id": {"$ne": ObjectId(user["id"])}
+    })
+
+    if existing:
+        return {
+            "success": False,
+            "message": "Email already exists"
+        }
+
+    admin_collection.update_one(
+        {"_id": ObjectId(user["id"])},
+        {"$set": admin.dict()}
+    )
+
+    return {
+        "success": True,
+        "message": "Profile Updated Successfully",
+        "user": {
+            "id": user["id"],
+            "fullName": admin.fullName,
+            "email": admin.email,
+            "phone": admin.phone,
+            "address": admin.address
+        }
+    }
+
+
+@router.put("/change-password")
+def change_admin_password(password: ChangePassword, user=Depends(verify_token)):
+
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin Only")
+
+    admin = admin_collection.find_one({"_id": ObjectId(user["id"])})
+
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+
+    if not verify_password(password.currentPassword, admin["password"]):
+        return {
+            "success": False,
+            "message": "Current password is incorrect"
+        }
+
+    hashed = hash_password(password.newPassword)
+
+    admin_collection.update_one(
+        {"_id": ObjectId(user["id"])},
+        {"$set": {"password": hashed}}
+    )
+
+    return {
+        "success": True,
+        "message": "Password Updated Successfully"
+    }
 
 @router.get("/dashboard")
 def dashboard(user=Depends(verify_token)):

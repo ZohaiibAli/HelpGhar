@@ -4,7 +4,7 @@ import { testimonials } from "@/data/mock";
 
 export function Testimonials() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+    <section id="reviews" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
       <div className="text-center">
         <p className="text-sm font-semibold uppercase tracking-wider text-primary">Loved by 50,000+ users</p>
         <h2 className="mt-1 text-3xl font-black md:text-4xl">What our community says</h2>

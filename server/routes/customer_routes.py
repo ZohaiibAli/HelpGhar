@@ -72,14 +72,17 @@ def login_customer(customer: CustomerLogin):
             "message": "Incorrect password"
     }
 
-    token = create_access_token(
-    {
-        "id": str(existing["_id"]),
-        "email": existing["email"],
-        "role": "customer"
-    }
-)
+    token = create_access_token({
 
+    "id": str(existing["_id"]),
+
+    "customerId": existing["customerId"],
+
+    "email": existing["email"],
+
+    "role":"customer"
+
+})
     return {
         "success": True,
         "message": "Login Successful",

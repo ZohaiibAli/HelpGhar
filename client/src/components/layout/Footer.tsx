@@ -22,9 +22,9 @@ export function Footer() {
           </div>
         </div>
 
-        <FooterCol title="Company" links={[["About Us", "/"], ["How it Works", "/"], ["Careers", "/"], ["Press", "/"]]} />
+        {/* <FooterCol title="Company" links={[["About Us", "/"], ["How it Works", "/"], ["Careers", "/"], ["Press", "/"]]} /> */}
         <FooterCol title="For Users" links={[["Browse Services", "/services"], ["My Bookings", "/my-bookings"], ["Transactions", "/transactions"], ["Help Center", "/"]]} />
-        <FooterCol title="Legal" links={[["Privacy Policy", "/"], ["Terms & Conditions", "/"], ["Refund Policy", "/"], ["Contact", "/"]]} />
+        <FooterCol title="Legal" links={[["Privacy Policy", "/"], ["Terms & Conditions", "/"], ["Refund Policy", "/"], ["Contact", "/"]]} className="md:ml-10" />
       </div>
       <div className="border-t border-border">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
@@ -36,9 +36,10 @@ export function Footer() {
   );
 }
 
-function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
+function FooterCol({ title, links, className }: { title: string; links: [string, string][]; className?: string }) {
   return (
     <div>
+      <div className={className}></div>
       <h4 className="text-sm font-bold">{title}</h4>
       <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
         {links.map(([label, to]) => (
