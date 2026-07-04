@@ -25,6 +25,10 @@ export function Navbar() {
     user?.role === "admin" ? "/dashboard/admin"
       : user?.role === "worker" ? "/dashboard/worker"
         : "/dashboard/customer";
+  const profileHref =
+  user?.role === "admin" ? "/dashboard/admin/profile"
+    : user?.role === "worker" ? "/dashboard/worker/profile"
+      : "/dashboard/customer/profile";
   const handleLogout = () => {
     const role = user?.role;
 
@@ -80,7 +84,7 @@ export function Navbar() {
                 <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild><Link to={dashHref}><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</Link></DropdownMenuItem>
-                <DropdownMenuItem asChild><Link to="/profile"><UserIcon className="mr-2 h-4 w-4" />Profile</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link to={profileHref}><UserIcon className="mr-2 h-4 w-4" />Profile</Link></DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
               </DropdownMenuContent>
@@ -118,6 +122,7 @@ export function Navbar() {
             <div className="my-2 h-px bg-border" />
             {user ? (
               <>
+                <Link to={profileHref} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent">Profile</Link>
                 <Link to={dashHref} onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent">Dashboard</Link>
                 <button
                   onClick={() => {

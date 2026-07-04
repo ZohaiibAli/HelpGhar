@@ -1,140 +1,405 @@
-import { useMemo, useState, useEffect } from "react";
-import { useGigStore } from "@/store/gigStore";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Calendar, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
+// admin_profile.tsx
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
+import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
+import { Camera } from "lucide-react";
+import { HgAlert } from "@/components/ui/HgAlert";
 
-const slots = ["08:00 – 10:00", "10:00 – 12:00", "12:00 – 14:00", "14:00 – 16:00", "16:00 – 18:00", "18:00 – 20:00"];
+interface AdminProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+}
 
-export default function BookingPage() {
+export default function ProfilePage() {
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [user, setUser] = useState<AdminProfile | null>(null);
+
   const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const workerId = params.get("workerId");
+  const { setSession, token } = useAuthStore();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-  const gigs = useGigStore((state) => state.gigs);
-  const fetchGigs = useGigStore((state) => state.fetchGigs);
+  const [alertState, setAlertState] = useState<{
+    open: boolean;
+    type: "success" | "error" | "server";
+    title: string;
+    description: string;
+  }>({
+    open: false,
+    type: "success",
+    title: "",
+    description: "",
+  });
+
+  const closeAlert = () =>
+    setAlertState((s) => ({
+      ...s,
+      open: false,
+    }));
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword) {
+      setAlertState({
+        open: true,
+        type: "error",
+        title: "Missing Fields",
+        description: "Please fill in both password fields.",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setAlertState({
+        open: true,
+        type: "error",
+        title: "Weak Password",
+        description: "New password must be at least 6 characters.",
+      });
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setAlertState({
+        open: true,
+        type: "error",
+        title: "Invalid Password",
+        description:
+          "New password must be different from your current password.",
+      });
+      return;
+    }
+
+    const authToken = localStorage.getItem("token");
+    if (!authToken) {
+      navigate("/login/admin");
+      return;
+    }
+
+    setChangingPassword(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/admin/change-password`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login/admin");
+        return;
+      }
+
+      if (result.success) {
+        setCurrentPassword("");
+        setNewPassword("");
+        setAlertState({
+          open: true,
+          type: "success",
+          title: "Password Updated",
+          description: result.message,
+        });
+      } else {
+        setAlertState({
+          open: true,
+          type: "error",
+          title: "Password Change Failed",
+          description: result.message,
+        });
+      }
+    } catch {
+      setAlertState({
+        open: true,
+        type: "server",
+        title: "Server Error",
+        description: "Unable to change password.",
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   useEffect(() => {
-    fetchGigs();
-  }, [fetchGigs]);
+    const fetchProfile = async () => {
+      const authToken = localStorage.getItem("token");
 
-  const worker =
-    gigs.find((w) => w.id === workerId) ??
-    gigs[0];
+      if (!authToken) {
+        navigate("/login/admin");
+        return;
+      }
 
-  if (!worker) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/profile`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          console.log("Status:", response.status);
+          console.log("Response:", await response.text());
+          return;
+        }
+
+        const data = await response.json();
+
+        setUser(data);
+        setFullName(data.fullName);
+        setPhone(data.phone);
+        setAddress(data.address);
+        setEmail(data.email);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleUpdate = async () => {
+    const authToken = localStorage.getItem("token");
+
+    if (!authToken) {
+      navigate("/login/admin");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          fullName,
+          email,
+          phone,
+          address,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login/admin");
+        return;
+      }
+
+      if (response.ok) {
+        setSession(
+          {
+            id: user!.id,
+            fullName,
+            email,
+            phone,
+            address,
+            role: "admin",
+            createdAt: new Date().toISOString(),
+          },
+          authToken
+        );
+
+        setUser({
+          ...user!,
+          fullName,
+          phone,
+          address,
+        });
+
+        setAlertState({
+          open: true,
+          type: "success",
+          title: "Profile Updated",
+          description: result.message,
+        });
+      } else {
+        setAlertState({
+          open: true,
+          type: "error",
+          title: "Update Failed",
+          description: result.detail || result.message,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+      setAlertState({
+        open: true,
+        type: "server",
+        title: "Server Error",
+        description: "Unable to update profile.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!user) {
     return (
       <DashboardLayout title="Admin" items={adminItems}>
-        <div className="mx-auto max-w-7xl px-4 py-20 text-center">
-          Loading...
+        <div className="flex h-screen flex-col items-center justify-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <h2 className="text-lg font-semibold">Loading your profile...</h2>
+          <p className="text-sm text-muted-foreground">
+            Please wait while we fetch your details.
+          </p>
         </div>
       </DashboardLayout>
     );
   }
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const [date, setDate] = useState(todayStr);
-  const [slot, setSlot] = useState(slots[1]);
-  const [duration, setDuration] = useState(2);
-
-  const amount = useMemo(() => Math.round(((worker.priceMin + worker.priceMax) / 2) / (worker.priceUnit === "month" ? 30 : 1) * duration), [worker, duration]);
-  const fee = Math.round(amount * 0.05);
-  const total = amount + fee;
-
   return (
     <DashboardLayout title="Admin" items={adminItems}>
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-black md:text-4xl">Book your service</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Choose date, time and confirm details.</p>
-
-        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="space-y-6">
-            <Card>
-              <div className="flex items-center gap-4">
-                <img src={worker.avatar} className="h-14 w-14 rounded-2xl object-cover" alt="" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-bold">{worker.fullName}</p>
-                  <p className="text-xs text-muted-foreground">{worker.category} • {worker.city}</p>
-                </div>
-                <Link to={`/workers/${worker.id}`} className="text-xs font-semibold text-primary hover:underline">View profile</Link>
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-black md:text-4xl">Profile</h1>
+        <div className="mt-8 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="rounded-3xl border border-border bg-card p-6 text-center shadow-soft">
+            <div className="relative mx-auto h-28 w-28 overflow-hidden rounded-full bg-primary-soft">
+              <div className="grid h-full w-full place-items-center text-3xl font-black text-primary-dark">
+                {user?.fullName?.charAt(0) ?? "U"}
               </div>
-            </Card>
-
-            <Card title="Select date" icon={Calendar}>
-              <input type="date" min={todayStr} value={date} onChange={(e) => setDate(e.target.value)}
-                className="h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
-            </Card>
-
-            <Card title="Time slot" icon={Clock}>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {slots.map(s => (
-                  <button key={s} onClick={() => setSlot(s)}
-                    className={`rounded-xl border px-3 py-3 text-sm font-semibold transition ${slot === s ? "border-primary bg-primary-soft text-primary-dark" : "border-input bg-background hover:border-primary/40"}`}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </Card>
-
-            <Card title="Duration">
-              <div className="flex items-center gap-3">
-                <input type="range" min={1} max={8} value={duration} onChange={(e) => setDuration(+e.target.value)} className="flex-1 accent-primary" />
-                <span className="w-20 text-right text-sm font-bold">{duration} hours</span>
-              </div>
-            </Card>
-
-            <Card title="Service address">
-              <textarea rows={3} placeholder="House #, Street, Area, City"
-                className="w-full rounded-xl border border-input bg-background p-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
-            </Card>
+              <button className="absolute bottom-1 right-1 grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-soft">
+                <Camera className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mt-4 text-lg font-bold">
+              {user?.fullName ?? "Guest user"}
+            </p>
+            <p className="text-xs text-muted-foreground capitalize">Admin</p>
           </div>
 
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-card">
-              <h2 className="text-base font-bold">Booking summary</h2>
-              <div className="mt-4 space-y-2 text-sm">
-                <Row label="Worker" value={worker.fullName} />
-                <Row label="Service" value={worker.category} />
-                <Row label="Date" value={date} />
-                <Row label="Time" value={slot} />
-                <Row label="Duration" value={`${duration}h`} />
+          <div className="space-y-6">
+            <Card title="Personal information">
+              <Grid>
+                <F
+                  label="Full name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+                <F
+                  label="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <F
+                  label="Phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+                <F
+                  label="Address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </Grid>
+            </Card>
+            <Card title="Change password">
+              <Grid>
+                <F
+                  label="Current password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+                <F
+                  label="New password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </Grid>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={changingPassword}
+                  className="bg-primary hover:bg-primary-dark"
+                >
+                  {changingPassword ? "Updating..." : "Change Password"}
+                </Button>
               </div>
-              <div className="my-4 h-px bg-border" />
-              <div className="space-y-2 text-sm">
-                <Row label="Amount" value={`Rs. ${amount.toLocaleString()}`} />
-                <Row label="Platform fee (5%)" value={`Rs. ${fee.toLocaleString()}`} />
-                <div className="flex items-center justify-between pt-2 text-base font-black">
-                  <span>Total</span><span>Rs. {total.toLocaleString()}</span>
-                </div>
-              </div>
-              <Button onClick={() => navigate(`/payment?bookingId=b-new&amount=${total}`)}
-                className="mt-5 h-12 w-full rounded-xl bg-primary text-base font-bold hover:bg-primary-dark">
-                Proceed to payment <ArrowRight className="ml-2 h-4 w-4" />
+            </Card>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline">Cancel</Button>
+              <Button
+                onClick={handleUpdate}
+                disabled={saving}
+                className="bg-primary hover:bg-primary-dark"
+              >
+                {saving ? "Saving..." : "Save Changes"}
               </Button>
-              <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Free cancellation up to 4 hours before</p>
             </div>
-          </aside>
+          </div>
         </div>
       </div>
+      <HgAlert
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+      />
     </DashboardLayout>
   );
 }
 
-function Card({ title, icon: Icon, children }: { title?: string; icon?: typeof Calendar; children: React.ReactNode }) {
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-      {title && (
-        <div className="mb-4 flex items-center gap-2">
-          {Icon && <Icon className="h-4 w-4 text-primary" />}
-          <h3 className="text-sm font-bold uppercase tracking-wider">{title}</h3>
-        </div>
-      )}
+      <h3 className="mb-4 text-sm font-bold uppercase tracking-wider">{title}</h3>
       {children}
     </div>
   );
 }
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return <div className="flex items-center justify-between text-sm"><span className="text-muted-foreground">{label}</span><span className="font-semibold">{value}</span></div>;
+function Grid({ children }: { children: React.ReactNode }) {
+  return <div className="grid gap-4 md:grid-cols-2">{children}</div>;
+}
+function F({
+  label,
+  type = "text",
+  value,
+  onChange,
+}: {
+  label: string;
+  type?: string;
+  value: string;
+  onChange: (e: any) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-xs font-semibold">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+      />
+    </div>
+  );
 }
