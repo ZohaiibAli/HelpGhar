@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { Search, ShieldCheck, ShieldOff, Mail, Phone } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Search, ShieldCheck, ShieldOff, Mail, Phone, MoreVertical, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
-import { Button } from "@/components/ui/button";
 
 interface PlatformUser {
   id: string;
@@ -25,6 +24,74 @@ const platformUsers: PlatformUser[] = [
   { id: "u7", fullName: "Sana Tariq", email: "sana.tariq@mail.com", phone: "0335-6677889", avatar: "https://i.pravatar.cc/300?img=51", role: "worker", status: "suspended", joined: "2023-09-05" },
 ];
 
+function UserActionsMenu({
+  user,
+  onToggleStatus,
+  onDelete,
+}: {
+  user: PlatformUser;
+  onToggleStatus: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div className="relative inline-block text-left" ref={menuRef}>
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className="rounded-lg border border-border p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+        aria-label="User actions"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-10 mt-2 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-soft">
+          <button
+            onClick={() => {
+              onToggleStatus(user.id);
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-foreground transition hover:bg-secondary"
+          >
+            {user.status === "active" ? (
+              <>
+                <ShieldOff className="h-3.5 w-3.5" /> Suspend
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="h-3.5 w-3.5" /> Activate
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm(`Delete ${user.fullName}? This action cannot be undone.`)) {
+                onDelete(user.id);
+              }
+              setOpen(false);
+            }}
+            className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-xs font-semibold text-red-600 transition hover:bg-red-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminUsers() {
   const [tab, setTab] = useState<"all" | "customer" | "worker">("all");
   const [query, setQuery] = useState("");
@@ -40,6 +107,10 @@ export default function AdminUsers() {
     setUsers((prev) =>
       prev.map((u) => (u.id === id ? { ...u, status: u.status === "active" ? "suspended" : "active" } : u))
     );
+  }
+
+  function deleteUser(id: string) {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
   }
 
   return (
@@ -109,18 +180,7 @@ export default function AdminUsers() {
                       }`}>{u.status}</span>
                     </td>
                     <td className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-lg"
-                        onClick={() => toggleStatus(u.id)}
-                      >
-                        {u.status === "active" ? (
-                          <><ShieldOff className="h-3.5 w-3.5" /> Suspend</>
-                        ) : (
-                          <><ShieldCheck className="h-3.5 w-3.5" /> Activate</>
-                        )}
-                      </Button>
+                      <UserActionsMenu user={u} onToggleStatus={toggleStatus} onDelete={deleteUser} />
                     </td>
                   </tr>
                 ))}
