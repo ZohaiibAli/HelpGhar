@@ -88,14 +88,19 @@ def get_all_users(user=Depends(verify_token)):
 
     users = []
 
+    # =========================
     # Customers
+    # =========================
     for customer in customer_collection.find():
 
         users.append({
-            "id": str(customer["_id"]),
+            "id": str(customer["_id"]),                     # Mongo _id (used for update/delete)
+            "customerId": customer.get("customerId", ""),   # Your custom customer ID
+            "workerId": None,
             "fullName": customer.get("fullName", ""),
             "email": customer.get("email", ""),
             "phone": customer.get("phone", ""),
+            "avatar": customer.get("avatar", ""),
             "role": "customer",
             "status": customer.get("status", "Active").lower(),
             "joined": (
@@ -105,14 +110,19 @@ def get_all_users(user=Depends(verify_token)):
             )
         })
 
+    # =========================
     # Workers
+    # =========================
     for worker in worker_collection.find():
 
         users.append({
-            "id": str(worker["_id"]),
+            "id": str(worker["_id"]),                     # Mongo _id (used for update/delete)
+            "customerId": None,
+            "workerId": worker.get("workerId", ""),       # Your custom worker ID
             "fullName": worker.get("fullName", ""),
             "email": worker.get("email", ""),
             "phone": worker.get("phone", ""),
+            "avatar": worker.get("avatar", ""),
             "role": "worker",
             "status": worker.get("status", "Active").lower(),
             "joined": (
@@ -126,6 +136,7 @@ def get_all_users(user=Depends(verify_token)):
         "success": True,
         "users": users
     }
+
 
 
 @router.patch("/users/{role}/{user_id}/status")

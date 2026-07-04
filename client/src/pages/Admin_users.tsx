@@ -1,15 +1,23 @@
-import { useState, useRef, useEffect } from "react";
+// import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Search, ShieldCheck, ShieldOff, Mail, Phone, MoreVertical, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 import { adminService } from "@/services/adminService";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PlatformUser {
   id: string;
+  customerId?: string;
+  workerId?: string;
   fullName: string;
   email: string;
   phone: string;
-  avatar: string;
   role: "customer" | "worker";
   status: "active" | "suspended";
   joined: string;
@@ -26,62 +34,52 @@ function UserActionsMenu({
   onToggleStatus: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    if (open) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
   return (
-    <div className="relative inline-block text-left" ref={menuRef}>
-      <button
-        onClick={() => setOpen((prev) => !prev)}
-        className="rounded-lg border border-border p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-        aria-label="User actions"
-      >
-        <MoreVertical className="h-4 w-4" />
-      </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="rounded-lg border border-border p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+          aria-label="User actions"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
 
-      {open && (
-        <div className="absolute right-0 z-10 mt-2 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-soft">
-          <button
-            onClick={() => {
-              onToggleStatus(user.id);
-              setOpen(false);
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-foreground transition hover:bg-secondary"
-          >
-            {user.status === "active" ? (
-              <>
-                <ShieldOff className="h-3.5 w-3.5" /> Suspend
-              </>
-            ) : (
-              <>
-                <ShieldCheck className="h-3.5 w-3.5" /> Activate
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm(`Delete ${user.fullName}? This action cannot be undone.`)) {
-                onDelete(user.id);
-              }
-              setOpen(false);
-            }}
-            className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-xs font-semibold text-red-600 transition hover:bg-red-50"
-          >
-            <Trash2 className="h-3.5 w-3.5" /> Delete
-          </button>
-        </div>
-      )}
-    </div>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem
+          onClick={() => onToggleStatus(user.id)}
+          className="cursor-pointer"
+        >
+          {user.status === "active" ? (
+            <>
+              <ShieldOff className="mr-2 h-4 w-4" />
+              Suspend
+            </>
+          ) : (
+            <>
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              Activate
+            </>
+          )}
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          className="cursor-pointer text-red-600 focus:text-red-600"
+          onClick={() => {
+            if (
+              window.confirm(
+                `Delete ${user.fullName}? This action cannot be undone.`
+              )
+            ) {
+              onDelete(user.id);
+            }
+          }}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -90,6 +88,7 @@ export default function AdminUsers() {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<PlatformUser[]>([]);
 
+  // Fetch users from backend
   const fetchUsers = async () => {
     try {
       const response = await adminService.getUsers();
@@ -99,6 +98,7 @@ export default function AdminUsers() {
     }
   };
 
+  // Run once when page opens
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -109,41 +109,36 @@ export default function AdminUsers() {
       u.fullName.toLowerCase().includes(query.toLowerCase())
   );
 
-  async function toggleStatus(id: string) {
 
-    const selected = users.find(u => u.id === id);
+  async function toggleStatus(id: string) {
+    const selected = users.find((u) => u.id === id);
 
     if (!selected) return;
 
     try {
-
       await adminService.toggleUserStatus(
         selected.role,
         selected.id
       );
 
       fetchUsers();
-
     } catch (error) {
       console.error(error);
     }
   }
 
   async function deleteUser(id: string) {
-
-    const selected = users.find(u => u.id === id);
+    const selected = users.find((u) => u.id === id);
 
     if (!selected) return;
 
     try {
-
       await adminService.deleteUser(
         selected.role,
         selected.id
       );
 
       fetchUsers();
-
     } catch (error) {
       console.error(error);
     }
@@ -186,20 +181,22 @@ export default function AdminUsers() {
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
                 <tr>
-                  <th className="py-2">User</th>
-                  <th>Contact</th>
-                  <th>Role</th>
-                  <th>Joined</th>
-                  <th>Status</th>
-                  <th></th>
+                  <th className="w-32 py-2">User ID</th>
+                  <th className="w-48">User</th>
+                  <th className="w-96">Contact</th>
+                  <th className="w-32">Role</th>
+                  <th className="w-32">Status</th>
+                  <th className="w-16"></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((u) => (
                   <tr key={u.id} className="border-t border-border">
+                    <td className="py-3 text-xs font-semibold text-muted-foreground">
+                      {u.role === "customer" ? u.customerId : u.workerId}
+                    </td>
                     <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <img src={u.avatar} className="h-9 w-9 rounded-full object-cover" alt="" />
+                      <div>
                         <p className="text-xs font-bold">{u.fullName}</p>
                       </div>
                     </td>
@@ -208,10 +205,15 @@ export default function AdminUsers() {
                       <div className="mt-0.5 flex items-center gap-1"><Phone className="h-3 w-3" /> {u.phone}</div>
                     </td>
                     <td className="text-xs font-semibold capitalize text-muted-foreground">{u.role}</td>
-                    <td className="text-xs text-muted-foreground">{u.joined}</td>
                     <td>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${u.status === "active" ? "bg-primary-soft text-primary-dark" : "bg-red-100 text-red-700"
-                        }`}>{u.status}</span>
+                      <span
+                        className={`inline-flex w-24 justify-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${u.status === "active"
+                            ? "bg-primary-soft text-primary-dark"
+                            : "bg-red-100 text-red-700"
+                          }`}
+                      >
+                        {u.status}
+                      </span>
                     </td>
                     <td className="text-right">
                       <UserActionsMenu user={u} onToggleStatus={toggleStatus} onDelete={deleteUser} />
