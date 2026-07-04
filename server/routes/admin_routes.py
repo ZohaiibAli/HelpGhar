@@ -6,11 +6,8 @@ from config.db import (
     worker_collection
 )
 from bson import ObjectId
-from model.admin_model import AdminLogin
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
-from helper.password_helper import verify_password
-from fastapi import HTTPException, Depends
 from model.admin_model import AdminLogin, AdminUpdate, ChangePassword
 from helper.password_helper import hash_password, verify_password
 
