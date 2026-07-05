@@ -9,6 +9,7 @@ from routes.dispute import router as dispute_router
 from routes.worker_dispute import router as worker_dispute_router
 from fastapi.staticfiles import StaticFiles
 from routes.theme_routes import router as website_settings_router
+# from fastapi.staticfiles import StaticFiles
 
 
 app = FastAPI(title="HelpGhar API", version="1.0.0")
@@ -28,6 +29,8 @@ app.include_router(worker_dispute_router)
 app.include_router(worker_router)
 app.include_router(admin_router)
 app.include_router(website_settings_router)
+
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def home():

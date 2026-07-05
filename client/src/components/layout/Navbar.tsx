@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+// import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, X, Search, User as UserIcon, LogOut, LayoutDashboard } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,37 @@ const NAV = [
 export function Navbar() {
   const { user, logout } = useAuthStore();
   const [open, setOpen] = useState(false);
+  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
+const [websiteLogo, setWebsiteLogo] = useState<string | null>(null);
+const [websiteName, setWebsiteName] = useState("HelpGhar");
   const { pathname, hash } = useLocation();
   const navigate = useNavigate();
 
+  useEffect(() => {
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/website-settings`);
+
+      const data = await res.json();
+
+      if (data.success) {
+        if (data.settings.website_logo) {
+          setWebsiteLogo(API_BASE + data.settings.website_logo);
+        }
+
+        if (data.settings.website_name) {
+          setWebsiteName(data.settings.website_name);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchSettings();
+}, []);
+  
   const dashHref =
     user?.role === "admin" ? "/dashboard/admin"
       : user?.role === "worker" ? "/dashboard/worker"
@@ -46,12 +75,21 @@ export function Navbar() {
     <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex shrink-0 items-center gap-2">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-soft">
-            <span className="text-lg font-black">H</span>
-          </div>
-          <span className="text-xl font-black tracking-tight">
-            Help<span className="text-primary">Ghar</span>
-          </span>
+{websiteLogo ? (
+  <img
+    src={websiteLogo}
+    alt="Logo"
+    className="h-10 w-10 rounded-xl object-contain"
+  />
+) : (
+  <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground shadow-soft">
+    <span className="text-lg font-black">H</span>
+  </div>
+)}
+
+<span className="text-xl font-black tracking-tight">
+  {websiteName}
+</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

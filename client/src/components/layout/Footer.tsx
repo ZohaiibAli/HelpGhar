@@ -1,14 +1,55 @@
 import { Link } from "react-router-dom";
 import { Facebook, Instagram, Twitter, Linkedin } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export function Footer() {
+  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
+  const [websiteLogo, setWebsiteLogo] = useState<string | null>(null);
+  const [websiteName, setWebsiteName] = useState("HelpGhar");
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/admin/website-settings`);
+        const data = await res.json();
+
+        if (data.success) {
+          if (data.settings.website_logo) {
+            setWebsiteLogo(API_BASE + data.settings.website_logo);
+          }
+
+          if (data.settings.website_name) {
+            setWebsiteName(data.settings.website_name);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchSettings();
+  }, []);
   return (
     <footer className="mt-24 border-t border-border bg-card">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4 lg:px-8">
         <div>
           <div className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground"><span className="font-black">H</span></div>
-            <span className="text-xl font-black">Help<span className="text-primary">Ghar</span></span>
+            {websiteLogo ? (
+              <img
+                src={websiteLogo}
+                alt="Logo"
+                className="h-10 w-10 rounded-xl object-contain"
+              />
+            ) : (
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground">
+                <span className="font-black">H</span>
+              </div>
+            )}
+
+            <span className="text-xl font-black">
+              {websiteName}
+            </span>
           </div>
           <p className="mt-4 max-w-xs text-sm text-muted-foreground">
             Pakistan's trusted marketplace for verified home service workers.
