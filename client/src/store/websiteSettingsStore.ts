@@ -30,9 +30,7 @@ export const useWebsiteSettingsStore = create<WebsiteSettingsState>(
             websiteName:
               data.settings.website_name || "HelpGhar",
 
-            websiteLogo: data.settings.website_logo
-              ? API_BASE + data.settings.website_logo
-              : null,
+            websiteLogo: data.settings.website_logo || null,
 
             loading: false,
           });

@@ -56,7 +56,7 @@ export default function AdminSettings() {
           }
 
           if (data.settings.website_logo) {
-            setLogoPreview(`${API_BASE}${data.settings.website_logo}`);
+            setLogoPreview(data.settings.website_logo);
           }
 
           return;
@@ -170,7 +170,7 @@ export default function AdminSettings() {
         if (data.settings.website_logo) {
           localStorage.setItem(
             "website-logo",
-            `${API_BASE}${data.settings.website_logo}`
+            data.settings.website_logo
           );
         }
 
@@ -362,64 +362,64 @@ export default function AdminSettings() {
                 className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm cursor-not-allowed"
               />
             </label>
-{/* hi */}
-<div>
-  <h3 className="text-base font-semibold">
-    Website Logo
-  </h3>
+            {/* hi */}
+            <div>
+              <h3 className="text-base font-semibold">
+                Website Logo
+              </h3>
 
-  <p className="mb-4 text-sm text-muted-foreground">
-    Upload the logo displayed in the navbar and footer.
-  </p>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Upload the logo displayed in the navbar and footer.
+              </p>
 
-  <div className="flex items-center gap-4">
-    {/* Preview */}
-    <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-border bg-muted">
-      {logoPreview ? (
-        <img
-          src={logoPreview}
-          alt="Website Logo"
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-          No Logo
-        </div>
-      )}
-    </div>
+              <div className="flex items-center gap-4">
+                {/* Preview */}
+                <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-border bg-muted">
+                  {logoPreview ? (
+                    <img
+                      src={logoPreview}
+                      alt="Website Logo"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                      No Logo
+                    </div>
+                  )}
+                </div>
 
-    {/* Upload */}
-    <div className="space-y-2">
-      <label
-        htmlFor="logo-upload"
-        className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary-dark"
-      >
-        Change Logo
-      </label>
+                {/* Upload */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="logo-upload"
+                    className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary-dark"
+                  >
+                    Change Logo
+                  </label>
 
-      <input
-        id="logo-upload"
-        type="file"
-        accept="image/*"
-        onChange={handleLogoChange}
-        className="hidden"
-      />
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
 
-      <p className="text-xs text-muted-foreground">
-        PNG, JPG, JPEG & SVG
-      </p>
-    </div>
-  </div>
-</div>
+                  <p className="text-xs text-muted-foreground">
+                    PNG, JPG, JPEG & SVG
+                  </p>
+                </div>
+              </div>
+            </div>
 
-<label className="text-xs font-semibold text-muted-foreground">
-  Commission rate (%)
-  <input
-    value={form.commissionRate}
-    readOnly
-    className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm cursor-not-allowed"
-  />
-</label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Commission rate (%)
+              <input
+                value={form.commissionRate}
+                readOnly
+                className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm cursor-not-allowed"
+              />
+            </label>
             {/* hi */}
           </div>
         </div>

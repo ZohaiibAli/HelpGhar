@@ -1,6 +1,4 @@
-import os
-import shutil
-from datetime import datetime
+from helper.cloudinary_helper import upload_image
 
 from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException
 
@@ -15,9 +13,6 @@ router = APIRouter(
 )
 
 SETTINGS_ID = "singleton"  # only ever one website-settings document
-
-UPLOAD_DIR = "uploads/logos"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 def clamp(value: int, low: int, high: int) -> int:
@@ -79,16 +74,8 @@ def update_website_settings(
         update_fields["website_name"] = website_name.strip()
 
     if logo is not None:
-
-        ext = os.path.splitext(logo.filename or "")[1]
-        filename = f"{datetime.utcnow().timestamp()}{ext}"
-        filepath = os.path.join(UPLOAD_DIR, filename)
-
-        with open(filepath, "wb") as f:
-            shutil.copyfileobj(logo.file, f)
-
-        # served via the StaticFiles mount added in main.py
-        update_fields["website_logo"] = "/" + filepath.replace("\\", "/")
+        logo_url = upload_image(logo)
+        update_fields["website_logo"] = logo_url
 
     theme_fields_present = any(
         v is not None for v in [hue, saturation, lightness, corner_radius]
@@ -133,3 +120,4 @@ def update_website_settings(
         "success": True,
         "settings": serialize(settings)
     }
+    
