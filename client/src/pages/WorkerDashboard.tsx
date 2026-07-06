@@ -21,6 +21,7 @@ const items = [
 export default function WorkerDashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState<"success" | "error" | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "Ayesha",
@@ -55,7 +56,7 @@ export default function WorkerDashboard() {
       setErrors(e);
       return;
     }
-
+    setIsSubmitting(true);
     try {
       let avatarUrl = "";
 
@@ -106,10 +107,12 @@ export default function WorkerDashboard() {
       });
 
       setErrors({});
+      setIsSubmitting(false);
     } catch (err) {
       console.error(err);
       setToast("error");
       setTimeout(() => setToast(null), 3000);
+      setIsSubmitting(false);
     }
   };
 
@@ -355,55 +358,56 @@ export default function WorkerDashboard() {
               </button>
               <button
                 onClick={handleSubmit}
-                className="rounded-xl bg-primary px-5 py-2 text-sm font-bold text-primary-foreground hover:bg-primary-dark transition-colors"
+                disabled={isSubmitting}
+                className={`rounded-xl px-5 py-2 text-sm font-bold text-primary-foreground transition-colors ${isSubmitting
+                    ? "bg-primary/70 cursor-not-allowed"
+                    : "bg-primary hover:bg-primary-dark"
+                  }`}
               >
-                Publish Gig
+                {isSubmitting ? "Processing..." : "Publish Gig"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-{/* Toast Notification */}
-{toast && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-    <div className={`flex flex-col items-center gap-4 rounded-3xl p-10 shadow-xl text-center w-80 ${
-      toast === "success" ? "bg-card" : "bg-card"
-    }`}>
-      <div className={`flex h-16 w-16 items-center justify-center rounded-full ${
-        toast === "success" ? "bg-primary" : "bg-red-500"
-      }`}>
-        {toast === "success" ? (
-          <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        ) : (
-          <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        )}
-      </div>
-      <div>
-        <p className="text-xl font-black">
-          {toast === "success" ? "Gig Published!" : "Something went wrong"}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {toast === "success"
-            ? "Your gig is now live on the Services page."
-            : "Failed to create gig. Please try again."}
-        </p>
-      </div>
-      <button
-        onClick={() => setToast(null)}
-        className={`mt-2 rounded-xl px-6 py-2.5 text-sm font-bold text-white transition-colors ${
-          toast === "success" ? "bg-primary hover:bg-primary-dark" : "bg-red-500 hover:bg-red-600"
-        }`}
-      >
-        {toast === "success" ? "Great!" : "Try Again"}
-      </button>
-    </div>
-  </div>
-)}
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className={`flex flex-col items-center gap-4 rounded-3xl p-10 shadow-xl text-center w-80 ${toast === "success" ? "bg-card" : "bg-card"
+            }`}>
+            <div className={`flex h-16 w-16 items-center justify-center rounded-full ${toast === "success" ? "bg-primary" : "bg-red-500"
+              }`}>
+              {toast === "success" ? (
+                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <p className="text-xl font-black">
+                {toast === "success" ? "Gig Published!" : "Something went wrong"}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {toast === "success"
+                  ? "Your gig is now live on the Services page."
+                  : "Failed to create gig. Please try again."}
+              </p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className={`mt-2 rounded-xl px-6 py-2.5 text-sm font-bold text-white transition-colors ${toast === "success" ? "bg-primary hover:bg-primary-dark" : "bg-red-500 hover:bg-red-600"
+                }`}
+            >
+              {toast === "success" ? "Great!" : "Try Again"}
+            </button>
+          </div>
+        </div>
+      )}
 
     </DashboardLayout>
   );
