@@ -10,6 +10,9 @@ from routes.worker_dispute import router as worker_dispute_router
 from fastapi.staticfiles import StaticFiles
 from routes.theme_routes import router as website_settings_router
 # from fastapi.staticfiles import StaticFiles
+from routes.chat_routes import router as chat_router
+
+
 
 
 app = FastAPI(title="HelpGhar API", version="1.0.0")
@@ -39,3 +42,8 @@ def home():
 @app.get("/health")
 def health():
     return {"status": "OK", "mongodb": "Connected"}
+
+app.include_router(
+    chat_router,
+    prefix="/api"
+)
