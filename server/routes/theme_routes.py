@@ -49,6 +49,16 @@ def get_website_settings(user=Depends(verify_token)):
     }
 
 
+@router.get("/website-settings")
+def website_settings():
+
+    settings = website_theme_collection.find_one({"_id": SETTINGS_ID})
+
+    return {
+        "success": True,
+        "settings": serialize(settings)
+    }
+
 @router.put("/update-website-settings")
 def update_website_settings(
     website_name: str = Form(None),
@@ -78,7 +88,7 @@ def update_website_settings(
             shutil.copyfileobj(logo.file, f)
 
         # served via the StaticFiles mount added in main.py
-        update_fields["website_logo"] = f"/{filepath}"
+        update_fields["website_logo"] = "/" + filepath.replace("\\", "/")
 
     theme_fields_present = any(
         v is not None for v in [hue, saturation, lightness, corner_radius]

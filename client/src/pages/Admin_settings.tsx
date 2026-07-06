@@ -22,6 +22,10 @@ const swatches = ["#1E3A8A", "#2563EB", "#3B82F6", "#0EA5E9", "#7C3AED", "#0F766
 
 export default function AdminSettings() {
   const [saved, setSaved] = useState(false);
+
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     platformName: "HelpGhar",
     supportEmail: "support@helpghar.com",
@@ -44,13 +48,21 @@ export default function AdminSettings() {
           headers: getFileAuthHeaders(),
         });
         const data = await res.json();
-        if (data.success && data.settings?.theme) {
-          setTheme(data.settings.theme);
-          applyTheme(data.settings.theme);
-          saveTheme(data.settings.theme);
+        if (data.success && data.settings) {
+          if (data.settings.theme) {
+            setTheme(data.settings.theme);
+            applyTheme(data.settings.theme);
+            saveTheme(data.settings.theme);
+          }
+
+          if (data.settings.website_logo) {
+            setLogoPreview(`${API_BASE}${data.settings.website_logo}`);
+          }
+
           return;
         }
-      } catch {
+      }
+      catch {
         // fall back to whatever's cached locally
       } finally {
         setIsFetchingTheme(false);
@@ -129,9 +141,48 @@ export default function AdminSettings() {
   const previewSoft = `hsl(${theme.hue} ${theme.saturation}% 95%)`;
   const previewFg = theme.lightness > 62 ? "#0f172a" : "#ffffff";
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  async function handleSave() {
+    try {
+      const formData = new FormData();
+
+      if (logoFile) {
+        formData.append("logo", logoFile);
+      }
+
+      const res = await fetch(`${API_BASE}/admin/update-website-settings`, {
+        method: "PUT",
+        headers: getFileAuthHeaders(),
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        if (data.settings.website_logo) {
+          localStorage.setItem(
+            "website-logo",
+            `${API_BASE}${data.settings.website_logo}`
+          );
+        }
+
+        setSaved(true);
+
+        window.dispatchEvent(new Event("website-settings-updated"));
+
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   return (
@@ -149,53 +200,6 @@ export default function AdminSettings() {
           </div>
         )}
 
-        <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-          <h2 className="text-base font-bold">General</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <label className="text-xs font-semibold text-muted-foreground">
-              Platform name
-              <input
-                value={form.platformName}
-                onChange={(e) => setForm({ ...form, platformName: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              />
-            </label>
-            <label className="text-xs font-semibold text-muted-foreground">
-              Support email
-              <input
-                value={form.supportEmail}
-                onChange={(e) => setForm({ ...form, supportEmail: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              />
-            </label>
-            <label className="text-xs font-semibold text-muted-foreground">
-              Commission rate (%)
-              <input
-                value={form.commissionRate}
-                onChange={(e) => setForm({ ...form, commissionRate: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              />
-            </label>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-          <h2 className="text-base font-bold">Platform controls</h2>
-          <div className="mt-4 space-y-4">
-            <ToggleRow
-              label="Auto-approve new workers"
-              description="Skip manual CNIC review for new worker sign-ups."
-              checked={form.autoApproveWorkers}
-              onChange={(v) => setForm({ ...form, autoApproveWorkers: v })}
-            />
-            <ToggleRow
-              label="Maintenance mode"
-              description="Temporarily disable new bookings platform-wide."
-              checked={form.maintenanceMode}
-              onChange={(v) => setForm({ ...form, maintenanceMode: v })}
-            />
-          </div>
-        </div>
 
         {/* ── Website theme ── */}
         <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
@@ -336,6 +340,87 @@ export default function AdminSettings() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
+          <h2 className="text-base font-bold">General</h2>
+          <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
+            <label className="text-xs font-semibold text-muted-foreground">
+              Platform name
+              <input
+                value={form.platformName}
+                readOnly
+                // onChange={(e) => setForm({ ...form, platformName: e.target.value })}
+                className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm cursor-not-allowed" />
+            </label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Support email
+              <input
+                value={form.supportEmail}
+                readOnly
+                className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm cursor-not-allowed"
+              />
+            </label>
+{/* hi */}
+<div>
+  <h3 className="text-base font-semibold">
+    Website Logo
+  </h3>
+
+  <p className="mb-4 text-sm text-muted-foreground">
+    Upload the logo displayed in the navbar and footer.
+  </p>
+
+  <div className="flex items-center gap-4">
+    {/* Preview */}
+    <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-border bg-muted">
+      {logoPreview ? (
+        <img
+          src={logoPreview}
+          alt="Website Logo"
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+          No Logo
+        </div>
+      )}
+    </div>
+
+    {/* Upload */}
+    <div className="space-y-2">
+      <label
+        htmlFor="logo-upload"
+        className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary-dark"
+      >
+        Change Logo
+      </label>
+
+      <input
+        id="logo-upload"
+        type="file"
+        accept="image/*"
+        onChange={handleLogoChange}
+        className="hidden"
+      />
+
+      <p className="text-xs text-muted-foreground">
+        PNG, JPG, JPEG & SVG
+      </p>
+    </div>
+  </div>
+</div>
+
+<label className="text-xs font-semibold text-muted-foreground">
+  Commission rate (%)
+  <input
+    value={form.commissionRate}
+    readOnly
+    className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm cursor-not-allowed"
+  />
+</label>
+            {/* hi */}
           </div>
         </div>
 
