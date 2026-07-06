@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 import { Button } from "@/components/ui/button";
 import { applyTheme, DEFAULT_THEME, saveTheme, WebsiteTheme } from "@/lib/theme";
+import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
@@ -22,6 +23,7 @@ const swatches = ["#1E3A8A", "#2563EB", "#3B82F6", "#0EA5E9", "#7C3AED", "#0F766
 
 export default function AdminSettings() {
   const [saved, setSaved] = useState(false);
+const [isSaving, setIsSaving] = useState(false);
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -150,41 +152,49 @@ export default function AdminSettings() {
     setLogoPreview(URL.createObjectURL(file));
   };
 
-  async function handleSave() {
-    try {
-      const formData = new FormData();
+async function handleSave() {
+  setIsSaving(true);
 
-      if (logoFile) {
-        formData.append("logo", logoFile);
-      }
+  try {
+    const formData = new FormData();
 
-      const res = await fetch(`${API_BASE}/admin/update-website-settings`, {
-        method: "PUT",
-        headers: getFileAuthHeaders(),
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        if (data.settings.website_logo) {
-          localStorage.setItem(
-            "website-logo",
-            data.settings.website_logo
-          );
-        }
-
-        setSaved(true);
-
-        window.dispatchEvent(new Event("website-settings-updated"));
-
-        setTimeout(() => setSaved(false), 3000);
-      }
-    } catch (err) {
-      console.error(err);
+    if (logoFile) {
+      formData.append("logo", logoFile);
     }
-  }
 
+    const res = await fetch(`${API_BASE}/admin/update-website-settings`, {
+      method: "PUT",
+      headers: getFileAuthHeaders(),
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      // Update the preview immediately
+      if (data.settings.website_logo) {
+        setLogoPreview(data.settings.website_logo);
+
+        localStorage.setItem(
+          "website-logo",
+          data.settings.website_logo
+        );
+      }
+
+      // Refresh the Zustand store so Navbar/Footer update instantly
+      await useWebsiteSettingsStore.getState().fetchSettings();
+
+      setSaved(true);
+      setLogoFile(null);
+
+      setTimeout(() => setSaved(false), 3000);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setIsSaving(false);
+  }
+}
   return (
     <DashboardLayout title="Admin" items={adminItems}>
       <div className="space-y-6">
@@ -424,9 +434,20 @@ export default function AdminSettings() {
           </div>
         </div>
 
-        <Button className="rounded-xl bg-primary hover:bg-primary-dark" onClick={handleSave}>
-          Save changes
-        </Button>
+<Button
+  className="rounded-xl bg-primary hover:bg-primary-dark"
+  onClick={handleSave}
+  disabled={isSaving}
+>
+  {isSaving ? (
+    <span className="flex items-center gap-2">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Processing...
+    </span>
+  ) : (
+    "Save changes"
+  )}
+</Button>
       </div>
     </DashboardLayout>
   );
