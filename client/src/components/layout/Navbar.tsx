@@ -27,8 +27,8 @@ export function Navbar() {
         : "/dashboard/customer";
   const profileHref =
   user?.role === "admin" ? "/dashboard/admin/profile"
-    : user?.role === "worker" ? "/dashboard/worker/profile"
-      : "/dashboard/customer/profile";
+    : user?.role === "worker" ? "/worker/profile"
+      : "/profile";
   const handleLogout = () => {
     const role = user?.role;
 
