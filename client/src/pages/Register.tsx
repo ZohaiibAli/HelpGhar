@@ -132,7 +132,7 @@ export default function RegisterPage() {
         <div className="mx-auto max-w-lg px-4 py-24 text-center">
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary-soft text-primary"><CheckCircle2 className="h-8 w-8" /></div>
           <h1 className="mt-6 text-3xl font-black">Account created</h1>
-          role === "worker" ? (
+          {role === "worker" ? (
           <>
             <p className="mt-3 text-sm text-muted-foreground">
               Your account is pending admin verification.
@@ -165,7 +165,7 @@ export default function RegisterPage() {
               </p>
             </div>
           </>
-          )
+          )}
           <div className="mt-6 flex justify-center gap-3">
             <Button asChild className="bg-primary hover:bg-primary-dark"><Link to="/login">Go to login</Link></Button>
             <Button asChild variant="outline"><Link to="/">Back home</Link></Button>
