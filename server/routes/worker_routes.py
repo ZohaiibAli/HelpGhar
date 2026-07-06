@@ -268,8 +268,23 @@ def create_gig(
             detail="Worker Only"
         )
 
+    worker = worker_collection.find_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    if not worker:
+        raise HTTPException(
+            status_code=404,
+            detail="Worker not found"
+        )
+
     gig_data = gig.dict()
+
     gig_data["workerId"] = user["id"]
+
+    gig_data["status"] = worker["status"]
 
     result = gig_collection.insert_one(gig_data)
 
@@ -283,7 +298,11 @@ def create_gig(
 def get_gigs():
     gigs = []
 
-    for gig in gig_collection.find():
+    for gig in gig_collection.find(
+    {
+        "status": "Active"
+    }
+):
         gig["id"] = str(gig["_id"])
         del gig["_id"]
         gigs.append(gig)

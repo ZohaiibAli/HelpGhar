@@ -3,7 +3,8 @@ from config.db import (
     admin_collection,
     dispute_collection,
     customer_collection,
-    worker_collection
+    worker_collection,
+    gig_collection
 )
 from bson import ObjectId
 from helper.jwt_helper import create_access_token
@@ -270,6 +271,19 @@ def toggle_user_status(
             }
         }
     )
+
+    if role == "worker":
+
+        gig_collection.update_many(
+            {
+                "workerId": user_id
+            },
+            {
+                "$set": {
+                    "status": new_status
+                }
+            }
+        )
 
     return {
         "success": True,
