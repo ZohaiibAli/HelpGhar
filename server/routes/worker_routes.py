@@ -269,6 +269,7 @@ def create_gig(
         )
 
     gig_data = gig.dict()
+    gig_data["workerId"] = user["id"]
 
     result = gig_collection.insert_one(gig_data)
 
