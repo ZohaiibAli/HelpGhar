@@ -6,6 +6,7 @@ from config.db import (
 )
 from model.dispute_model import WorkerDisputeCreate
 from helper.auth_helper import verify_token
+from helper.id_helper import generate_worker_dispute_id
 from datetime import datetime
 
 router = APIRouter(
@@ -33,6 +34,8 @@ def create_worker_dispute(
         )
 
     dispute_collection.insert_one({
+
+        "disputeId": generate_worker_dispute_id(),
 
         "workerId": user["workerId"],
 
@@ -77,7 +80,7 @@ def get_worker_disputes(user=Depends(verify_token)):
 
         result.append({
 
-            "id": str(dispute["_id"]),
+            "id": dispute["disputeId"],
 
             "customerId": dispute["customerId"],
 
