@@ -408,3 +408,24 @@ async def upload_avatar(
 
 #     return user
 
+@router.get("/details/public/{worker_id}")
+def get_worker_details_public(worker_id: str):
+
+    details = worker_details_collection.find_one(
+        {
+            "workerId": worker_id
+        }
+    )
+
+    if not details:
+        return {
+            "about": "",
+            "skills": "",
+            "certifications": ""
+        }
+
+    return {
+        "about": details.get("about", ""),
+        "skills": details.get("skills", ""),
+        "certifications": details.get("certifications", "")
+    }

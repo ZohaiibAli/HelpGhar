@@ -1,3 +1,4 @@
+import { ScrollToTop } from "@/components/ScrollToTop";
 import { Routes, Route } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import LandingPage from "@/pages/LandingPage";
@@ -43,6 +44,8 @@ function ProfileRouter() {
 
 export default function AppRouter() {
   return (
+    <>
+      <ScrollToTop />
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/services" element={<ServicesPage />} />
@@ -77,5 +80,6 @@ export default function AppRouter() {
       <Route path="/chat" element={<ChatPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </>
   );
 }
