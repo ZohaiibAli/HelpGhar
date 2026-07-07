@@ -64,7 +64,7 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section className="relative overflow-hidden bg-hero-gradient">
+    <section id="home" className="relative overflow-hidden bg-hero-gradient">
       {/* Dot grid */}
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
@@ -145,13 +145,12 @@ export function HeroSection() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 + i * 0.06 }}
               >
-                <Link
-                  to={`/services?category=${slug}`}
+                <div
                   className="group inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/80 px-3.5 py-1.5 text-xs font-medium text-foreground/80 backdrop-blur-sm transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary-dark hover:shadow-sm"
                 >
                   <Icon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
                   {label}
-                </Link>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -161,11 +160,10 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className={`mt-8 grid gap-2 rounded-2xl border bg-card/90 p-2 shadow-card backdrop-blur-md transition-all duration-300 sm:grid-cols-[1fr_1fr_auto] ${
-              searchFocused
-                ? "border-primary/40 shadow-lift ring-4 ring-primary/5"
-                : "border-border/60"
-            }`}
+            className={`mt-8 grid gap-2 rounded-2xl border bg-card/90 p-2 shadow-card backdrop-blur-md transition-all duration-300 sm:grid-cols-[1fr_1fr_auto] ${searchFocused
+              ? "border-primary/40 shadow-lift ring-4 ring-primary/5"
+              : "border-border/60"
+              }`}
           >
             <div className="flex items-center gap-2.5 rounded-xl px-3 transition-colors focus-within:bg-accent/30">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground/70" />
@@ -407,16 +405,14 @@ function Stat({
   return (
     <span className="inline-flex items-center gap-2">
       <span
-        className={`flex h-7 w-7 items-center justify-center rounded-lg ${
-          filled
-            ? "bg-amber-50 dark:bg-amber-950/50"
-            : "bg-primary/5"
-        }`}
+        className={`flex h-7 w-7 items-center justify-center rounded-lg ${filled
+          ? "bg-amber-50 dark:bg-amber-950/50"
+          : "bg-primary/5"
+          }`}
       >
         <Icon
-          className={`h-3.5 w-3.5 ${
-            filled ? "fill-amber-400 text-amber-400" : "text-primary"
-          }`}
+          className={`h-3.5 w-3.5 ${filled ? "fill-amber-400 text-amber-400" : "text-primary"
+            }`}
         />
       </span>
       <span className="flex flex-col leading-none">
@@ -447,32 +443,28 @@ function BentoTile({
   trending?: boolean;
 }) {
   return (
-    <Link
-      to={`/services?category=${slug}`}
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${
-        accent
+    <div
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${accent
           ? "border-primary/20 bg-primary shadow-soft"
           : "border-border/60 bg-card/80 shadow-card backdrop-blur-sm hover:border-primary/30"
-      } ${className}`}
+        } ${className}`}
     >
       {/* Background decorative icon */}
       <Icon
-        className={`pointer-events-none absolute transition-transform duration-500 group-hover:scale-110 ${
-          accent
-            ? "-bottom-6 -right-6 h-32 w-32 text-white/[0.07]"
-            : "-bottom-4 -right-4 h-24 w-24 text-primary/[0.06]"
-        }`}
+        className={`pointer-events-none absolute transition-transform duration-500 group-hover:scale-110 ${accent
+          ? "-bottom-6 -right-6 h-32 w-32 text-white/[0.07]"
+          : "-bottom-4 -right-4 h-24 w-24 text-primary/[0.06]"
+          }`}
         strokeWidth={1.2}
       />
 
       {/* Top row */}
       <div className="relative z-10 flex items-start justify-between">
         <span
-          className={`flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${
-            accent
-              ? "bg-white/20 shadow-sm shadow-black/10"
-              : "bg-primary/5 text-primary-dark"
-          }`}
+          className={`flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${accent
+            ? "bg-white/20 shadow-sm shadow-black/10"
+            : "bg-primary/5 text-primary-dark"
+            }`}
         >
           <Icon className="h-4 w-4" />
         </span>
@@ -487,31 +479,27 @@ function BentoTile({
       {/* Bottom row */}
       <div className="relative z-10 mt-auto">
         <p
-          className={`text-sm font-bold ${
-            accent ? "text-primary-foreground" : "text-foreground"
-          }`}
+          className={`text-sm font-bold ${accent ? "text-primary-foreground" : "text-foreground"
+            }`}
         >
           {label}
         </p>
         <div className="mt-1 flex items-center gap-2">
           <p
-            className={`text-xs ${
-              accent ? "text-primary-foreground/60" : "text-muted-foreground"
-            }`}
+            className={`text-xs ${accent ? "text-primary-foreground/60" : "text-muted-foreground"
+              }`}
           >
             {stat}
           </p>
           <span
-            className={`text-xs ${
-              accent ? "text-primary-foreground/40" : "text-border"
-            }`}
+            className={`text-xs ${accent ? "text-primary-foreground/40" : "text-border"
+              }`}
           >
             •
           </span>
           <span
-            className={`flex items-center gap-0.5 text-xs font-medium ${
-              accent ? "text-amber-200" : "text-amber-500"
-            }`}
+            className={`flex items-center gap-0.5 text-xs font-medium ${accent ? "text-amber-200" : "text-amber-500"
+              }`}
           >
             <Star className="h-2.5 w-2.5 fill-current" />
             {rating}
@@ -519,16 +507,6 @@ function BentoTile({
         </div>
       </div>
 
-      {/* Hover arrow */}
-      <span
-        className={`absolute right-3 bottom-3 z-10 flex h-6 w-6 items-center justify-center rounded-md opacity-0 transition-all duration-300 group-hover:opacity-100 ${
-          accent
-            ? "bg-white/20 text-white"
-            : "bg-primary/10 text-primary"
-        }`}
-      >
-        <ArrowRight className="h-3 w-3" />
-      </span>
-    </Link>
+    </div>
   );
 }
