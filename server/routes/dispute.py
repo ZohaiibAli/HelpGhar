@@ -6,6 +6,7 @@ from config.db import (
 )
 from model.dispute_model import DisputeCreate
 from helper.auth_helper import verify_token
+from helper.id_helper import generate_customer_dispute_id
 from datetime import datetime
 from bson import ObjectId
 
@@ -45,7 +46,8 @@ def create_dispute(
         )
 
     dispute_collection.insert_one({
-     "customerId": user["customerId"],
+    "disputeId": generate_customer_dispute_id(),
+    "customerId": user["customerId"],
     "workerId": worker["workerId"],
     "workerName": worker["fullName"],
     "subject": dispute.subject,
@@ -113,8 +115,7 @@ def get_customer_disputes(user=Depends(verify_token)):
 
         result.append({
 
-    "id": str(dispute["_id"]),
-
+    "id": dispute["disputeId"],
     "workerId": dispute["workerId"],
 
     "workerName": dispute["workerName"],

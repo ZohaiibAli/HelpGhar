@@ -21,9 +21,9 @@ export default function DisputePage() {
     subject: "",
     description: "",
   });
-    const [customers, setCustomers] = useState<
+  const [customers, setCustomers] = useState<
     {
-      id: string;
+      customerId: string;
       fullName: string;
     }[]
   >([]);
@@ -86,7 +86,7 @@ export default function DisputePage() {
                 >
                   <option value="">Select Customer</option>
                   {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
+                    <option key={customer.customerId} value={customer.customerId}>
                       {customer.fullName}
                     </option>
                   ))}
@@ -181,7 +181,7 @@ export default function DisputePage() {
                       <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">#{c.id}</p>
                       <p className="text-base font-bold">{c.subject}</p>
                       <p className="text-xs text-muted-foreground">
-                        Against {c.customerName} • {c.date}
+                        Against {c.customerName} ({c.customerId}) • {new Date(c.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>

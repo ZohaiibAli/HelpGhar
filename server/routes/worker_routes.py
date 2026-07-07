@@ -79,6 +79,7 @@ def worker_login(worker: WorkerLogin):
     token = create_access_token(
     {
         "id": str(existing_worker["_id"]),
+        "workerId": existing_worker["workerId"],
         "email": existing_worker["email"],
         "role": "worker"
     }

@@ -1,17 +1,52 @@
-import { Users, ShieldCheck, Calendar, Star, MessageSquareWarning, BarChart3, TrendingUp, DollarSign } from "lucide-react";
+import { Users, ShieldCheck, Calendar, MessageSquareWarning, TrendingUp, DollarSign } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { complaints } from "@/data/mock";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useGigStore } from "@/store/gigStore";
 import { Button } from "@/components/ui/button";
 import { adminItems } from "@/data/adminMenu";
+import type { Complaint } from "@/types";
 
 export default function AdminDashboard() {
   const gigs = useGigStore((state) => state.gigs);
   const fetchGigs = useGigStore((state) => state.fetchGigs);
 
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  const fetchComplaints = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const [customerRes, workerRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/admin/disputes/customer`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_BASE_URL}/admin/disputes/worker`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const customerResult = await customerRes.json();
+      const workerResult = await workerRes.json();
+
+      const merged: Complaint[] = [
+        ...(customerResult.success ? customerResult.complaints : []),
+        ...(workerResult.success ? workerResult.complaints : []),
+      ];
+
+      const openOnly = merged
+        .filter((c) => c.status === "open")
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      setComplaints(openOnly);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     fetchGigs();
+    fetchComplaints();
   }, [fetchGigs]);
 
   return (
@@ -28,7 +63,7 @@ export default function AdminDashboard() {
           <Stat label="Pending verifications" value="48" trend="urgent" warn icon={ShieldCheck} />
           <Stat label="Total bookings" value="22,940" trend="+12%" icon={Calendar} />
           <Stat label="Revenue" value="Rs. 4.2M" trend="+18%" icon={DollarSign} />
-          <Stat label="Open complaints" value="14" trend="-3" icon={MessageSquareWarning} />
+          <Stat label="Open complaints" value={String(complaints.length)} trend={complaints.length > 0 ? "urgent" : "0"} warn={complaints.length > 0} icon={MessageSquareWarning} />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -65,14 +100,22 @@ export default function AdminDashboard() {
           </div>
 
           <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-            <h2 className="text-base font-bold">Open complaints</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold">Open complaints</h2>
+              <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-[10px] font-bold uppercase text-yellow-800">{complaints.length} total</span>
+            </div>
             <div className="mt-4 space-y-3">
-              {complaints.map(c => (
+              {complaints.length === 0 && (
+                <p className="py-6 text-center text-xs text-muted-foreground">No open complaints. 🎉</p>
+              )}
+              {complaints.slice(0, 4).map((c) => (
                 <div key={c.id} className="rounded-2xl border border-border bg-background p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="text-xs font-bold">#{c.id} • {c.subject}</p>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.customerName} vs {c.workerName}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {c.customerName} ({c.customerId}) vs {c.workerName} ({c.workerId})
+                      </p>
                     </div>
                     <span className="rounded-full bg-yellow-100 px-2 py-1 text-[10px] font-bold uppercase text-yellow-800">{c.status.replace("_", " ")}</span>
                   </div>

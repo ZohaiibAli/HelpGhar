@@ -40,7 +40,9 @@ function ComplaintSection({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-xs font-bold">#{c.id} • {c.subject}</p>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">{c.customerName} vs {c.workerName}</p>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  {c.customerName} ({c.customerId}) vs {c.workerName} ({c.workerId})
+                </p>
               </div>
               <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${statusStyles[c.status]}`}>
                 {c.status.replace("_", " ")}
