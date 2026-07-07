@@ -252,34 +252,29 @@ Never invent features.
         self,
         question: str,
         context: str,
-        topic: str = "HelpGhar"
+        instruction: str = None
     ) -> str:
 
-        instructions = f"""
-Answer ONLY using the provided {topic} context.
+        if instruction is None:
 
-If the answer does not exist,
+            instruction = """
+    Answer ONLY using the provided context.
 
-say you couldn't find the information.
+    If the answer is not available,
+    say you couldn't find the information.
 
-Never hallucinate.
+    Never hallucinate.
 
-Never invent workers.
-
-Never invent policies.
-
-Keep answers concise.
-
-Use bullet points whenever appropriate.
-"""
+    Keep answers concise.
+    """
 
         return self.build_prompt(
 
-            question,
+            question=question,
 
-            context,
+            context=context,
 
-            instructions
+            instructions=instruction
 
         )
 

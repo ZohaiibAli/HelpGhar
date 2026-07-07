@@ -57,6 +57,8 @@ from services.ranking_service import ranking_service
 
 from model.chat_response import ChatResponse
 
+from services.conversation_service import conversation_service
+
 
 logger = logging.getLogger(__name__)
 
@@ -78,11 +80,19 @@ class ChatService:
     # =======================================================
 
     def generate_rag_response(
-        self,
-        question: str,
-        instruction: str,
-        limit: int = 5
-    ) -> str:
+
+    self,
+
+    session_id,
+
+    history,
+
+    question,
+
+    instruction,
+
+    limit=5
+):
         """
         Generic helper for all RAG-based responses.
 
@@ -120,11 +130,36 @@ class ChatService:
 
     question=question,
 
-    context=context
+    context=f"""
+
+Conversation History
+
+{history}
+
+--------------------------------
+
+Knowledge Base
+
+{context}
+""",
+
+instruction=instruction
 
 )
 
             answer = generate(prompt)
+
+            conversation_service.add_message(
+
+                session_id,
+
+                "assistant",
+
+                answer
+
+            )
+
+            conversation_service.trim_messages(session_id)
 
             return ChatResponse(
 
@@ -150,9 +185,20 @@ class ChatService:
 
             logger.exception(e)
 
-            return (
-                "I'm sorry, something went wrong while "
-                "retrieving the requested information."
+            return ChatResponse(
+
+                success=False,
+
+                intent="error",
+
+                message="I'm sorry, something went wrong while retrieving the requested information.",
+
+                workers_found=0,
+
+                workers=[],
+
+                sources=[]
+
             )
         
     # =======================================================
@@ -161,8 +207,9 @@ class ChatService:
 
     def chat(
         self,
+        session_id: str,
         question: str
-    ) -> str:
+    ):
 
         """
         Entry point.
@@ -171,35 +218,58 @@ class ChatService:
         """
 
         logger.info(
+            f"Session : {session_id}"
+        )
+
+        logger.info(
             f"Question : {question}"
         )
 
+        # Save the user's message
+        conversation_service.add_message(
+            session_id=session_id,
+            role="user",
+            content=question
+        )
+
+        # Build conversation history
+        history = conversation_service.build_history(
+            session_id
+        )
+
+        logger.info(
+            f"Conversation History:\n{history}"
+        )
+
         intent = classify(question)
+
 
         logger.info(
             f"Intent : {intent}"
         )
 
-        if intent == Intent.GREETING:
-
-            return self.handle_greeting()
-
-        elif intent == Intent.WORKER_SEARCH:
+        if intent == Intent.WORKER_SEARCH:
 
             return self.handle_worker_search(
-                question
+                session_id,
+                question,
+                history
             )
 
         elif intent == Intent.POLICY:
 
             return self.handle_policy(
-                question
+                session_id,
+                question,
+                history
             )
 
         elif intent == Intent.BOOKING:
 
             return self.handle_booking(
-                question
+                session_id,
+                question,
+                history
             )
 
         elif intent == Intent.AUTH:
@@ -209,7 +279,9 @@ class ChatService:
         else:
 
             return self.handle_general(
-                question
+                session_id,
+                question,
+                history
             )
 
 
@@ -219,8 +291,10 @@ class ChatService:
 
     def handle_worker_search(
         self,
-        question: str
-    ) -> str:
+        session_id: str,
+        question: str,
+        history: str
+    ):
         """
         Complete RAG pipeline for worker search.
         """
@@ -278,11 +352,18 @@ class ChatService:
         # -------------------------------------------
 
         prompt = prompt_service.worker_search_prompt(
-
     question=question,
+    context=f"""
+Conversation History
 
-    context=context
+{history}
 
+--------------------------------
+
+Current Search Context
+
+{context}
+"""
 )
 
         logger.info("Prompt Created")
@@ -295,6 +376,24 @@ class ChatService:
         try:
 
             answer = generate(prompt)
+
+            conversation_service.add_message(
+
+                session_id=session_id,
+
+                role="assistant",
+
+                content=answer
+
+            )
+
+            conversation_service.trim_messages(
+
+                session_id=session_id,
+
+                keep_last=20
+
+            )
 
             serialized_workers = [
 
@@ -385,20 +484,28 @@ class ChatService:
 
     def handle_policy(
         self,
-        question: str
-    ) -> str:
+        session_id: str,
+        question: str,
+        history: str
+    ):
 
         return self.generate_rag_response(
 
-            question=question,
+    session_id=session_id,
 
-            instruction="""
+    history=history,
+
+    question=question,
+
+    instruction="""
 Answer ONLY using HelpGhar policy information.
 
 Do not invent policies.
-"""
+""",
 
-        )
+    limit=5
+
+)
 
     # =======================================================
     # BOOKING
@@ -409,21 +516,29 @@ Do not invent policies.
     # =======================================================
 
     def handle_booking(
-        self,
-        question: str
-    ) -> str:
+    self,
+    session_id: str,
+    question: str,
+    history: str
+):
 
         return self.generate_rag_response(
 
-            question=question,
+    session_id=session_id,
 
-            instruction="""
+    history=history,
+
+    question=question,
+
+    instruction="""
 Answer ONLY using HelpGhar booking information.
 
 Never invent booking rules.
-"""
+""",
 
-        )
+    limit=5
+
+)
 
 
     # =======================================================
@@ -457,19 +572,27 @@ Never invent booking rules.
     # =======================================================
 
     def handle_general(
-        self,
-        question: str
-    ) -> str:
+    self,
+    session_id: str,
+    question: str,
+    history: str
+):
 
         return self.generate_rag_response(
 
-            question=question,
+    session_id=session_id,
 
-            instruction="""
+    history=history,
+
+    question=question,
+
+    instruction="""
 Answer ONLY using the HelpGhar knowledge base.
-"""
+""",
 
-        )
+    limit=5
+
+)
 
 # =======================================================
 # Singleton Instance

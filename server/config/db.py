@@ -15,11 +15,12 @@ try:
     customer_collection = db["customers"]
     worker_collection = db["workers"]
     admin_collection = db["admin"]
-    gig_collection = db["gigs"]          # 👈 new
+    gig_collection = db["gigs"]        
     dispute_collection = db["disputes"]
     website_theme_collection = db["website_themes"]
     counter_collection = db["counters"]
     worker_details_collection = db["worker_details"]
+    conversation_collection = db["conversations"]
     
     print("MongoDB Connected Successfully")
     print("Database:", DB_NAME)
