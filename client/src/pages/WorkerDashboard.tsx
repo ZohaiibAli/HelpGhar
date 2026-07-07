@@ -4,6 +4,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { bookings, notifications, categories } from "@/data/mock";
 import { useState } from "react";
 import { WorkerCategory } from "@/types";
+import { useAuthStore } from "@/store/authStore";
+
 import {
   uploadAvatar,
   createGig,
@@ -13,12 +15,13 @@ import {
 import { workerItems } from "@/data/workerMenu";
 
 export default function WorkerDashboard() {
+  const { user } = useAuthStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState<"success" | "error" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
-    fullName: "Ayesha",
+    fullName: user?.fullName || "",
     category: "" as WorkerCategory,
     city: "",
     gender: "Female" as "Male" | "Female",
@@ -86,7 +89,7 @@ export default function WorkerDashboard() {
       setModalOpen(false);
 
       setForm({
-        fullName: "Ayesha",
+        fullName: user?.fullName || "",
         category: "" as WorkerCategory,
         city: "",
         gender: "Female",
@@ -120,7 +123,9 @@ export default function WorkerDashboard() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-black md:text-3xl">Good morning, Ayesha</h1>
+            <h1 className="text-3xl font-black tracking-tight text-foreground">
+              Hello, {user?.fullName ?? "Worker"}
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">You have 2 active jobs today.</p>
           </div>
           <div className="flex items-center gap-2">
@@ -354,8 +359,8 @@ export default function WorkerDashboard() {
                 onClick={handleSubmit}
                 disabled={isSubmitting}
                 className={`rounded-xl px-5 py-2 text-sm font-bold text-primary-foreground transition-colors ${isSubmitting
-                    ? "bg-primary/70 cursor-not-allowed"
-                    : "bg-primary hover:bg-primary-dark"
+                  ? "bg-primary/70 cursor-not-allowed"
+                  : "bg-primary hover:bg-primary-dark"
                   }`}
               >
                 {isSubmitting ? "Processing..." : "Publish Gig"}

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const NAV = [
-  { to: "/", label: "Home" },
+  { to: "/#home", label: "Home" },
   { to: "/#services", label: "Services" },
   { to: "/#reviews", label: "Reviews" },
   { to: "/#chat", label: "Chat" },
