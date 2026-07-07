@@ -1,3 +1,4 @@
+import { ScrollToTop } from "@/components/ScrollToTop";
 import { Routes, Route } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import LandingPage from "@/pages/LandingPage";
@@ -28,6 +29,7 @@ import AdminProfile from "@/pages/Admin_profile";
 import NotFound from "@/pages/NotFound";
 import WorkerSettingsPage from "./pages/Worker_settings";
 import WorkerReviewsPage from "./pages/Worker_review";
+import WorkerDetailsDescriptionPage from "./pages/worker_details_description";
 import { ChatPage } from "./pages/Main_ChatBot";
 
 function ProfileRouter() {
@@ -42,6 +44,8 @@ function ProfileRouter() {
 
 export default function AppRouter() {
   return (
+    <>
+      <ScrollToTop />
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/services" element={<ServicesPage />} />
@@ -69,11 +73,13 @@ export default function AppRouter() {
       <Route path="/dashboard/admin/settings" element={<AdminSettings />} />
       <Route path="/dashboard/admin/profile" element={<AdminProfile />} />
       <Route path="/worker/reviews" element={<WorkerReviewsPage />} />
+      <Route path="/worker/details" element={<WorkerDetailsDescriptionPage />} />
       <Route path="/worker/profile" element={<WorkerProfilePage />} />
       <Route path="/worker/settings" element={<WorkerSettingsPage />} />
       <Route path="/worker/dispute" element={<WorkerDisputePage />} />
       <Route path="/chat" element={<ChatPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </>
   );
 }

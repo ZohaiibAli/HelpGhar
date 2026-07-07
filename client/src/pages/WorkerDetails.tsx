@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Star,
   ShieldCheck,
@@ -14,7 +14,14 @@ import { reviews } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import { useGigStore } from "@/store/gigStore";
 
+
 export default function WorkerDetailsPage() {
+
+  const [details, setDetails] = useState({
+    about: "",
+    skills: "",
+    certifications: "",
+  });
   const { id } = useParams<{ id: string }>();
 
   const gigs = useGigStore((state) => state.gigs);
@@ -23,8 +30,30 @@ export default function WorkerDetailsPage() {
   useEffect(() => {
     fetchGigs();
   }, [fetchGigs]);
-
+  
   const worker = gigs.find((w) => w.id === id);
+
+  useEffect(() => {
+    if (!worker?.workerId) return;
+
+    const fetchDetails = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/worker/details/public/${worker.workerId}`
+        );
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        setDetails(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchDetails();
+  }, [worker?.workerId]);
+
   if (gigs.length === 0) {
     return (
       <MainLayout>
@@ -79,22 +108,32 @@ export default function WorkerDetailsPage() {
             </div>
 
             <Section title="About">
-              <p className="text-sm leading-relaxed text-muted-foreground">{worker.bio}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {details.about || "This worker hasn't added a description yet."}
+              </p>
             </Section>
 
             <Section title="Skills">
               <div className="flex flex-wrap gap-2">
-                {worker.skills.map(s => (
-                  <span key={s} className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground">{s}</span>
-                ))}
+                {details.skills
+                  ? details.skills.split("\n").filter(Boolean).map((s) => (
+                    <span key={s} className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground">
+                      {s}
+                    </span>
+                  ))
+                  : <p className="text-sm text-muted-foreground">No skills listed yet.</p>}
               </div>
             </Section>
 
             <Section title="Certifications">
               <ul className="space-y-2">
-                {worker.certificates.map(c => (
-                  <li key={c} className="flex items-center gap-2 text-sm"><Award className="h-4 w-4 text-primary" /> {c}</li>
-                ))}
+                {details.certifications
+                  ? details.certifications.split("\n").filter(Boolean).map((c) => (
+                    <li key={c} className="flex items-center gap-2 text-sm">
+                      <Award className="h-4 w-4 text-primary" /> {c}
+                    </li>
+                  ))
+                  : <p className="text-sm text-muted-foreground">No certifications listed yet.</p>}
               </ul>
             </Section>
 

@@ -57,3 +57,8 @@ class GigCreate(BaseModel):
     bio: str = ""
     skills: List[str] = []
     certificates: List[str] = []
+
+class WorkerDetailsUpdate(BaseModel):
+    about: str
+    skills: str
+    certifications: str

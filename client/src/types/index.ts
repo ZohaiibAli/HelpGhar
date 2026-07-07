@@ -37,6 +37,7 @@ export type WorkerCategory =
 
 export interface Worker {
   id: string;
+  workerId?: string;   // <-- ADD THIS
   fullName: string;
   avatar: string;
   category: WorkerCategory;
