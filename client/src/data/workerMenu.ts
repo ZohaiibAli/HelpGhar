@@ -3,6 +3,9 @@ import {
   Star,
   User,
   Settings,
+  NotebookTextIcon,
+  Square,
+  SquarePen,
 } from "lucide-react";
 
 export const workerItems = [
@@ -20,6 +23,11 @@ export const workerItems = [
     label: "Reviews",
     to: "/worker/reviews",
     icon: Star,
+  },
+  {
+    label: "Details",
+    to: "/worker/details",
+    icon: SquarePen,
   },
   {
     label: "Profile",

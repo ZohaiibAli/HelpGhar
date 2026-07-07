@@ -10,13 +10,7 @@ import {
 } from "@/services/workerService";
 
 
-const items = [
-  { label: "Overview", to: "/dashboard/worker", icon: LayoutDashboard },
-  { label: "Dispute", to: "/worker/dispute", icon: Briefcase },
-  { label: "Reviews", to: "/worker/reviews", icon: Star },
-  { label: "Profile", to: "/worker/profile", icon: User },
-  { label: "Settings", to: "/worker/settings", icon: Settings },
-];
+import { workerItems } from "@/data/workerMenu";
 
 export default function WorkerDashboard() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -119,7 +113,7 @@ export default function WorkerDashboard() {
   }
 
   return (
-    <DashboardLayout title="Worker" items={items}>
+    <DashboardLayout title="Worker" items={workerItems}>
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

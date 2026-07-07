@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import JSONResponse
-from config.db import worker_collection, gig_collection
-from model.worker_model import WorkerRegister, WorkerLogin, GigCreate, WorkerUpdate, WorkerPasswordUpdate
+from config.db import worker_collection, gig_collection,worker_details_collection
+from model.worker_model import WorkerRegister, WorkerLogin, GigCreate, WorkerUpdate, WorkerPasswordUpdate,WorkerDetailsUpdate
 from bson import ObjectId
 from helper.password_helper import hash_password, verify_password
 from helper.cloudinary_helper import upload_image
@@ -36,7 +36,15 @@ def register_worker(worker: WorkerRegister):
 
     worker_data["status"] = "Active"
 
-    worker_collection.insert_one(worker_data)
+    result = worker_collection.insert_one(worker_data)
+
+    worker_details_collection.insert_one({
+        "workerId": str(result.inserted_id),
+        "workerCode": worker_data["workerId"],
+        "about": "",
+        "skills": "",
+        "certifications": ""
+    })
 
     return {
         "success": True,
@@ -196,6 +204,66 @@ def update_worker_profile(
         "message": "Profile Updated Successfully"
     }
 
+@router.get("/details")
+def get_worker_details(user=Depends(verify_token)):
+
+    if user["role"] != "worker":
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
+    details = worker_details_collection.find_one(
+        {
+            "workerId": user["id"]
+        }
+    )
+
+    if not details:
+        raise HTTPException(
+            status_code=404,
+            detail="Details not found"
+        )
+
+    return {
+        "about": details.get("about", ""),
+        "skills": details.get("skills", ""),
+        "certifications": details.get("certifications", "")
+    }
+
+
+@router.put("/details")
+def update_worker_details(
+    payload: WorkerDetailsUpdate,
+    user=Depends(verify_token)
+):
+
+    if user["role"] != "worker":
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
+    result = worker_details_collection.update_one(
+        {
+            "workerId": user["id"]
+        },
+        {
+            "$set": payload.dict()
+        }
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Details not found"
+        )
+
+    return {
+        "success": True,
+        "message": "Details Updated Successfully"
+    }
+
 @router.put("/password")
 def update_worker_password(
 
@@ -339,3 +407,4 @@ async def upload_avatar(
 #         )
 
 #     return user
+
