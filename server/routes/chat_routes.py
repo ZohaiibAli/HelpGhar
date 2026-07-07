@@ -1,29 +1,44 @@
-# from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
-# from pydantic import BaseModel
+from model.chat_model import ChatRequest
 
-# from services.chat_service import ask
+from services.chat_service import chat_service
 
-# router = APIRouter()
-
-
-# class ChatRequest(BaseModel):
-
-#     question: str
+import logging
 
 
-# @router.post("/chat")
+router = APIRouter(
 
-# def chat(request: ChatRequest):
+    prefix="/api/chat",
 
-#     answer = ask(
+    tags=["AI Chatbot"]
 
-#         request.question
+)
 
-#     )
 
-#     return {
+@router.post("/")
+def chat(request: ChatRequest):
 
-#         "answer": answer
+    try:
 
-#     }
+        response = chat_service.chat(
+
+            session_id=request.sessionId,
+
+            question=request.message
+
+        )
+
+        return response
+
+    except Exception as e:
+
+        logging.exception(e)
+
+        raise HTTPException(
+
+            status_code=500,
+
+            detail="AI Chat Service Error"
+
+        )

@@ -10,7 +10,7 @@ from routes.worker_dispute import router as worker_dispute_router
 from fastapi.staticfiles import StaticFiles
 from routes.theme_routes import router as website_settings_router
 # from fastapi.staticfiles import StaticFiles
-# from routes.chat_routes import router as chat_router
+from routes.chat_routes import router as chat_router
 
 
 
@@ -43,7 +43,4 @@ def home():
 def health():
     return {"status": "OK", "mongodb": "Connected"}
 
-# app.include_router(
-#     chat_router,
-#     prefix="/api"
-# )
+app.include_router(chat_router)
