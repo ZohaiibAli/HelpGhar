@@ -28,15 +28,31 @@ import {
  * ──────────────────────────────────────────────────────────────────────── */
 
 interface WorkerCard {
-  id: string;
+
+  workerId: string;
+
   name: string;
-  role: string;
+
+  avatar?: string;
+
+  category: string;
+
+  city: string;
+
   rating: number;
-  reviews: number;
-  distance: string;
-  price: string;
+
+  experience: number;
+
+  priceMin: number;
+
+  priceMax: number;
+
+  priceUnit: string;
+
+  available: boolean;
+
   verified: boolean;
-  initial: string;
+
 }
 
 interface ChatMessage {
@@ -83,101 +99,30 @@ function makeId() {
  *     { type: "error", message }                     -- something went wrong server-side
  * ──────────────────────────────────────────────────────────────────────── */
 
-async function fetchSessions(): Promise<ChatSession[]> {
-  const res = await fetch("/api/sessions");
-  if (!res.ok) throw new Error("Failed to load chat history");
-  return res.json();
-}
 
-async function fetchSessionMessages(sessionId: string): Promise<ChatMessage[]> {
-  const res = await fetch(`/api/sessions/${sessionId}/messages`);
-  if (!res.ok) throw new Error("Failed to load conversation");
-  return res.json();
-}
 
-async function createSession(): Promise<ChatSession> {
-  const res = await fetch("/api/sessions", { method: "POST" });
-  if (!res.ok) throw new Error("Failed to start a new chat");
-  return res.json();
-}
+async function sendChatRequest(
+  sessionId: string,
+  message: string
+) {
+  const API = import.meta.env.VITE_API_BASE_URL;
 
-async function deleteSessionApi(sessionId: string): Promise<void> {
-  const res = await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete chat");
-}
+  const response = await fetch(`${API}/api/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId,
+      message,
+    }),
+  });
 
-/**
- * Opens a streaming connection to the RAG backend and invokes the given
- * callbacks as server-sent events arrive. Returns an AbortController so the
- * caller can cancel an in-flight stream (e.g. component unmount, new send).
- */
-function streamChat(
-  sessionId: string | null,
-  query: string,
-  handlers: {
-    onSession?: (sessionId: string) => void;
-    onToken: (text: string) => void;
-    onWorkers?: (workers: WorkerCard[]) => void;
-    onDone: () => void;
-    onError: (message: string) => void;
+  if (!response.ok) {
+    throw new Error("Chat API failed");
   }
-): AbortController {
-  const controller = new AbortController();
 
-  (async () => {
-    try {
-      const res = await fetch("/api/chat/stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, query }),
-        signal: controller.signal,
-      });
-      if (!res.ok || !res.body) throw new Error("The assistant is unavailable right now.");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const events = buffer.split("\n\n");
-        buffer = events.pop() ?? "";
-
-        for (const raw of events) {
-          const line = raw.split("\n").find((l) => l.startsWith("data:"));
-          if (!line) continue;
-          const payload = JSON.parse(line.slice(5).trim());
-
-          switch (payload.type) {
-            case "session":
-              handlers.onSession?.(payload.sessionId);
-              break;
-            case "token":
-              handlers.onToken(payload.text);
-              break;
-            case "workers":
-              handlers.onWorkers?.(payload.workers);
-              break;
-            case "error":
-              handlers.onError(payload.message ?? "Something went wrong.");
-              return;
-            case "done":
-              handlers.onDone();
-              return;
-          }
-        }
-      }
-      handlers.onDone();
-    } catch (err) {
-      if ((err as Error).name === "AbortError") return;
-      handlers.onError((err as Error).message || "Connection lost. Please try again.");
-    }
-  })();
-
-  return controller;
+  return await response.json();
 }
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -189,12 +134,28 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
     <div className="flex min-w-[220px] flex-col gap-3 rounded-2xl border border-border/60 bg-card/95 p-4 shadow-card transition-all hover:-translate-y-0.5 hover:shadow-lift">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-            {worker.initial}
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden bg-primary/10">
+            {worker.avatar ? (
+              <img
+                src={worker.avatar}
+                alt={worker.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-sm font-bold text-primary">
+                {worker.name?.charAt(0) || "?"}
+              </span>
+            )}
           </div>
+
           <div>
-            <p className="text-sm font-bold leading-tight text-foreground">{worker.name}</p>
-            <p className="text-[11px] text-muted-foreground">{worker.role}</p>
+            <p className="text-sm font-bold leading-tight text-foreground">
+              {worker.name || "Unknown Worker"}
+            </p>
+
+            <p className="text-[11px] text-muted-foreground">
+              {worker.category}
+            </p>
           </div>
         </div>
         {worker.verified && (
@@ -206,17 +167,18 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
 
       <div className="flex items-center gap-1 text-xs text-foreground/80">
         <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-        <span className="font-semibold">{worker.rating}</span>
-        <span className="text-muted-foreground">({worker.reviews})</span>
+        <span className="font-semibold">{worker.rating?.toFixed(1) ?? "0.0"}</span>
       </div>
 
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <MapPin className="h-3 w-3" />
-        {worker.distance}
+        {worker.city}
       </div>
 
       <div className="mt-1 flex items-center justify-between border-t border-border/50 pt-3">
-        <span className="text-sm font-bold text-foreground">{worker.price}</span>
+        <span className="text-sm font-bold text-foreground">
+          Rs. {worker.priceMin} - {worker.priceMax} / {worker.priceUnit}
+        </span>
         <button className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-dark active:scale-95">
           Book
         </button>
@@ -232,11 +194,21 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
 export function ChatPage() {
   const navigate = useNavigate();
 
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
-  const [sessionsError, setSessionsError] = useState<string | null>(null);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessionId] = useState(() => {
 
+    let id = localStorage.getItem("helpghar-chat");
+
+    if (!id) {
+
+      id = crypto.randomUUID();
+
+      localStorage.setItem("helpghar-chat", id);
+
+    }
+
+    return id;
+
+  });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [input, setInput] = useState("");
@@ -247,23 +219,12 @@ export function ChatPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const streamRef = useRef<AbortController | null>(null);
   const hasStarted = messages.length > 0 || messagesLoading;
 
   /* ── Load chat history on mount ── */
-  useEffect(() => {
-    fetchSessions()
-      .then(setSessions)
-      .catch((e) => setSessionsError(e.message))
-      .finally(() => setSessionsLoading(false));
 
-    // Prefill from the landing page's teaser input, e.g. /chat?q=...
-    const prefill = new URLSearchParams(window.location.search).get("q");
-    if (prefill) sendMessage(prefill);
+  // Prefill from the landing page's teaser input, e.g. /chat?q=...
 
-    return () => streamRef.current?.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -276,44 +237,6 @@ export function ChatPage() {
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }
 
-  async function openSession(id: string) {
-    if (id === activeSessionId) return;
-    streamRef.current?.abort();
-    setIsStreaming(false);
-    setActiveSessionId(id);
-    setMessages([]);
-    setMessagesLoading(true);
-    setSidebarOpen(false);
-    try {
-      const msgs = await fetchSessionMessages(id);
-      setMessages(msgs);
-    } catch {
-      setMessages([{ id: makeId(), role: "bot", text: "Couldn't load this conversation.", timestamp: Date.now(), error: true }]);
-    } finally {
-      setMessagesLoading(false);
-    }
-  }
-
-  function startNewChat() {
-    streamRef.current?.abort();
-    setIsStreaming(false);
-    setActiveSessionId(null);
-    setMessages([]);
-    setInput("");
-    setSidebarOpen(false);
-  }
-
-  async function handleDeleteSession(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    const prev = sessions;
-    setSessions((s) => s.filter((x) => x.id !== id));
-    if (id === activeSessionId) startNewChat();
-    try {
-      await deleteSessionApi(id);
-    } catch {
-      setSessions(prev); // roll back on failure
-    }
-  }
 
   async function sendMessage(raw: string) {
     const text = raw.trim();
@@ -321,47 +244,71 @@ export function ChatPage() {
 
     const userMsg: ChatMessage = { id: makeId(), role: "user", text, timestamp: Date.now() };
     const botMsgId = makeId();
-    setMessages((prev) => [
-      ...prev,
-      userMsg,
-      { id: botMsgId, role: "bot", text: "", timestamp: Date.now(), pending: true },
-    ]);
-    setInput("");
     setIsStreaming(true);
-    requestAnimationFrame(autoResize);
+    try {
 
-    let sessionId = activeSessionId;
+      const response = await sendChatRequest(
 
-    streamRef.current = streamChat(sessionId, text, {
-      onSession: (newId) => {
-        sessionId = newId;
-        setActiveSessionId(newId);
-        setSessions((prev) => {
-          if (prev.some((s) => s.id === newId)) return prev;
-          return [{ id: newId, title: text.slice(0, 40), updatedAt: "Just now" }, ...prev];
-        });
-      },
-      onToken: (chunk) => {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === botMsgId ? { ...m, text: m.text + chunk } : m))
-        );
-      },
-      onWorkers: (workers) => {
-        setMessages((prev) => prev.map((m) => (m.id === botMsgId ? { ...m, workers } : m)));
-      },
-      onDone: () => {
-        setMessages((prev) => prev.map((m) => (m.id === botMsgId ? { ...m, pending: false } : m)));
-        setIsStreaming(false);
-      },
-      onError: (message) => {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === botMsgId ? { ...m, pending: false, error: true, text: m.text || message } : m
-          )
-        );
-        setIsStreaming(false);
-      },
-    });
+        sessionId,
+
+        text
+
+      );
+
+      setMessages(prev => [
+
+        ...prev,
+
+        userMsg,
+
+        {
+
+          id: botMsgId,
+
+          role: "bot",
+
+          text: response.message,
+
+          timestamp: Date.now(),
+
+          workers: response.workers
+
+        }
+
+      ]);
+
+    }
+    catch (err) {
+
+      setMessages(prev => [
+
+        ...prev,
+
+        userMsg,
+
+        {
+
+          id: botMsgId,
+
+          role: "bot",
+
+          text: "Sorry, something went wrong.",
+
+          timestamp: Date.now(),
+
+          error: true
+
+        }
+
+      ]);
+
+    }
+    finally {
+
+      setIsStreaming(false);
+
+    }
+
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -387,55 +334,20 @@ export function ChatPage() {
     <div className="flex h-screen overflow-hidden bg-hero-gradient">
       {/* ─── Sidebar ─── */}
       <aside
-        className={`hidden shrink-0 overflow-hidden border-r border-border/60 bg-card/70 backdrop-blur-md transition-[width] duration-200 md:block ${
-          sidebarOpen ? "w-[272px]" : "w-0"
-        }`}
+        className={`hidden shrink-0 overflow-hidden border-r border-border/60 bg-card/70 backdrop-blur-md transition-[width] duration-200 md:block ${sidebarOpen ? "w-[272px]" : "w-0"
+          }`}
       >
         <div className="flex h-full w-[272px] flex-col p-4">
           <button
-            onClick={startNewChat}
+            onClick={() => {
+              setMessages([]);
+            }}
             className="flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
           >
             <Plus className="h-4 w-4" />
             New chat
           </button>
 
-          <p className="mt-6 px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">
-            Recent
-          </p>
-          <div className="mt-2 flex flex-1 flex-col gap-1 overflow-y-auto">
-            {sessionsLoading && (
-              <div className="flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Loading history…
-              </div>
-            )}
-            {sessionsError && (
-              <div className="flex items-center gap-2 px-3 py-2.5 text-xs text-destructive">
-                <AlertCircle className="h-3.5 w-3.5" />
-                {sessionsError}
-              </div>
-            )}
-            {!sessionsLoading && !sessionsError && sessions.length === 0 && (
-              <p className="px-3 py-2.5 text-xs text-muted-foreground/70">No conversations yet.</p>
-            )}
-            {sessions.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => openSession(s.id)}
-                className={`group flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
-                  s.id === activeSessionId ? "bg-primary/10 text-primary-dark" : "text-foreground/80 hover:bg-accent/50"
-                }`}
-              >
-                <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                <span className="flex-1 truncate">{s.title}</span>
-                <Trash2
-                  onClick={(e) => handleDeleteSession(s.id, e)}
-                  className="h-3.5 w-3.5 shrink-0 text-muted-foreground/0 transition-colors hover:text-destructive group-hover:text-muted-foreground/60"
-                />
-              </button>
-            ))}
-          </div>
 
           <Link
             to="/"
@@ -604,34 +516,30 @@ function MessageBubble({
       className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}
     >
       <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-          isUser ? "bg-accent text-foreground/70" : "bg-primary text-primary-foreground"
-        }`}
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isUser ? "bg-accent text-foreground/70" : "bg-primary text-primary-foreground"
+          }`}
       >
         {isUser ? <span className="text-xs font-bold">You</span> : <Bot className="h-4 w-4" />}
       </div>
 
       <div className={`flex max-w-[85%] flex-col gap-2 ${isUser ? "items-end" : "items-start"}`}>
         <div
-          className={`rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed shadow-sm ${
-            isUser
-              ? "rounded-tr-sm bg-primary text-primary-foreground"
-              : msg.error
+          className={`rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed shadow-sm ${isUser
+            ? "rounded-tr-sm bg-primary text-primary-foreground"
+            : msg.error
               ? "rounded-tl-sm border border-destructive/40 bg-destructive/5 text-foreground"
               : "rounded-tl-sm border border-border/60 bg-card text-foreground"
-          }`}
+            }`}
         >
           {msg.text}
-          {msg.pending && !msg.text && <TypingDots />}
-          {msg.pending && msg.text && (
-            <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse bg-current align-middle" />
-          )}
+
+
         </div>
 
         {msg.workers && msg.workers.length > 0 && (
           <div className="flex w-full gap-3 overflow-x-auto pb-1 pt-1">
             {msg.workers.map((w) => (
-              <WorkerCardTile key={w.id} worker={w} />
+              <WorkerCardTile key={w.workerId} worker={w} />
             ))}
           </div>
         )}
@@ -647,18 +555,16 @@ function MessageBubble({
             </button>
             <button
               onClick={() => onFeedback("up")}
-              className={`rounded-lg p-1.5 transition-colors hover:bg-accent/60 ${
-                feedback === "up" ? "text-primary" : "text-muted-foreground/60 hover:text-foreground"
-              }`}
+              className={`rounded-lg p-1.5 transition-colors hover:bg-accent/60 ${feedback === "up" ? "text-primary" : "text-muted-foreground/60 hover:text-foreground"
+                }`}
               aria-label="Good response"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => onFeedback("down")}
-              className={`rounded-lg p-1.5 transition-colors hover:bg-accent/60 ${
-                feedback === "down" ? "text-primary" : "text-muted-foreground/60 hover:text-foreground"
-              }`}
+              className={`rounded-lg p-1.5 transition-colors hover:bg-accent/60 ${feedback === "down" ? "text-primary" : "text-muted-foreground/60 hover:text-foreground"
+                }`}
               aria-label="Poor response"
             >
               <ThumbsDown className="h-3.5 w-3.5" />
@@ -670,19 +576,5 @@ function MessageBubble({
   );
 }
 
-function TypingDots() {
-  return (
-    <span className="inline-flex items-center gap-1 py-0.5">
-      {[0, 1, 2].map((d) => (
-        <motion.span
-          key={d}
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{ duration: 1, repeat: Infinity, delay: d * 0.15 }}
-          className="h-1.5 w-1.5 rounded-full bg-current"
-        />
-      ))}
-    </span>
-  );
-}
 
 export default ChatPage;
