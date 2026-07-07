@@ -100,12 +100,15 @@ export interface Review {
 
 export interface Complaint {
   id: string;
-  workerId: string;
-  workerName: string;
+  customerId?: string;
+  customerName?: string;
+  workerId?: string;
+  workerName?: string;
   subject: string;
   description: string;
   status: "open" | "in_review" | "resolved" | "closed";
-  createdAt: string;
+  date?: string;
+  createdAt?: string;
 }
 
 export interface NotificationItem {

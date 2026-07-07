@@ -7,7 +7,6 @@ from config.db import (
 from model.dispute_model import WorkerDisputeCreate
 from helper.auth_helper import verify_token
 from datetime import datetime
-from bson import ObjectId
 
 router = APIRouter(
     prefix="/worker",
@@ -23,7 +22,7 @@ def create_worker_dispute(
 
     customer = customer_collection.find_one(
         {
-            "_id": ObjectId(dispute.customerId)
+            "customerId": dispute.customerId
         }
     )
 
@@ -35,9 +34,11 @@ def create_worker_dispute(
 
     dispute_collection.insert_one({
 
-        "workerId": user["id"],
+        "workerId": user["workerId"],
 
-        "customerId": dispute.customerId,
+        "customerId": customer["customerId"],
+
+        "customerName": customer["fullName"],
 
         "subject": dispute.subject,
 
@@ -65,7 +66,7 @@ def get_worker_disputes(user=Depends(verify_token)):
 
     disputes = dispute_collection.find(
         {
-            "workerId": user["id"],
+            "workerId": user["workerId"],
             "filedBy": "worker"
         }
     )
@@ -74,17 +75,13 @@ def get_worker_disputes(user=Depends(verify_token)):
 
     for dispute in disputes:
 
-        customer = customer_collection.find_one(
-            {
-                "_id": ObjectId(dispute["customerId"])
-            }
-        )
-
         result.append({
 
             "id": str(dispute["_id"]),
 
-            "customerName": customer["fullName"] if customer else "Unknown Customer",
+            "customerId": dispute["customerId"],
+
+            "customerName": dispute["customerName"],
 
             "subject": dispute["subject"],
 
@@ -92,7 +89,7 @@ def get_worker_disputes(user=Depends(verify_token)):
 
             "status": dispute["status"].lower(),
 
-            "date": dispute["createdAt"].strftime("%Y-%m-%d")
+            "createdAt": dispute["createdAt"]
 
         })
 
@@ -116,7 +113,7 @@ def get_customers():
 
         result.append({
 
-            "id": str(customer["_id"]),
+            "customerId": customer["customerId"],
 
             "fullName": customer["fullName"]
 
