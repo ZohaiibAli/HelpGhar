@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 import { Button } from "@/components/ui/button";
 import { applyTheme, DEFAULT_THEME, saveTheme, WebsiteTheme } from "@/lib/theme";
+import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
@@ -22,6 +23,7 @@ const swatches = ["#1E3A8A", "#2563EB", "#3B82F6", "#0EA5E9", "#7C3AED", "#0F766
 
 export default function AdminSettings() {
   const [saved, setSaved] = useState(false);
+const [isSaving, setIsSaving] = useState(false);
 
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export default function AdminSettings() {
           }
 
           if (data.settings.website_logo) {
-            setLogoPreview(`${API_BASE}${data.settings.website_logo}`);
+            setLogoPreview(data.settings.website_logo);
           }
 
           return;
@@ -150,41 +152,49 @@ export default function AdminSettings() {
     setLogoPreview(URL.createObjectURL(file));
   };
 
-  async function handleSave() {
-    try {
-      const formData = new FormData();
+async function handleSave() {
+  setIsSaving(true);
 
-      if (logoFile) {
-        formData.append("logo", logoFile);
-      }
+  try {
+    const formData = new FormData();
 
-      const res = await fetch(`${API_BASE}/admin/update-website-settings`, {
-        method: "PUT",
-        headers: getFileAuthHeaders(),
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        if (data.settings.website_logo) {
-          localStorage.setItem(
-            "website-logo",
-            `${API_BASE}${data.settings.website_logo}`
-          );
-        }
-
-        setSaved(true);
-
-        window.dispatchEvent(new Event("website-settings-updated"));
-
-        setTimeout(() => setSaved(false), 3000);
-      }
-    } catch (err) {
-      console.error(err);
+    if (logoFile) {
+      formData.append("logo", logoFile);
     }
-  }
 
+    const res = await fetch(`${API_BASE}/admin/update-website-settings`, {
+      method: "PUT",
+      headers: getFileAuthHeaders(),
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      // Update the preview immediately
+      if (data.settings.website_logo) {
+        setLogoPreview(data.settings.website_logo);
+
+        localStorage.setItem(
+          "website-logo",
+          data.settings.website_logo
+        );
+      }
+
+      // Refresh the Zustand store so Navbar/Footer update instantly
+      await useWebsiteSettingsStore.getState().fetchSettings();
+
+      setSaved(true);
+      setLogoFile(null);
+
+      setTimeout(() => setSaved(false), 3000);
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setIsSaving(false);
+  }
+}
   return (
     <DashboardLayout title="Admin" items={adminItems}>
       <div className="space-y-6">
@@ -362,71 +372,82 @@ export default function AdminSettings() {
                 className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm cursor-not-allowed"
               />
             </label>
-{/* hi */}
-<div>
-  <h3 className="text-base font-semibold">
-    Website Logo
-  </h3>
+            {/* hi */}
+            <div>
+              <h3 className="text-base font-semibold">
+                Website Logo
+              </h3>
 
-  <p className="mb-4 text-sm text-muted-foreground">
-    Upload the logo displayed in the navbar and footer.
-  </p>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Upload the logo displayed in the navbar and footer.
+              </p>
 
-  <div className="flex items-center gap-4">
-    {/* Preview */}
-    <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-border bg-muted">
-      {logoPreview ? (
-        <img
-          src={logoPreview}
-          alt="Website Logo"
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-          No Logo
-        </div>
-      )}
-    </div>
+              <div className="flex items-center gap-4">
+                {/* Preview */}
+                <div className="relative h-24 w-24 overflow-hidden rounded-2xl border border-border bg-muted">
+                  {logoPreview ? (
+                    <img
+                      src={logoPreview}
+                      alt="Website Logo"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                      No Logo
+                    </div>
+                  )}
+                </div>
 
-    {/* Upload */}
-    <div className="space-y-2">
-      <label
-        htmlFor="logo-upload"
-        className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary-dark"
-      >
-        Change Logo
-      </label>
+                {/* Upload */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="logo-upload"
+                    className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary-dark"
+                  >
+                    Change Logo
+                  </label>
 
-      <input
-        id="logo-upload"
-        type="file"
-        accept="image/*"
-        onChange={handleLogoChange}
-        className="hidden"
-      />
+                  <input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
 
-      <p className="text-xs text-muted-foreground">
-        PNG, JPG, JPEG & SVG
-      </p>
-    </div>
-  </div>
-</div>
+                  <p className="text-xs text-muted-foreground">
+                    PNG, JPG, JPEG & SVG
+                  </p>
+                </div>
+              </div>
+            </div>
 
-<label className="text-xs font-semibold text-muted-foreground">
-  Commission rate (%)
-  <input
-    value={form.commissionRate}
-    readOnly
-    className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm cursor-not-allowed"
-  />
-</label>
+            <label className="text-xs font-semibold text-muted-foreground">
+              Commission rate (%)
+              <input
+                value={form.commissionRate}
+                readOnly
+                className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm cursor-not-allowed"
+              />
+            </label>
             {/* hi */}
           </div>
         </div>
 
-        <Button className="rounded-xl bg-primary hover:bg-primary-dark" onClick={handleSave}>
-          Save changes
-        </Button>
+<Button
+  className="rounded-xl bg-primary hover:bg-primary-dark"
+  onClick={handleSave}
+  disabled={isSaving}
+>
+  {isSaving ? (
+    <span className="flex items-center gap-2">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Processing...
+    </span>
+  ) : (
+    "Save changes"
+  )}
+</Button>
       </div>
     </DashboardLayout>
   );
