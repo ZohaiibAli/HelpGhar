@@ -108,7 +108,7 @@ export interface Complaint {
   description: string;
   status: "open" | "in_review" | "resolved" | "closed";
   date?: string;
-  createdAt?: string;
+  createdAt: string;
 }
 
 export interface NotificationItem {
