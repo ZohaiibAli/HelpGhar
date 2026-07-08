@@ -11,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from routes.theme_routes import router as website_settings_router
 # from fastapi.staticfiles import StaticFiles
 from routes.chat_routes import router as chat_router
+from routes.booking_route import router as booking_router
+from routes.payment_route import router as payment_router
 
 
 app = FastAPI(title="HelpGhar API", version="1.0.0")
@@ -31,6 +33,8 @@ app.include_router(worker_router)
 app.include_router(admin_router)
 app.include_router(website_settings_router)
 app.include_router(chat_router)
+app.include_router(booking_router)
+app.include_router(payment_router)
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 

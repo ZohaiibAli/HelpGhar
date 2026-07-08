@@ -1,19 +1,87 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CreditCard, Wallet, Lock, CheckCircle2, Download } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
+import { api } from "@/services/api";
 
 export default function PaymentPage() {
   const [params] = useSearchParams();
-  const amount = Number(params.get("amount") ?? 5000);
+  const bookingId = params.get("bookingId");
+
+  const [booking, setBooking] = useState<any>(null);
+  const [payment, setPayment] = useState<any>(null);
   const [method, setMethod] = useState<"card" | "wallet" | "bank">("card");
   const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
 
-  const tax = Math.round(amount * 0.05);
-  const total = amount + tax;
+  useEffect(() => {
+    if (!bookingId) {
+      setLoading(false);
+      return;
+    }
+    api.get(`/bookings/${bookingId}`)
+      .then((res) => setBooking(res.data.booking))
+      .catch((err) => alert(err.message ?? "Booking not found"))
+      .finally(() => setLoading(false));
+  }, [bookingId]);
 
-  if (done) {
+  const handlePay = async () => {
+    if (!bookingId) return;
+    setPaying(true);
+    try {
+      const res = await api.post("/payments/", { bookingId, method });
+      setPayment(res.data.payment);
+      setDone(true);
+    } catch (err: any) {
+      alert(err.message ?? "Payment failed");
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const handleDownloadReceipt = () => {
+    if (!payment) return;
+    const text = `Receipt
+Transaction ID: ${payment.transactionId}
+Booking ID: ${payment.bookingId}
+Date: ${new Date(payment.date).toLocaleString()}
+Method: ${payment.method.toUpperCase()}
+Amount: Rs. ${payment.amount}
+Fee: Rs. ${payment.fee}
+Total: Rs. ${payment.total}`;
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `receipt-${payment.transactionId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="mx-auto max-w-lg px-4 py-16 text-center">Loading booking...</div>
+      </MainLayout>
+    );
+  }
+
+  if (!booking) {
+    return (
+      <MainLayout>
+        <div className="mx-auto max-w-lg px-4 py-16 text-center">
+          <p className="text-base font-bold">Booking not found</p>
+          <Button asChild className="mt-4 bg-primary hover:bg-primary-dark"><Link to="/services">Back to services</Link></Button>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const { amount, fee, total } = booking;
+
+  if (done && payment) {
     return (
       <MainLayout>
         <div className="mx-auto max-w-lg px-4 py-16">
@@ -22,13 +90,15 @@ export default function PaymentPage() {
             <h1 className="mt-5 text-2xl font-black">Payment successful</h1>
             <p className="mt-1 text-sm text-muted-foreground">Your booking is confirmed and the worker has been notified.</p>
             <div className="mt-6 rounded-2xl bg-muted p-5 text-left text-sm">
-              <Row label="Transaction ID" value="TXN-90041" />
-              <Row label="Date" value={new Date().toDateString()} />
-              <Row label="Method" value={method.toUpperCase()} />
-              <Row label="Amount" value={`Rs. ${total.toLocaleString()}`} />
+              <Row label="Transaction ID" value={payment.transactionId} />
+              <Row label="Date" value={new Date(payment.date).toDateString()} />
+              <Row label="Method" value={payment.method.toUpperCase()} />
+              <Row label="Amount" value={`Rs. ${payment.total.toLocaleString()}`} />
             </div>
             <div className="mt-6 flex gap-3">
-              <Button variant="outline" className="flex-1"><Download className="mr-2 h-4 w-4" /> Receipt</Button>
+              <Button variant="outline" className="flex-1" onClick={handleDownloadReceipt}>
+                <Download className="mr-2 h-4 w-4" /> Receipt
+              </Button>
               <Button asChild className="flex-1 bg-primary hover:bg-primary-dark"><Link to="/my-bookings">My bookings</Link></Button>
             </div>
           </div>
@@ -55,7 +125,7 @@ export default function PaymentPage() {
             </div>
 
             {method === "card" && (
-              <form onSubmit={(e) => { e.preventDefault(); setDone(true); }} className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-soft">
+              <form onSubmit={(e) => { e.preventDefault(); handlePay(); }} className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-soft">
                 <h3 className="text-sm font-bold uppercase tracking-wider">Card details</h3>
                 <Field label="Card holder name"><input className="hg-input" placeholder="Hassan Iqbal" required /></Field>
                 <Field label="Card number"><input className="hg-input" placeholder="1234 5678 9012 3456" maxLength={19} required /></Field>
@@ -63,14 +133,18 @@ export default function PaymentPage() {
                   <Field label="Expiry"><input className="hg-input" placeholder="MM/YY" required /></Field>
                   <Field label="CVV"><input className="hg-input" placeholder="123" maxLength={4} required /></Field>
                 </div>
-                <Button type="submit" className="h-12 w-full rounded-xl bg-primary text-base font-bold hover:bg-primary-dark">Pay Rs. {total.toLocaleString()}</Button>
+                <Button type="submit" disabled={paying} className="h-12 w-full rounded-xl bg-primary text-base font-bold hover:bg-primary-dark">
+                  {paying ? "Processing..." : `Pay Rs. ${total.toLocaleString()}`}
+                </Button>
               </form>
             )}
             {method !== "card" && (
               <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center">
                 <p className="text-base font-bold">{method === "wallet" ? "Digital wallet" : "Bank transfer"}</p>
                 <p className="mt-1 text-sm text-muted-foreground">Continue to authorize the payment via your provider.</p>
-                <Button onClick={() => setDone(true)} className="mt-4 bg-primary hover:bg-primary-dark">Authorize Rs. {total.toLocaleString()}</Button>
+                <Button onClick={handlePay} disabled={paying} className="mt-4 bg-primary hover:bg-primary-dark">
+                  {paying ? "Processing..." : `Authorize Rs. ${total.toLocaleString()}`}
+                </Button>
               </div>
             )}
           </div>
@@ -81,7 +155,7 @@ export default function PaymentPage() {
               <div className="mt-4 space-y-2 text-sm">
                 <Row label="Service amount" value={`Rs. ${amount.toLocaleString()}`} />
                 <Row label="Platform commission (5%)" value="Included" />
-                <Row label="Tax (5%)" value={`Rs. ${tax.toLocaleString()}`} />
+                <Row label="Tax (5%)" value={`Rs. ${fee.toLocaleString()}`} />
                 <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-base font-black">
                   <span>Total</span><span>Rs. {total.toLocaleString()}</span>
                 </div>

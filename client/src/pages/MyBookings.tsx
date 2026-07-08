@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, MapPin, X } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { customerItems } from "@/data/customerMenu";
-import { bookings } from "@/data/mock";
-import type { Booking, BookingStatus } from "@/types";
 import { Button } from "@/components/ui/button";
+import { api } from "@/services/api";
 
 const tabs: { id: "upcoming" | "completed" | "cancelled"; label: string }[] = [
   { id: "upcoming", label: "Upcoming" },
@@ -13,10 +12,20 @@ const tabs: { id: "upcoming" | "completed" | "cancelled"; label: string }[] = [
   { id: "cancelled", label: "Cancelled" },
 ];
 
-const isUpcoming = (s: BookingStatus) => s === "confirmed" || s === "pending" || s === "in_progress";
+const isUpcoming = (s: string) => s === "confirmed" || s === "pending" || s === "in_progress";
 
 export default function MyBookingsPage() {
   const [tab, setTab] = useState<typeof tabs[number]["id"]>("upcoming");
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/bookings/my")
+      .then((res) => setBookings(res.data.bookings))
+      .catch((err) => alert(err.message ?? "Could not load bookings"))
+      .finally(() => setLoading(false));
+  }, []);
+
   const filtered = bookings.filter(b => tab === "upcoming" ? isUpcoming(b.status) : b.status === tab);
 
   return (
@@ -43,26 +52,31 @@ export default function MyBookingsPage() {
         </div>
 
         <div className="mt-6 grid gap-4">
-          {filtered.length === 0 && (
+          {loading && (
+            <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
+              Loading your bookings...
+            </div>
+          )}
+          {!loading && filtered.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
               <p className="text-base font-bold">No {tab} bookings</p>
               <p className="mt-1 text-sm text-muted-foreground">When you book a worker it'll show up here.</p>
             </div>
           )}
-          {filtered.map(b => <BookingRow key={b.id} booking={b} />)}
+          {filtered.map(b => <BookingRow key={b.bookingId} booking={b} />)}
         </div>
       </div>
     </DashboardLayout>
   );
 }
 
-function BookingRow({ booking }: { booking: Booking }) {
+function BookingRow({ booking }: { booking: any }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
       <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
         <img src={booking.workerAvatar} alt="" className="h-14 w-14 rounded-2xl object-cover" />
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">#{booking.id}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">#{booking.bookingId}</p>
           <p className="truncate text-base font-bold">{booking.workerName}</p>
           <p className="truncate text-xs text-muted-foreground">{booking.category}</p>
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -91,13 +105,13 @@ function BookingRow({ booking }: { booking: Booking }) {
   );
 }
 
-function StatusBadge({ status }: { status: BookingStatus }) {
-  const map: Record<BookingStatus, string> = {
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
     confirmed: "bg-primary-soft text-primary-dark",
     in_progress: "bg-blue-100 text-blue-800",
     completed: "bg-primary text-primary-foreground",
     cancelled: "bg-red-100 text-red-700",
   };
-  return <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${map[status]}`}>{status.replace("_", " ")}</span>;
+  return <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${map[status] ?? "bg-muted text-muted-foreground"}`}>{status.replace("_", " ")}</span>;
 }
