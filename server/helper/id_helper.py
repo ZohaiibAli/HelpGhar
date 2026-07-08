@@ -91,3 +91,20 @@ def generate_worker_dispute_id():
     sequence = counter["sequence"]
 
     return f"HGWD-{sequence:04d}"
+
+def _next_sequence(name: str) -> int:
+    counter = counter_collection.find_one_and_update(
+        {"_id": name},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+    return counter["seq"]
+
+def generate_booking_id():
+    seq = _next_sequence("booking_id")
+    return f"BKG-{seq:04d}"
+
+def generate_transaction_id():
+    seq = _next_sequence("transaction_id")
+    return f"TXN-{seq:05d}"

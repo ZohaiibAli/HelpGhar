@@ -7,7 +7,6 @@ interface AuthState {
   token: string | null;
   setSession: (user: User, token: string) => void;
   logout: () => void;
-  // mockLoginAs: (role: UserRole) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -15,9 +14,15 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
-      setSession: (user, token) => set({ user, token }),
-      logout: () => set({ user: null, token: null }),
-      }),
+      setSession: (user, token) => {
+        window.localStorage.setItem("token", token);
+        set({ user, token });
+      },
+      logout: () => {
+        window.localStorage.removeItem("token");
+        set({ user: null, token: null });
+      },
+    }),
     {
       name: "hg-auth",
     }

@@ -1,9 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
 import { useGigStore } from "@/store/gigStore";
+import { useAuthStore } from "@/store/authStore";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Calendar, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
+import { api } from "@/services/api";
 
 const slots = ["08:00 – 10:00", "10:00 – 12:00", "12:00 – 14:00", "14:00 – 16:00", "16:00 – 18:00", "18:00 – 20:00"];
 
@@ -11,6 +13,7 @@ export default function BookingPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const workerId = params.get("workerId");
+  const user = useAuthStore((s) => s.user);
 
   const gigs = useGigStore((state) => state.gigs);
   const fetchGigs = useGigStore((state) => state.fetchGigs);
@@ -23,6 +26,20 @@ export default function BookingPage() {
     gigs.find((w) => w.id === workerId) ??
     gigs[0];
 
+  const todayStr = new Date().toISOString().split("T")[0];
+  const [date, setDate] = useState(todayStr);
+  const [slot, setSlot] = useState(slots[1]);
+  const [duration, setDuration] = useState(2);
+  const [address, setAddress] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const amount = useMemo(() => {
+    if (!worker) return 0;
+    return Math.round(((worker.priceMin + worker.priceMax) / 2) / (worker.priceUnit === "month" ? 30 : 1) * duration);
+  }, [worker, duration]);
+  const fee = Math.round(amount * 0.05);
+  const total = amount + fee;
+
   if (!worker) {
     return (
       <MainLayout>
@@ -33,14 +50,38 @@ export default function BookingPage() {
     );
   }
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const [date, setDate] = useState(todayStr);
-  const [slot, setSlot] = useState(slots[1]);
-  const [duration, setDuration] = useState(2);
+  const handleProceed = async () => {
+    if (!user || user.role !== "customer") {
+      navigate("/login");
+      return;
+    }
+    if (!address.trim()) {
+      alert("Please enter a service address");
+      return;
+    }
 
-  const amount = useMemo(() => Math.round(((worker.priceMin + worker.priceMax) / 2) / (worker.priceUnit === "month" ? 30 : 1) * duration), [worker, duration]);
-  const fee = Math.round(amount * 0.05);
-  const total = amount + fee;
+    setSubmitting(true);
+    try {
+      const res = await api.post("/bookings/", {
+        workerId: worker.id,
+        workerName: worker.fullName,
+        workerAvatar: worker.avatar,
+        category: worker.category,
+        date,
+        timeSlot: slot,
+        duration,
+        address,
+        amount,
+        fee,
+        total,
+      });
+      navigate(`/payment?bookingId=${res.data.bookingId}`);
+    } catch (err: any) {
+      alert(err.message ?? "Could not create booking");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <MainLayout>
@@ -86,6 +127,7 @@ export default function BookingPage() {
 
             <Card title="Service address">
               <textarea rows={3} placeholder="House #, Street, Area, City"
+                value={address} onChange={(e) => setAddress(e.target.value)}
                 className="w-full rounded-xl border border-input bg-background p-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
             </Card>
           </div>
@@ -108,9 +150,9 @@ export default function BookingPage() {
                   <span>Total</span><span>Rs. {total.toLocaleString()}</span>
                 </div>
               </div>
-              <Button onClick={() => navigate(`/payment?bookingId=b-new&amount=${total}`)}
+              <Button onClick={handleProceed} disabled={submitting}
                 className="mt-5 h-12 w-full rounded-xl bg-primary text-base font-bold hover:bg-primary-dark">
-                Proceed to payment <ArrowRight className="ml-2 h-4 w-4" />
+                {submitting ? "Booking..." : <>Proceed to payment <ArrowRight className="ml-2 h-4 w-4" /></>}
               </Button>
               <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Free cancellation up to 4 hours before</p>
             </div>

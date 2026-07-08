@@ -36,3 +36,11 @@ def verify_token(
             status_code=401,
             detail="Invalid or Expired Token"
         )
+    
+def get_current_customer(payload: dict = Depends(verify_token)):
+    if payload.get("role") != "customer":
+        raise HTTPException(
+            status_code=403,
+            detail="Only customers can perform this action"
+        )
+    return payload
