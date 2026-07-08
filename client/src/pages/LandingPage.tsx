@@ -14,7 +14,7 @@ export default function LandingPage() {
   return (
     <MainLayout>
       <HeroSection />
-      {/* <CategorySection /> */}
+      <CategorySection />
       <PopularWorkers />
       <HowItWorks />
       <Testimonials />
