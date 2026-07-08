@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from config.db import booking_collection, payment_collection
 from model.payment_model import PaymentCreate
@@ -9,6 +10,7 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 
 # Same dummy details on every payment since there's no real gateway yet
 DUMMY_CARD_HOLDER = "Demo Account Holder"
+
 DUMMY_CARD_MASKED = "**** **** **** 4242"
 
 
