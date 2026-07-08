@@ -63,19 +63,30 @@ export type BookingStatus =
   | "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
 
 export interface Booking {
-  id: string;
+  id: string;          // Mongo ObjectId
+  bookingId: string;   // BK00001
+
   workerId: string;
   workerName: string;
   workerAvatar: string;
+
   category: WorkerCategory;
+
   date: string;
   timeSlot: string;
-  durationHours: number;
+
+  duration: number;
+
   amount: number;
-  platformFee: number;
+  fee: number;
   total: number;
-  status: BookingStatus;
+
   address: string;
+
+  status: BookingStatus;
+
+  customerId: string;
+  createdAt: string;
 }
 
 export type PaymentStatus = "successful" | "pending" | "refunded";
