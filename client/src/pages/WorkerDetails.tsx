@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
   Star,
@@ -13,9 +13,16 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { reviews } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import { useGigStore } from "@/store/gigStore";
+import { useAuthStore } from "@/store/authStore";
+import { HgAlert } from "@/components/ui/HgAlert";
+import { handleHireNowClick } from "@/lib/hireNow";
 
 
 export default function WorkerDetailsPage() {
+
+  const navigate = useNavigate();
+  const { user, token } = useAuthStore();
+  const [showWorkerAlert, setShowWorkerAlert] = useState(false);
 
   const [details, setDetails] = useState({
     about: "",
@@ -30,7 +37,7 @@ export default function WorkerDetailsPage() {
   useEffect(() => {
     fetchGigs();
   }, [fetchGigs]);
-  
+
   const worker = gigs.find((w) => w.id === id);
 
   useEffect(() => {
@@ -165,8 +172,19 @@ export default function WorkerDetailsPage() {
               ) : (
                 <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">Currently busy</p>
               )}
-              <Button asChild className="mt-5 h-12 w-full rounded-xl bg-primary text-base font-bold hover:bg-primary-dark">
-                <Link to={`/booking?workerId=${worker.id}`}>Hire now</Link>
+              <Button
+                className="mt-5 h-12 w-full rounded-xl bg-primary text-base font-bold hover:bg-primary-dark"
+                onClick={() =>
+                  handleHireNowClick({
+                    user,
+                    token,
+                    navigate,
+                    workerId: worker.id,
+                    onWorkerTriesToHire: () => setShowWorkerAlert(true),
+                  })
+                }
+              >
+                Hire now
               </Button>
               <Button asChild variant="outline" className="mt-2 h-12 w-full rounded-xl text-base font-bold">
                 <Link to="/services">Back to results</Link>
@@ -180,6 +198,14 @@ export default function WorkerDetailsPage() {
           </aside>
         </div>
       </div>
+      <HgAlert
+        open={showWorkerAlert}
+        onClose={() => setShowWorkerAlert(false)}
+        type="warning"
+        title="Wrong account type"
+        description="Please log in from a customer profile to hire a worker."
+        cancelLabel="Got it"
+      />
     </MainLayout>
   );
 }

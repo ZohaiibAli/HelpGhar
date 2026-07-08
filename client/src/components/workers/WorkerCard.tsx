@@ -1,9 +1,16 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Star, ShieldCheck, MapPin, Briefcase } from "lucide-react";
 import type { Worker } from "@/types";
+import { useAuthStore } from "@/store/authStore";
+import { HgAlert } from "@/components/ui/HgAlert";
+import { handleHireNowClick } from "@/lib/hireNow";
 
 export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: number }) {
+  const navigate = useNavigate();
+  const { user, token } = useAuthStore();
+  const [showWorkerAlert, setShowWorkerAlert] = useState(false);
   const priceUnit = worker.priceUnit === "month" ? "/month" : worker.priceUnit === "hour" ? "/hour" : "/day";
   return (
     <motion.article
@@ -74,14 +81,30 @@ export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: numb
           >
             View Profile
           </Link>
-          <Link
-            to={`/booking?workerId=${worker.id}`}
+         <button
+            onClick={() =>
+              handleHireNowClick({
+                user,
+                token,
+                navigate,
+                workerId: worker.id,
+                onWorkerTriesToHire: () => setShowWorkerAlert(true),
+              })
+            }
             className="flex-1 rounded-xl bg-primary py-2.5 text-center text-xs font-bold text-primary-foreground shadow-soft transition hover:bg-primary-dark active:scale-95"
           >
             Hire Now
-          </Link>
+          </button>
         </div>
       </div>
+      <HgAlert
+        open={showWorkerAlert}
+        onClose={() => setShowWorkerAlert(false)}
+        type="warning"
+        title="Wrong account type"
+        description="Please log in from a customer profile to hire a worker."
+        cancelLabel="Got it"
+      />
     </motion.article>
   );
 }
