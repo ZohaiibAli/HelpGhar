@@ -12,7 +12,7 @@ import ForgotPasswordPage from "@/pages/ForgotPassword";
 import ProfilePage from "@/pages/Customer_profile";
 import WorkerProfilePage from "@/pages/Worker_profile";
 import SettingsPage from "@/pages/Customer_settings";
-import MyBookingsPage from "@/pages/MyBookings";
+import MyBookingsPage from "@/pages/Customer_bookings";
 import TransactionsPage from "@/pages/Transactions";
 import ReviewsPage from "@/pages/Customer_review";
 import DisputePage from "@/pages/Customer_Dispute_Page";
@@ -29,6 +29,7 @@ import AdminProfile from "@/pages/Admin_profile";
 import NotFound from "@/pages/NotFound";
 import WorkerSettingsPage from "./pages/Worker_settings";
 import WorkerReviewsPage from "./pages/Worker_review";
+import WorkerBookings from "./pages/Worker_bookings";
 import WorkerDetailsDescriptionPage from "./pages/worker_details_description";
 import { ChatPage } from "./pages/Main_ChatBot";
 
@@ -77,6 +78,7 @@ export default function AppRouter() {
       <Route path="/worker/profile" element={<WorkerProfilePage />} />
       <Route path="/worker/settings" element={<WorkerSettingsPage />} />
       <Route path="/worker/dispute" element={<WorkerDisputePage />} />
+      <Route path="/worker/bookings" element={<WorkerBookings />} />
       <Route path="/chat" element={<ChatPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
