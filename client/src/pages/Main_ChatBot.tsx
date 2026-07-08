@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Bot,
   Sparkles,
@@ -17,10 +17,7 @@ import {
   ThumbsDown,
   Copy,
   Check,
-  MessageSquare,
-  Trash2,
   Wrench,
-  AlertCircle,
 } from "lucide-react";
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -28,31 +25,18 @@ import {
  * ──────────────────────────────────────────────────────────────────────── */
 
 interface WorkerCard {
-
   workerId: string;
-
   name: string;
-
   avatar?: string;
-
   category: string;
-
   city: string;
-
   rating: number;
-
   experience: number;
-
   priceMin: number;
-
   priceMax: number;
-
   priceUnit: string;
-
   available: boolean;
-
   verified: boolean;
-
 }
 
 interface ChatMessage {
@@ -61,14 +45,8 @@ interface ChatMessage {
   text: string;
   workers?: WorkerCard[];
   timestamp: number;
-  pending?: boolean; // true while a bot message is still streaming in
+  pending?: boolean; // true while a bot message is still awaiting a reply
   error?: boolean;
-}
-
-interface ChatSession {
-  id: string;
-  title: string;
-  updatedAt: string;
 }
 
 const SUGGESTIONS = [
@@ -82,29 +60,20 @@ function makeId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
+function newSessionId() {
+  const id = crypto.randomUUID();
+  localStorage.setItem("helpghar-chat", id);
+  return id;
+}
+
 /* ────────────────────────────────────────────────────────────────────────
  * Backend contract
  *
- * GET    /api/sessions              -> ChatSession[]
- * GET    /api/sessions/:id/messages -> ChatMessage[]
- * POST   /api/sessions              -> ChatSession                (creates a new session)
- * DELETE /api/sessions/:id          -> 204
- *
- * POST   /api/chat/stream           body: { sessionId, query }
- *   Responds with `text/event-stream`. Each event is a JSON payload:
- *     { type: "session", sessionId }               -- first event if a new session was created
- *     { type: "token", text }                       -- one chunk of the reply, append in order
- *     { type: "workers", workers: WorkerCard[] }     -- retrieved worker profiles for this answer
- *     { type: "done" }                               -- stream finished
- *     { type: "error", message }                     -- something went wrong server-side
+ * POST   /api/chat   body: { sessionId, message }
+ *   -> { message: string, workers?: WorkerCard[] }
  * ──────────────────────────────────────────────────────────────────────── */
 
-
-
-async function sendChatRequest(
-  sessionId: string,
-  message: string
-) {
+async function sendChatRequest(sessionId: string, message: string) {
   const API = import.meta.env.VITE_API_BASE_URL;
 
   const response = await fetch(`${API}/api/chat`, {
@@ -112,10 +81,7 @@ async function sendChatRequest(
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      sessionId,
-      message,
-    }),
+    body: JSON.stringify({ sessionId, message }),
   });
 
   if (!response.ok) {
@@ -136,26 +102,14 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
         <div className="flex items-center gap-2.5">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden bg-primary/10">
             {worker.avatar ? (
-              <img
-                src={worker.avatar}
-                alt={worker.name}
-                className="h-full w-full object-cover"
-              />
+              <img src={worker.avatar} alt={worker.name} className="h-full w-full object-cover" />
             ) : (
-              <span className="text-sm font-bold text-primary">
-                {worker.name?.charAt(0) || "?"}
-              </span>
+              <span className="text-sm font-bold text-primary">{worker.name?.charAt(0) || "?"}</span>
             )}
           </div>
-
           <div>
-            <p className="text-sm font-bold leading-tight text-foreground">
-              {worker.name || "Unknown Worker"}
-            </p>
-
-            <p className="text-[11px] text-muted-foreground">
-              {worker.category}
-            </p>
+            <p className="text-sm font-bold leading-tight text-foreground">{worker.name || "Unknown Worker"}</p>
+            <p className="text-[11px] text-muted-foreground">{worker.category}</p>
           </div>
         </div>
         {worker.verified && (
@@ -194,23 +148,14 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
 export function ChatPage() {
   const navigate = useNavigate();
 
-  const [sessionId] = useState(() => {
-
+  const [sessionId, setSessionId] = useState(() => {
     let id = localStorage.getItem("helpghar-chat");
-
-    if (!id) {
-
-      id = crypto.randomUUID();
-
-      localStorage.setItem("helpghar-chat", id);
-
-    }
-
+    if (!id) id = newSessionId();
     return id;
-
   });
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messagesLoading] = useState(false);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -220,11 +165,6 @@ export function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasStarted = messages.length > 0 || messagesLoading;
-
-  /* ── Load chat history on mount ── */
-
-  // Prefill from the landing page's teaser input, e.g. /chat?q=...
-
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -237,6 +177,15 @@ export function ChatPage() {
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }
 
+  function resetComposer() {
+    setInput("");
+    // reset textarea height back to a single line after clearing
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+      }
+    });
+  }
 
   async function sendMessage(raw: string) {
     const text = raw.trim();
@@ -244,71 +193,37 @@ export function ChatPage() {
 
     const userMsg: ChatMessage = { id: makeId(), role: "user", text, timestamp: Date.now() };
     const botMsgId = makeId();
+
+    // Show the user's message immediately and clear the composer right away
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: botMsgId, role: "bot", text: "", timestamp: Date.now(), pending: true },
+    ]);
+    resetComposer();
     setIsStreaming(true);
+
     try {
+      const response = await sendChatRequest(sessionId, text);
 
-      const response = await sendChatRequest(
-
-        sessionId,
-
-        text
-
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? { ...m, text: response.message, workers: response.workers, pending: false }
+            : m
+        )
       );
-
-      setMessages(prev => [
-
-        ...prev,
-
-        userMsg,
-
-        {
-
-          id: botMsgId,
-
-          role: "bot",
-
-          text: response.message,
-
-          timestamp: Date.now(),
-
-          workers: response.workers
-
-        }
-
-      ]);
-
-    }
-    catch (err) {
-
-      setMessages(prev => [
-
-        ...prev,
-
-        userMsg,
-
-        {
-
-          id: botMsgId,
-
-          role: "bot",
-
-          text: "Sorry, something went wrong.",
-
-          timestamp: Date.now(),
-
-          error: true
-
-        }
-
-      ]);
-
-    }
-    finally {
-
+    } catch (err) {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMsgId
+            ? { ...m, text: "Sorry, something went wrong.", pending: false, error: true }
+            : m
+        )
+      );
+    } finally {
       setIsStreaming(false);
-
     }
-
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -317,7 +232,7 @@ export function ChatPage() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       sendMessage(input);
     }
@@ -330,24 +245,28 @@ export function ChatPage() {
     });
   }
 
+  function handleNewChat() {
+    setSessionId(newSessionId());
+    setMessages([]);
+    resetComposer();
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-hero-gradient">
       {/* ─── Sidebar ─── */}
       <aside
-        className={`hidden shrink-0 overflow-hidden border-r border-border/60 bg-card/70 backdrop-blur-md transition-[width] duration-200 md:block ${sidebarOpen ? "w-[272px]" : "w-0"
-          }`}
+        className={`hidden shrink-0 overflow-hidden border-r border-border/60 bg-card/70 backdrop-blur-md transition-[width] duration-200 md:block ${
+          sidebarOpen ? "w-[272px]" : "w-0"
+        }`}
       >
         <div className="flex h-full w-[272px] flex-col p-4">
           <button
-            onClick={() => {
-              setMessages([]);
-            }}
+            onClick={handleNewChat}
             className="flex items-center justify-center gap-2 rounded-xl border border-primary/25 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
           >
             <Plus className="h-4 w-4" />
             New chat
           </button>
-
 
           <Link
             to="/"
@@ -435,8 +354,9 @@ export function ChatPage() {
               }}
               onKeyDown={handleKeyDown}
               rows={1}
+              disabled={isStreaming}
               placeholder="Ask about a service, a worker, or a price…"
-              className="max-h-40 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground/50"
+              className="max-h-40 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground/50 disabled:opacity-60"
             />
             <button
               type="submit"
@@ -516,24 +436,31 @@ function MessageBubble({
       className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}
     >
       <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isUser ? "bg-accent text-foreground/70" : "bg-primary text-primary-foreground"
-          }`}
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+          isUser ? "bg-accent text-foreground/70" : "bg-primary text-primary-foreground"
+        }`}
       >
         {isUser ? <span className="text-xs font-bold">You</span> : <Bot className="h-4 w-4" />}
       </div>
 
       <div className={`flex max-w-[85%] flex-col gap-2 ${isUser ? "items-end" : "items-start"}`}>
         <div
-          className={`rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed shadow-sm ${isUser
-            ? "rounded-tr-sm bg-primary text-primary-foreground"
-            : msg.error
+          className={`rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed shadow-sm ${
+            isUser
+              ? "rounded-tr-sm bg-primary text-primary-foreground"
+              : msg.error
               ? "rounded-tl-sm border border-destructive/40 bg-destructive/5 text-foreground"
               : "rounded-tl-sm border border-border/60 bg-card text-foreground"
-            }`}
+          }`}
         >
-          {msg.text}
-
-
+          {msg.pending ? (
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Thinking…
+            </span>
+          ) : (
+            msg.text
+          )}
         </div>
 
         {msg.workers && msg.workers.length > 0 && (
@@ -555,16 +482,18 @@ function MessageBubble({
             </button>
             <button
               onClick={() => onFeedback("up")}
-              className={`rounded-lg p-1.5 transition-colors hover:bg-accent/60 ${feedback === "up" ? "text-primary" : "text-muted-foreground/60 hover:text-foreground"
-                }`}
+              className={`rounded-lg p-1.5 transition-colors hover:bg-accent/60 ${
+                feedback === "up" ? "text-primary" : "text-muted-foreground/60 hover:text-foreground"
+              }`}
               aria-label="Good response"
             >
               <ThumbsUp className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => onFeedback("down")}
-              className={`rounded-lg p-1.5 transition-colors hover:bg-accent/60 ${feedback === "down" ? "text-primary" : "text-muted-foreground/60 hover:text-foreground"
-                }`}
+              className={`rounded-lg p-1.5 transition-colors hover:bg-accent/60 ${
+                feedback === "down" ? "text-primary" : "text-muted-foreground/60 hover:text-foreground"
+              }`}
               aria-label="Poor response"
             >
               <ThumbsDown className="h-3.5 w-3.5" />
@@ -575,6 +504,5 @@ function MessageBubble({
     </motion.div>
   );
 }
-
 
 export default ChatPage;
