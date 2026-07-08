@@ -101,7 +101,8 @@ def login_customer(customer: CustomerLogin):
 
 "address":existing["address"],
 
-"status":existing["status"]
+"status":existing["status"],
+"role":"customer"
 
 }
     }
