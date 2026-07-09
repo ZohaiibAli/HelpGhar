@@ -1,3 +1,4 @@
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Routes, Route } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
@@ -47,40 +48,212 @@ export default function AppRouter() {
   return (
     <>
       <ScrollToTop />
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/services" element={<ServicesPage />} />
-      <Route path="/workers/:id" element={<WorkerDetailsPage />} />
-      <Route path="/booking" element={<BookingPage />} />
-      <Route path="/payment" element={<PaymentPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/login/:role" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/profile" element={<ProfileRouter />} />
-      <Route path="/settings" element={<SettingsPage />} />
-      <Route path="/my-bookings" element={<MyBookingsPage />} />
-      <Route path="/transactions" element={<TransactionsPage />} />
-      <Route path="/reviews" element={<ReviewsPage />} />
-      <Route path="/disputes" element={<DisputePage />} />
-      <Route path="/dashboard/customer" element={<CustomerDashboard />} />
-      <Route path="/dashboard/worker" element={<WorkerDashboard />} />
-      <Route path="/dashboard/admin" element={<AdminDashboard />} />
-      <Route path="/dashboard/admin/users" element={<AdminUsers />} />
-      <Route path="/dashboard/admin/bookings" element={<AdminBookings />} />
-      <Route path="/dashboard/admin/complaints" element={<AdminComplaints />} />
-      <Route path="/dashboard/admin/reviews" element={<AdminReviews />} />
-      <Route path="/dashboard/admin/settings" element={<AdminSettings />} />
-      <Route path="/dashboard/admin/profile" element={<AdminProfile />} />
-      <Route path="/worker/reviews" element={<WorkerReviewsPage />} />
-      <Route path="/worker/details" element={<WorkerDetailsDescriptionPage />} />
-      <Route path="/worker/profile" element={<WorkerProfilePage />} />
-      <Route path="/worker/settings" element={<WorkerSettingsPage />} />
-      <Route path="/worker/dispute" element={<WorkerDisputePage />} />
-      <Route path="/worker/bookings" element={<WorkerBookings />} />
-      <Route path="/chat" element={<ChatPage />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/services" element={<ServicesPage />} />
+        <Route path="/workers/:id" element={<WorkerDetailsPage />} />
+        {/* <Route path="/booking" element={<BookingPage />} /> */}
+        <Route
+          path="/booking"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <BookingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/payment"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <PaymentPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login/:role" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        {/* <Route path="/profile" element={<ProfileRouter />} /> */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={["customer", "worker"]}>
+              <ProfileRouter />
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route path="/settings" element={<SettingsPage />} /> */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route path="/my-bookings" element={<MyBookingsPage />} /> */}
+        <Route
+          path="/my-bookings"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <MyBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route path="/transactions" element={<TransactionsPage />} /> */}
+        <Route
+          path="/transactions"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <TransactionsPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route path="/reviews" element={<ReviewsPage />} /> */}
+        <Route
+          path="/reviews"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <ReviewsPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route path="/disputes" element={<DisputePage />} /> */}
+        <Route
+          path="/disputes"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <DisputePage />
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route path="/dashboard/customer" element={<CustomerDashboard />} /> */}
+        <Route
+          path="/dashboard/customer"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <CustomerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        {/* <Route path="/dashboard/worker" element={<WorkerDashboard />} /> */}
+        <Route
+          path="/dashboard/worker"
+          element={
+            <ProtectedRoute allowedRoles={["worker"]}>
+              <WorkerDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/users"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminUsers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/bookings"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminBookings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/complaints"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminComplaints />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/reviews"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminReviews />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/settings"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminSettings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/profile"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/worker/reviews"
+          element={
+            <ProtectedRoute allowedRoles={["worker"]}>
+              <WorkerReviewsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/worker/details"
+          element={
+            <ProtectedRoute allowedRoles={["worker"]}>
+              <WorkerDetailsDescriptionPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* <Route path="/worker/profile" element={<WorkerProfilePage />} /> */}
+        <Route
+          path="/worker/profile"
+          element={
+            <ProtectedRoute allowedRoles={["worker"]}>
+              <WorkerProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/worker/settings"
+          element={
+            <ProtectedRoute allowedRoles={["worker"]}>
+              <WorkerSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/worker/dispute"
+          element={
+            <ProtectedRoute allowedRoles={["worker"]}>
+              <WorkerDisputePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/worker/bookings"
+          element={
+            <ProtectedRoute allowedRoles={["worker"]}>
+              <WorkerBookings />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </>
   );
 }
