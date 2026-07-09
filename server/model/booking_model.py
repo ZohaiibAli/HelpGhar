@@ -14,3 +14,6 @@ class BookingCreate(BaseModel):
     platformFee: float
     total: float
 
+class BookingReschedule(BaseModel):
+    date: str
+    timeSlot: str

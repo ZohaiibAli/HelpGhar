@@ -3,6 +3,7 @@ from config.db import booking_collection
 from model.booking_model import BookingCreate
 from helper.auth_helper import get_current_customer
 from helper.id_helper import generate_booking_id
+from model.booking_model import BookingCreate, BookingReschedule
 from datetime import datetime
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
@@ -50,3 +51,44 @@ def get_booking(booking_id: str, current_customer: dict = Depends(get_current_cu
 
     del booking["_id"]
     return {"success": True, "booking": booking}
+
+@router.patch("/{booking_id}/cancel")
+def cancel_booking(booking_id: str, current_customer: dict = Depends(get_current_customer)):
+    booking = booking_collection.find_one({
+        "id": booking_id,
+        "customerId": current_customer["customerId"]
+    })
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if booking["status"] not in ("pending", "confirmed"):
+        raise HTTPException(status_code=400, detail="This booking can no longer be cancelled")
+
+    booking_collection.update_one(
+        {"id": booking_id},
+        {"$set": {"status": "cancelled"}}
+    )
+    return {"success": True, "message": "Booking cancelled"}
+
+
+@router.patch("/{booking_id}/reschedule")
+def reschedule_booking(
+    booking_id: str,
+    payload: BookingReschedule,
+    current_customer: dict = Depends(get_current_customer)
+):
+    booking = booking_collection.find_one({
+        "id": booking_id,
+        "customerId": current_customer["customerId"]
+    })
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if booking["status"] != "confirmed":
+        raise HTTPException(status_code=400, detail="Only confirmed bookings can be rescheduled")
+
+    booking_collection.update_one(
+        {"id": booking_id},
+        {"$set": {"date": payload.date, "timeSlot": payload.timeSlot}}
+    )
+    return {"success": True, "message": "Booking rescheduled"}

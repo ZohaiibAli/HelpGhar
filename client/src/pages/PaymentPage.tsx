@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
 import { api } from "@/services/api";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 export default function PaymentPage() {
   const [params] = useSearchParams();
@@ -16,31 +17,49 @@ export default function PaymentPage() {
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [alertState, setAlertState] = useState<{
+    open: boolean;
+    type: "error" | "warning" | "success" | "server";
+    title: string;
+    description: string;
+  }>({ open: false, type: "error", title: "", description: "" });
+
+  const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
 
   useEffect(() => {
-    if (!bookingId) {
-      setLoading(false);
-      return;
-    }
-    api.get(`/bookings/${bookingId}`)
-      .then((res) => setBooking(res.data.booking))
-      .catch((err) => alert(err.message ?? "Booking not found"))
-      .finally(() => setLoading(false));
-  }, [bookingId]);
+  if (!bookingId) {
+    setLoading(false);
+    return;
+  }
+  api.get(`/bookings/${bookingId}`)
+    .then((res) => setBooking(res.data.booking))
+    .catch((err) => setAlertState({
+      open: true,
+      type: "error",
+      title: "Booking not found",
+      description: err.message ?? "We couldn't find this booking.",
+    }))
+    .finally(() => setLoading(false));
+}, [bookingId]);
 
   const handlePay = async () => {
-    if (!bookingId) return;
-    setPaying(true);
-    try {
-      const res = await api.post("/payments/", { bookingId, method });
-      setPayment(res.data.payment);
-      setDone(true);
-    } catch (err: any) {
-      alert(err.message ?? "Payment failed");
-    } finally {
-      setPaying(false);
-    }
-  };
+  if (!bookingId) return;
+  setPaying(true);
+  try {
+    const res = await api.post("/payments/", { bookingId, method });
+    setPayment(res.data.payment);
+    setDone(true);
+  } catch (err: any) {
+    setAlertState({
+      open: true,
+      type: "server",
+      title: "Payment failed",
+      description: err.message ?? "We couldn't process your payment. Please try again.",
+    });
+  } finally {
+    setPaying(false);
+  }
+};
 
 const handleDownloadReceipt = () => {
   if (!payment) return;
@@ -193,9 +212,16 @@ const handleDownloadReceipt = () => {
 
       <style>{`.hg-input{width:100%;height:44px;border-radius:12px;border:1px solid var(--input);background:var(--card);padding:0 14px;font-size:14px;outline:none;transition:.15s;}
       .hg-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in oklch,var(--primary) 18%,transparent);}`}</style>
+      <HgAlert
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+      />
     </MainLayout>
   );
-}
+}    
 
 function MethodBtn({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: typeof CreditCard; label: string }) {
   return (

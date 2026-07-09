@@ -6,6 +6,7 @@ import { Calendar, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 const slots = ["08:00 – 10:00", "10:00 – 12:00", "12:00 – 14:00", "14:00 – 16:00", "16:00 – 18:00", "18:00 – 20:00"];
 
@@ -32,6 +33,14 @@ export default function BookingPage() {
   const [durationHours, setDurationHours] = useState(2);
   const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [alertState, setAlertState] = useState<{
+  open: boolean;
+  type: "error" | "warning" | "success" | "server";
+  title: string;
+  description: string;
+}>({ open: false, type: "error", title: "", description: "" });
+
+const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
 
   const amount = useMemo(() => {
   if (!worker) return 0;
@@ -51,37 +60,47 @@ export default function BookingPage() {
   }
 
   const handleProceed = async () => {
-    if (!user || user.role !== "customer") {
-      navigate("/login");
-      return;
-    }
-    if (!address.trim()) {
-      alert("Please enter a service address");
-      return;
-    }
+  if (!user || user.role !== "customer") {
+    navigate("/login");
+    return;
+  }
+  if (!address.trim()) {
+    setAlertState({
+      open: true,
+      type: "warning",
+      title: "Address required",
+      description: "Please enter a service address before proceeding.",
+    });
+    return;
+  }
 
-    setSubmitting(true);
-    try {
-      const res = await api.post("/bookings/", {
-        workerId: worker.id,
-        workerName: worker.fullName,
-        workerAvatar: worker.avatar,
-        category: worker.category,
-        date,
-        timeSlot: slot,
-        durationHours,
-        address,
-        amount,
-        platformFee,
-        total,
-      });
-      navigate(`/payment?bookingId=${res.data.id}`);
-    } catch (err: any) {
-      alert(err.message ?? "Could not create booking");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  setSubmitting(true);
+  try {
+    const res = await api.post("/bookings/", {
+      workerId: worker.id,
+      workerName: worker.fullName,
+      workerAvatar: worker.avatar,
+      category: worker.category,
+      date,
+      timeSlot: slot,
+      durationHours,
+      address,
+      amount,
+      platformFee,
+      total,
+    });
+    navigate(`/payment?bookingId=${res.data.id}`);
+  } catch (err: any) {
+    setAlertState({
+      open: true,
+      type: "server",
+      title: "Booking failed",
+      description: err.message ?? "Could not create your booking. Please try again.",
+    });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <MainLayout>
@@ -159,10 +178,16 @@ export default function BookingPage() {
           </aside>
         </div>
       </div>
+      <HgAlert
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+      />
     </MainLayout>
   );
 }
-
 function Card({ title, icon: Icon, children }: { title?: string; icon?: typeof Calendar; children: React.ReactNode }) {
   return (
     <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
