@@ -29,16 +29,16 @@ export default function BookingPage() {
   const todayStr = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(todayStr);
   const [slot, setSlot] = useState(slots[1]);
-  const [duration, setDuration] = useState(2);
+  const [durationHours, setDurationHours] = useState(2);
   const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const amount = useMemo(() => {
-    if (!worker) return 0;
-    return Math.round(((worker.priceMin + worker.priceMax) / 2) / (worker.priceUnit === "month" ? 30 : 1) * duration);
-  }, [worker, duration]);
-  const fee = Math.round(amount * 0.05);
-  const total = amount + fee;
+  if (!worker) return 0;
+  return Math.round(((worker.priceMin + worker.priceMax) / 2) / (worker.priceUnit === "month" ? 30 : 1) * durationHours);
+  }, [worker, durationHours]);
+  const platformFee = Math.round(amount * 0.05);
+  const total = amount + platformFee;
 
   if (!worker) {
     return (
@@ -69,13 +69,13 @@ export default function BookingPage() {
         category: worker.category,
         date,
         timeSlot: slot,
-        duration,
+        durationHours,
         address,
         amount,
-        fee,
+        platformFee,
         total,
       });
-      navigate(`/payment?bookingId=${res.data.bookingId}`);
+      navigate(`/payment?bookingId=${res.data.id}`);
     } catch (err: any) {
       alert(err.message ?? "Could not create booking");
     } finally {
@@ -120,8 +120,8 @@ export default function BookingPage() {
 
             <Card title="Duration">
               <div className="flex items-center gap-3">
-                <input type="range" min={1} max={8} value={duration} onChange={(e) => setDuration(+e.target.value)} className="flex-1 accent-primary" />
-                <span className="w-20 text-right text-sm font-bold">{duration} hours</span>
+                <input type="range" min={1} max={8} value={durationHours} onChange={(e) => setDurationHours(+e.target.value)} className="flex-1 accent-primary" />
+                <span className="w-20 text-right text-sm font-bold">{durationHours} hours</span>
               </div>
             </Card>
 
@@ -140,12 +140,12 @@ export default function BookingPage() {
                 <Row label="Service" value={worker.category} />
                 <Row label="Date" value={date} />
                 <Row label="Time" value={slot} />
-                <Row label="Duration" value={`${duration}h`} />
+                <Row label="Duration" value={`${durationHours}h`} />
               </div>
               <div className="my-4 h-px bg-border" />
               <div className="space-y-2 text-sm">
                 <Row label="Amount" value={`Rs. ${amount.toLocaleString()}`} />
-                <Row label="Platform fee (5%)" value={`Rs. ${fee.toLocaleString()}`} />
+                <Row label="Platform fee (5%)" value={`Rs. ${platformFee.toLocaleString()}`} />
                 <div className="flex items-center justify-between pt-2 text-base font-black">
                   <span>Total</span><span>Rs. {total.toLocaleString()}</span>
                 </div>

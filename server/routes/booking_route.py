@@ -14,7 +14,7 @@ def create_booking(
     current_customer: dict = Depends(get_current_customer)
 ):
     booking_data = booking.dict()
-    booking_data["bookingId"] = generate_booking_id()
+    booking_data["id"] = generate_booking_id()
     booking_data["customerId"] = current_customer["customerId"]
     booking_data["status"] = "pending"
     booking_data["createdAt"] = datetime.utcnow().isoformat()
@@ -24,7 +24,7 @@ def create_booking(
     return {
         "success": True,
         "message": "Booking created",
-        "bookingId": booking_data["bookingId"]
+        "id": booking_data["id"]
     }
 
 
@@ -34,7 +34,6 @@ def get_my_bookings(current_customer: dict = Depends(get_current_customer)):
         booking_collection.find({"customerId": current_customer["customerId"]})
     )
     for b in bookings:
-        b["id"] = str(b["_id"])
         del b["_id"]
 
     return {"success": True, "bookings": bookings}
@@ -43,12 +42,11 @@ def get_my_bookings(current_customer: dict = Depends(get_current_customer)):
 @router.get("/{booking_id}")
 def get_booking(booking_id: str, current_customer: dict = Depends(get_current_customer)):
     booking = booking_collection.find_one({
-        "bookingId": booking_id,
+        "id": booking_id,
         "customerId": current_customer["customerId"]
     })
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    booking["id"] = str(booking["_id"])
     del booking["_id"]
     return {"success": True, "booking": booking}

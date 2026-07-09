@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CreditCard, Wallet, Lock, CheckCircle2, Download } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
+import jsPDF from "jspdf";
 import { api } from "@/services/api";
 
 export default function PaymentPage() {
@@ -41,24 +42,48 @@ export default function PaymentPage() {
     }
   };
 
-  const handleDownloadReceipt = () => {
-    if (!payment) return;
-    const text = `Receipt
-Transaction ID: ${payment.transactionId}
-Booking ID: ${payment.bookingId}
-Date: ${new Date(payment.date).toLocaleString()}
-Method: ${payment.method.toUpperCase()}
-Amount: Rs. ${payment.amount}
-Fee: Rs. ${payment.fee}
-Total: Rs. ${payment.total}`;
-    const blob = new Blob([text], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `receipt-${payment.transactionId}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+const handleDownloadReceipt = () => {
+  if (!payment) return;
+
+  const doc = new jsPDF();
+
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Payment Receipt", 20, 20);
+
+  doc.setDrawColor(200);
+  doc.line(20, 25, 190, 25);
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+
+  const rows: [string, string][] = [
+    ["Transaction ID", payment.id],
+    ["Booking ID", payment.bookingId],
+    ["Date", new Date(payment.date).toLocaleString()],
+    ["Method", payment.method],
+    ["Service Amount", `Rs. ${payment.amount.toLocaleString()}`],
+    ["Platform Fee", `Rs. ${payment.platformFee.toLocaleString()}`],
+    ["Total Paid", `Rs. ${payment.total.toLocaleString()}`],
+  ];
+
+  let y = 40;
+  rows.forEach(([label, value]) => {
+    doc.setFont("helvetica", "bold");
+    doc.text(`${label}:`, 20, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(String(value), 80, y);
+    y += 10;
+  });
+
+  doc.setDrawColor(200);
+  doc.line(20, y + 2, 190, y + 2);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text("This is a system-generated receipt.", 20, y + 12);
+
+  doc.save(`receipt-${payment.id}.pdf`);
+};
 
   if (loading) {
     return (
@@ -79,7 +104,7 @@ Total: Rs. ${payment.total}`;
     );
   }
 
-  const { amount, fee, total } = booking;
+  const { amount, platformFee, total } = booking;
 
   if (done && payment) {
     return (
@@ -155,7 +180,7 @@ Total: Rs. ${payment.total}`;
               <div className="mt-4 space-y-2 text-sm">
                 <Row label="Service amount" value={`Rs. ${amount.toLocaleString()}`} />
                 <Row label="Platform commission (5%)" value="Included" />
-                <Row label="Tax (5%)" value={`Rs. ${fee.toLocaleString()}`} />
+                <Row label="Tax (5%)" value={`Rs. ${platformFee.toLocaleString()}`} />
                 <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-base font-black">
                   <span>Total</span><span>Rs. {total.toLocaleString()}</span>
                 </div>
