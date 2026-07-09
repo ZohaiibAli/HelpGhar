@@ -6,6 +6,7 @@ import { Calendar, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 const slots = ["08:00 – 10:00", "10:00 – 12:00", "12:00 – 14:00", "14:00 – 16:00", "16:00 – 18:00", "18:00 – 20:00"];
 
@@ -29,16 +30,24 @@ export default function BookingPage() {
   const todayStr = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(todayStr);
   const [slot, setSlot] = useState(slots[1]);
-  const [duration, setDuration] = useState(2);
+  const [durationHours, setDurationHours] = useState(2);
   const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [alertState, setAlertState] = useState<{
+  open: boolean;
+  type: "error" | "warning" | "success" | "server";
+  title: string;
+  description: string;
+}>({ open: false, type: "error", title: "", description: "" });
+
+const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
 
   const amount = useMemo(() => {
-    if (!worker) return 0;
-    return Math.round(((worker.priceMin + worker.priceMax) / 2) / (worker.priceUnit === "month" ? 30 : 1) * duration);
-  }, [worker, duration]);
-  const fee = Math.round(amount * 0.05);
-  const total = amount + fee;
+  if (!worker) return 0;
+  return Math.round(((worker.priceMin + worker.priceMax) / 2) / (worker.priceUnit === "month" ? 30 : 1) * durationHours);
+  }, [worker, durationHours]);
+  const platformFee = Math.round(amount * 0.05);
+  const total = amount + platformFee;
 
   if (!worker) {
     return (
@@ -51,37 +60,47 @@ export default function BookingPage() {
   }
 
   const handleProceed = async () => {
-    if (!user || user.role !== "customer") {
-      navigate("/login");
-      return;
-    }
-    if (!address.trim()) {
-      alert("Please enter a service address");
-      return;
-    }
+  if (!user || user.role !== "customer") {
+    navigate("/login");
+    return;
+  }
+  if (!address.trim()) {
+    setAlertState({
+      open: true,
+      type: "warning",
+      title: "Address required",
+      description: "Please enter a service address before proceeding.",
+    });
+    return;
+  }
 
-    setSubmitting(true);
-    try {
-      const res = await api.post("/bookings/", {
-        workerId: worker.id,
-        workerName: worker.fullName,
-        workerAvatar: worker.avatar,
-        category: worker.category,
-        date,
-        timeSlot: slot,
-        duration,
-        address,
-        amount,
-        fee,
-        total,
-      });
-      navigate(`/payment?bookingId=${res.data.bookingId}`);
-    } catch (err: any) {
-      alert(err.message ?? "Could not create booking");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  setSubmitting(true);
+  try {
+    const res = await api.post("/bookings/", {
+      workerId: worker.workerId,    // <-- changed from worker.id
+      workerName: worker.fullName,
+      workerAvatar: worker.avatar,
+      category: worker.category,
+      date,
+      timeSlot: slot,
+      durationHours,
+      address,
+      amount,
+      platformFee,
+      total,
+    });
+    navigate(`/payment?bookingId=${res.data.id}`);
+  } catch (err: any) {
+    setAlertState({
+      open: true,
+      type: "server",
+      title: "Booking failed",
+      description: err.message ?? "Could not create your booking. Please try again.",
+    });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <MainLayout>
@@ -120,8 +139,8 @@ export default function BookingPage() {
 
             <Card title="Duration">
               <div className="flex items-center gap-3">
-                <input type="range" min={1} max={8} value={duration} onChange={(e) => setDuration(+e.target.value)} className="flex-1 accent-primary" />
-                <span className="w-20 text-right text-sm font-bold">{duration} hours</span>
+                <input type="range" min={1} max={8} value={durationHours} onChange={(e) => setDurationHours(+e.target.value)} className="flex-1 accent-primary" />
+                <span className="w-20 text-right text-sm font-bold">{durationHours} hours</span>
               </div>
             </Card>
 
@@ -140,12 +159,12 @@ export default function BookingPage() {
                 <Row label="Service" value={worker.category} />
                 <Row label="Date" value={date} />
                 <Row label="Time" value={slot} />
-                <Row label="Duration" value={`${duration}h`} />
+                <Row label="Duration" value={`${durationHours}h`} />
               </div>
               <div className="my-4 h-px bg-border" />
               <div className="space-y-2 text-sm">
                 <Row label="Amount" value={`Rs. ${amount.toLocaleString()}`} />
-                <Row label="Platform fee (5%)" value={`Rs. ${fee.toLocaleString()}`} />
+                <Row label="Platform fee (5%)" value={`Rs. ${platformFee.toLocaleString()}`} />
                 <div className="flex items-center justify-between pt-2 text-base font-black">
                   <span>Total</span><span>Rs. {total.toLocaleString()}</span>
                 </div>
@@ -159,10 +178,16 @@ export default function BookingPage() {
           </aside>
         </div>
       </div>
+      <HgAlert
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+      />
     </MainLayout>
   );
 }
-
 function Card({ title, icon: Icon, children }: { title?: string; icon?: typeof Calendar; children: React.ReactNode }) {
   return (
     <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">

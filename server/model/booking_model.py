@@ -8,8 +8,12 @@ class BookingCreate(BaseModel):
     category: str
     date: str
     timeSlot: str
-    duration: int
+    durationHours: int
     address: str
     amount: float
-    fee: float
+    platformFee: float
     total: float
+
+class BookingReschedule(BaseModel):
+    date: str
+    timeSlot: str

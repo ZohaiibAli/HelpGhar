@@ -3,7 +3,9 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CreditCard, Wallet, Lock, CheckCircle2, Download } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
+import jsPDF from "jspdf";
 import { api } from "@/services/api";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 export default function PaymentPage() {
   const [params] = useSearchParams();
@@ -16,6 +18,20 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
 
+  const [cardHolder, setCardHolder] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
+
+  const [alertState, setAlertState] = useState<{
+    open: boolean;
+    type: "error" | "warning" | "success" | "server";
+    title: string;
+    description: string;
+  }>({ open: false, type: "error", title: "", description: "" });
+
+  const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
+
   useEffect(() => {
     if (!bookingId) {
       setLoading(false);
@@ -23,7 +39,12 @@ export default function PaymentPage() {
     }
     api.get(`/bookings/${bookingId}`)
       .then((res) => setBooking(res.data.booking))
-      .catch((err) => alert(err.message ?? "Booking not found"))
+      .catch((err) => setAlertState({
+        open: true,
+        type: "error",
+        title: "Booking not found",
+        description: err.message ?? "We couldn't find this booking.",
+      }))
       .finally(() => setLoading(false));
   }, [bookingId]);
 
@@ -31,11 +52,23 @@ export default function PaymentPage() {
     if (!bookingId) return;
     setPaying(true);
     try {
-      const res = await api.post("/payments/", { bookingId, method });
+      const res = await api.post("/payments/", {
+        bookingId,
+        method,
+        cardHolder,
+        cardNumber,
+        expiry,
+        cvv,
+      });
       setPayment(res.data.payment);
       setDone(true);
     } catch (err: any) {
-      alert(err.message ?? "Payment failed");
+      setAlertState({
+        open: true,
+        type: "error",
+        title: "Payment failed",
+        description: err.message ?? "We couldn't process your payment. Please check your card details.",
+      });
     } finally {
       setPaying(false);
     }
@@ -43,21 +76,45 @@ export default function PaymentPage() {
 
   const handleDownloadReceipt = () => {
     if (!payment) return;
-    const text = `Receipt
-Transaction ID: ${payment.transactionId}
-Booking ID: ${payment.bookingId}
-Date: ${new Date(payment.date).toLocaleString()}
-Method: ${payment.method.toUpperCase()}
-Amount: Rs. ${payment.amount}
-Fee: Rs. ${payment.fee}
-Total: Rs. ${payment.total}`;
-    const blob = new Blob([text], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `receipt-${payment.transactionId}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Receipt", 20, 20);
+
+    doc.setDrawColor(200);
+    doc.line(20, 25, 190, 25);
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+
+    const rows: [string, string][] = [
+      ["Transaction ID", payment.id],
+      ["Booking ID", payment.bookingId],
+      ["Date", new Date(payment.date).toLocaleString()],
+      ["Method", payment.method],
+      ["Service Amount", `Rs. ${payment.amount.toLocaleString()}`],
+      ["Platform Fee", `Rs. ${payment.platformFee.toLocaleString()}`],
+      ["Total Paid", `Rs. ${payment.total.toLocaleString()}`],
+    ];
+
+    let y = 40;
+    rows.forEach(([label, value]) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, 20, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(value), 80, y);
+      y += 10;
+    });
+
+    doc.setDrawColor(200);
+    doc.line(20, y + 2, 190, y + 2);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text("This is a system-generated receipt.", 20, y + 12);
+
+    doc.save(`receipt-${payment.id}.pdf`);
   };
 
   if (loading) {
@@ -79,7 +136,7 @@ Total: Rs. ${payment.total}`;
     );
   }
 
-  const { amount, fee, total } = booking;
+  const { amount, platformFee, total } = booking;
 
   if (done && payment) {
     return (
@@ -90,9 +147,9 @@ Total: Rs. ${payment.total}`;
             <h1 className="mt-5 text-2xl font-black">Payment successful</h1>
             <p className="mt-1 text-sm text-muted-foreground">Your booking is confirmed and the worker has been notified.</p>
             <div className="mt-6 rounded-2xl bg-muted p-5 text-left text-sm">
-              <Row label="Transaction ID" value={payment.transactionId} />
+              <Row label="Transaction ID" value={payment.id} />
               <Row label="Date" value={new Date(payment.date).toDateString()} />
-              <Row label="Method" value={payment.method.toUpperCase()} />
+              <Row label="Method" value={payment.method} />
               <Row label="Amount" value={`Rs. ${payment.total.toLocaleString()}`} />
             </div>
             <div className="mt-6 flex gap-3">
@@ -103,6 +160,13 @@ Total: Rs. ${payment.total}`;
             </div>
           </div>
         </div>
+        <HgAlert
+          open={alertState.open}
+          onClose={closeAlert}
+          type={alertState.type}
+          title={alertState.title}
+          description={alertState.description}
+        />
       </MainLayout>
     );
   }
@@ -127,11 +191,23 @@ Total: Rs. ${payment.total}`;
             {method === "card" && (
               <form onSubmit={(e) => { e.preventDefault(); handlePay(); }} className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-soft">
                 <h3 className="text-sm font-bold uppercase tracking-wider">Card details</h3>
-                <Field label="Card holder name"><input className="hg-input" placeholder="Hassan Iqbal" required /></Field>
-                <Field label="Card number"><input className="hg-input" placeholder="1234 5678 9012 3456" maxLength={19} required /></Field>
+                <Field label="Card holder name">
+                  <input className="hg-input" placeholder="Hassan Iqbal" required
+                    value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
+                </Field>
+                <Field label="Card number">
+                  <input className="hg-input" placeholder="1234 5678 9012 3456" maxLength={19} required
+                    value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
+                </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Expiry"><input className="hg-input" placeholder="MM/YY" required /></Field>
-                  <Field label="CVV"><input className="hg-input" placeholder="123" maxLength={4} required /></Field>
+                  <Field label="Expiry">
+                    <input className="hg-input" placeholder="MM/YY" required
+                      value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+                  </Field>
+                  <Field label="CVV">
+                    <input className="hg-input" placeholder="123" maxLength={4} required
+                      value={cvv} onChange={(e) => setCvv(e.target.value)} />
+                  </Field>
                 </div>
                 <Button type="submit" disabled={paying} className="h-12 w-full rounded-xl bg-primary text-base font-bold hover:bg-primary-dark">
                   {paying ? "Processing..." : `Pay Rs. ${total.toLocaleString()}`}
@@ -155,7 +231,7 @@ Total: Rs. ${payment.total}`;
               <div className="mt-4 space-y-2 text-sm">
                 <Row label="Service amount" value={`Rs. ${amount.toLocaleString()}`} />
                 <Row label="Platform commission (5%)" value="Included" />
-                <Row label="Tax (5%)" value={`Rs. ${fee.toLocaleString()}`} />
+                <Row label="Tax (5%)" value={`Rs. ${platformFee.toLocaleString()}`} />
                 <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-base font-black">
                   <span>Total</span><span>Rs. {total.toLocaleString()}</span>
                 </div>
@@ -168,6 +244,13 @@ Total: Rs. ${payment.total}`;
 
       <style>{`.hg-input{width:100%;height:44px;border-radius:12px;border:1px solid var(--input);background:var(--card);padding:0 14px;font-size:14px;outline:none;transition:.15s;}
       .hg-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in oklch,var(--primary) 18%,transparent);}`}</style>
+      <HgAlert
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+      />
     </MainLayout>
   );
 }
