@@ -44,3 +44,11 @@ def get_current_customer(payload: dict = Depends(verify_token)):
             detail="Only customers can perform this action"
         )
     return payload
+
+def get_current_admin(payload: dict = Depends(verify_token)):
+    if payload.get("role") != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admins can perform this action"
+        )
+    return payload
