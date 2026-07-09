@@ -18,6 +18,7 @@ try:
     gig_collection = db["gigs"]     
     booking_collection = db["bookings"]
     payment_collection = db["payments"]   
+    payment_card_collection = db["payment_cards"]
     dispute_collection = db["disputes"]
     website_theme_collection = db["website_themes"]
     counter_collection = db["counters"]

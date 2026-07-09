@@ -17,6 +17,12 @@ export default function PaymentPage() {
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+
+  const [cardHolder, setCardHolder] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
+
   const [alertState, setAlertState] = useState<{
     open: boolean;
     type: "error" | "warning" | "success" | "server";
@@ -27,82 +33,89 @@ export default function PaymentPage() {
   const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
 
   useEffect(() => {
-  if (!bookingId) {
-    setLoading(false);
-    return;
-  }
-  api.get(`/bookings/${bookingId}`)
-    .then((res) => setBooking(res.data.booking))
-    .catch((err) => setAlertState({
-      open: true,
-      type: "error",
-      title: "Booking not found",
-      description: err.message ?? "We couldn't find this booking.",
-    }))
-    .finally(() => setLoading(false));
-}, [bookingId]);
+    if (!bookingId) {
+      setLoading(false);
+      return;
+    }
+    api.get(`/bookings/${bookingId}`)
+      .then((res) => setBooking(res.data.booking))
+      .catch((err) => setAlertState({
+        open: true,
+        type: "error",
+        title: "Booking not found",
+        description: err.message ?? "We couldn't find this booking.",
+      }))
+      .finally(() => setLoading(false));
+  }, [bookingId]);
 
   const handlePay = async () => {
-  if (!bookingId) return;
-  setPaying(true);
-  try {
-    const res = await api.post("/payments/", { bookingId, method });
-    setPayment(res.data.payment);
-    setDone(true);
-  } catch (err: any) {
-    setAlertState({
-      open: true,
-      type: "server",
-      title: "Payment failed",
-      description: err.message ?? "We couldn't process your payment. Please try again.",
-    });
-  } finally {
-    setPaying(false);
-  }
-};
+    if (!bookingId) return;
+    setPaying(true);
+    try {
+      const res = await api.post("/payments/", {
+        bookingId,
+        method,
+        cardHolder,
+        cardNumber,
+        expiry,
+        cvv,
+      });
+      setPayment(res.data.payment);
+      setDone(true);
+    } catch (err: any) {
+      setAlertState({
+        open: true,
+        type: "error",
+        title: "Payment failed",
+        description: err.message ?? "We couldn't process your payment. Please check your card details.",
+      });
+    } finally {
+      setPaying(false);
+    }
+  };
 
-const handleDownloadReceipt = () => {
-  if (!payment) return;
+  const handleDownloadReceipt = () => {
+    if (!payment) return;
 
-  const doc = new jsPDF();
+    const doc = new jsPDF();
 
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("Payment Receipt", 20, 20);
-
-  doc.setDrawColor(200);
-  doc.line(20, 25, 190, 25);
-
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-
-  const rows: [string, string][] = [
-    ["Transaction ID", payment.id],
-    ["Booking ID", payment.bookingId],
-    ["Date", new Date(payment.date).toLocaleString()],
-    ["Method", payment.method],
-    ["Service Amount", `Rs. ${payment.amount.toLocaleString()}`],
-    ["Platform Fee", `Rs. ${payment.platformFee.toLocaleString()}`],
-    ["Total Paid", `Rs. ${payment.total.toLocaleString()}`],
-  ];
-
-  let y = 40;
-  rows.forEach(([label, value]) => {
+    doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text(`${label}:`, 20, y);
+    doc.text("Payment Receipt", 20, 20);
+
+    doc.setDrawColor(200);
+    doc.line(20, 25, 190, 25);
+
+    doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    doc.text(String(value), 80, y);
-    y += 10;
-  });
 
-  doc.setDrawColor(200);
-  doc.line(20, y + 2, 190, y + 2);
-  doc.setFontSize(9);
-  doc.setTextColor(120);
-  doc.text("This is a system-generated receipt.", 20, y + 12);
+    const rows: [string, string][] = [
+      ["Transaction ID", payment.id],
+      ["Booking ID", payment.bookingId],
+      ["Date", new Date(payment.date).toLocaleString()],
+      ["Method", payment.method],
+      ["Service Amount", `Rs. ${payment.amount.toLocaleString()}`],
+      ["Platform Fee", `Rs. ${payment.platformFee.toLocaleString()}`],
+      ["Total Paid", `Rs. ${payment.total.toLocaleString()}`],
+    ];
 
-  doc.save(`receipt-${payment.id}.pdf`);
-};
+    let y = 40;
+    rows.forEach(([label, value]) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, 20, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(value), 80, y);
+      y += 10;
+    });
+
+    doc.setDrawColor(200);
+    doc.line(20, y + 2, 190, y + 2);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text("This is a system-generated receipt.", 20, y + 12);
+
+    doc.save(`receipt-${payment.id}.pdf`);
+  };
 
   if (loading) {
     return (
@@ -134,9 +147,9 @@ const handleDownloadReceipt = () => {
             <h1 className="mt-5 text-2xl font-black">Payment successful</h1>
             <p className="mt-1 text-sm text-muted-foreground">Your booking is confirmed and the worker has been notified.</p>
             <div className="mt-6 rounded-2xl bg-muted p-5 text-left text-sm">
-              <Row label="Transaction ID" value={payment.transactionId} />
+              <Row label="Transaction ID" value={payment.id} />
               <Row label="Date" value={new Date(payment.date).toDateString()} />
-              <Row label="Method" value={payment.method.toUpperCase()} />
+              <Row label="Method" value={payment.method} />
               <Row label="Amount" value={`Rs. ${payment.total.toLocaleString()}`} />
             </div>
             <div className="mt-6 flex gap-3">
@@ -147,6 +160,13 @@ const handleDownloadReceipt = () => {
             </div>
           </div>
         </div>
+        <HgAlert
+          open={alertState.open}
+          onClose={closeAlert}
+          type={alertState.type}
+          title={alertState.title}
+          description={alertState.description}
+        />
       </MainLayout>
     );
   }
@@ -171,11 +191,23 @@ const handleDownloadReceipt = () => {
             {method === "card" && (
               <form onSubmit={(e) => { e.preventDefault(); handlePay(); }} className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-soft">
                 <h3 className="text-sm font-bold uppercase tracking-wider">Card details</h3>
-                <Field label="Card holder name"><input className="hg-input" placeholder="Hassan Iqbal" required /></Field>
-                <Field label="Card number"><input className="hg-input" placeholder="1234 5678 9012 3456" maxLength={19} required /></Field>
+                <Field label="Card holder name">
+                  <input className="hg-input" placeholder="Hassan Iqbal" required
+                    value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
+                </Field>
+                <Field label="Card number">
+                  <input className="hg-input" placeholder="1234 5678 9012 3456" maxLength={19} required
+                    value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
+                </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Expiry"><input className="hg-input" placeholder="MM/YY" required /></Field>
-                  <Field label="CVV"><input className="hg-input" placeholder="123" maxLength={4} required /></Field>
+                  <Field label="Expiry">
+                    <input className="hg-input" placeholder="MM/YY" required
+                      value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+                  </Field>
+                  <Field label="CVV">
+                    <input className="hg-input" placeholder="123" maxLength={4} required
+                      value={cvv} onChange={(e) => setCvv(e.target.value)} />
+                  </Field>
                 </div>
                 <Button type="submit" disabled={paying} className="h-12 w-full rounded-xl bg-primary text-base font-bold hover:bg-primary-dark">
                   {paying ? "Processing..." : `Pay Rs. ${total.toLocaleString()}`}
@@ -221,7 +253,7 @@ const handleDownloadReceipt = () => {
       />
     </MainLayout>
   );
-}    
+}
 
 function MethodBtn({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: typeof CreditCard; label: string }) {
   return (

@@ -13,9 +13,14 @@ from routes.theme_routes import router as website_settings_router
 from routes.chat_routes import router as chat_router
 from routes.booking_route import router as booking_router
 from routes.payment_route import router as payment_router
+from helper.seed_helper import seed_default_card
+
 
 
 app = FastAPI(title="HelpGhar API", version="1.0.0")
+@app.on_event("startup")
+def on_startup():
+    seed_default_card()
 
 app.add_middleware(
     CORSMiddleware,
