@@ -2,8 +2,6 @@
 ==========================================================
 HelpGhar AI - Worker Service
 
-Author : HelpGhar AI
-
 Purpose
 -------
 This service ONLY communicates with MongoDB.
@@ -29,6 +27,7 @@ Those responsibilities belong to other services.
 
 from typing import List, Dict, Any, Optional
 
+import re
 import logging
 
 from bson import ObjectId
@@ -42,9 +41,7 @@ from ai.filter_extractor import (
 
 logger = logging.getLogger(__name__)
 
-logging.basicConfig(
-    level=logging.INFO
-)
+logging.basicConfig(level=logging.INFO)
 
 
 class WorkerService:
@@ -78,31 +75,30 @@ class WorkerService:
         Mongo Search
                 ↓
         Normalize Results
+
+        IMPORTANT: if no service category could be identified from the
+        question, we deliberately return an empty list instead of
+        falling back to an unfiltered query. Without this guard, any
+        message that vaguely resembles a worker-search intent (but
+        names no actual service) would return arbitrary top-ranked
+        gigs regardless of relevance - which is what previously caused
+        "any worker-related query returns all gigs".
         """
 
         filters = extract_filters(question)
 
-        logger.info(
-            f"Filters : {filters}"
-        )
+        logger.info(f"Filters : {filters}")
 
-        query = self.build_query(filters)
+        if not filters.category:
 
-        projection = self.get_projection()
+            logger.info(
+                "No category resolved from question - skipping "
+                "unfiltered worker search."
+            )
 
-        workers = list(
+            return []
 
-            self.collection.find(
-
-                query,
-
-                projection
-
-            ).limit(limit)
-
-        )
-
-        return workers
+        return self.search_raw(filters, limit=limit)
 
     # ==========================================================
     # RAW SEARCH
@@ -114,7 +110,8 @@ class WorkerService:
         limit: int = 20
     ) -> List[Dict]:
         """
-        Used internally by Ranking Service.
+        Used internally by Chat/Ranking Service when filters have
+        already been resolved.
         """
 
         query = self.build_query(filters)
@@ -149,20 +146,32 @@ class WorkerService:
         }
 
         # -----------------------------
-        # Category
+        # Category (case-insensitive exact match)
         # -----------------------------
 
         if filters.category:
 
-            query["category"] = filters.category
+            query["category"] = {
+
+                "$regex": f"^{re.escape(filters.category)}$",
+
+                "$options": "i"
+
+            }
 
         # -----------------------------
-        # City
+        # City (case-insensitive exact match)
         # -----------------------------
 
         if filters.city:
 
-            query["city"] = filters.city
+            query["city"] = {
+
+                "$regex": f"^{re.escape(filters.city)}$",
+
+                "$options": "i"
+
+            }
 
         # -----------------------------
         # Gender
@@ -170,7 +179,13 @@ class WorkerService:
 
         if filters.gender:
 
-            query["gender"] = filters.gender
+            query["gender"] = {
+
+                "$regex": f"^{re.escape(filters.gender)}$",
+
+                "$options": "i"
+
+            }
 
         # -----------------------------
         # Availability
@@ -312,7 +327,6 @@ class WorkerService:
 
         return self.normalize(worker)
 
-
     # ==========================================================
     # GET MULTIPLE WORKERS
     # ==========================================================
@@ -321,10 +335,6 @@ class WorkerService:
         self,
         worker_ids: List[str]
     ) -> List[Dict]:
-
-        """
-        Fetch multiple workers by MongoDB IDs.
-        """
 
         object_ids = []
 

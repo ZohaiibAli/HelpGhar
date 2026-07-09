@@ -25,6 +25,7 @@ import {
  * ──────────────────────────────────────────────────────────────────────── */
 
 interface WorkerCard {
+  id: string; // Mongo _id — used to build the /workers/:id route
   workerId: string;
   name: string;
   avatar?: string;
@@ -133,9 +134,12 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
         <span className="text-sm font-bold text-foreground">
           Rs. {worker.priceMin} - {worker.priceMax} / {worker.priceUnit}
         </span>
-        <button className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-dark active:scale-95">
-          Book
-        </button>
+        <Link
+          to={`/workers/${worker.id}`}
+          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-dark active:scale-95"
+        >
+          View Profile
+        </Link>
       </div>
     </div>
   );
@@ -179,7 +183,6 @@ export function ChatPage() {
 
   function resetComposer() {
     setInput("");
-    // reset textarea height back to a single line after clearing
     requestAnimationFrame(() => {
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -194,7 +197,6 @@ export function ChatPage() {
     const userMsg: ChatMessage = { id: makeId(), role: "user", text, timestamp: Date.now() };
     const botMsgId = makeId();
 
-    // Show the user's message immediately and clear the composer right away
     setMessages((prev) => [
       ...prev,
       userMsg,
@@ -466,7 +468,7 @@ function MessageBubble({
         {msg.workers && msg.workers.length > 0 && (
           <div className="flex w-full gap-3 overflow-x-auto pb-1 pt-1">
             {msg.workers.map((w) => (
-              <WorkerCardTile key={w.workerId} worker={w} />
+              <WorkerCardTile key={w.id} worker={w} />
             ))}
           </div>
         )}

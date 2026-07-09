@@ -32,69 +32,84 @@ class WorkerSearchFilters(BaseModel):
     verified: Optional[bool] = None
 
 
-SERVICE_CATEGORIES = [
+# ---------------------------------------------------------------------
+# CATEGORY SYNONYMS
+#
+# Maps the canonical category name (must match the "category" value
+# stored in MongoDB) to a list of phrases a user might actually type.
+# This fixes the bug where "deep cleaning" / "ac repair" / "wiring
+# issue" never resolved to a category, causing the search to fall back
+# to an unfiltered query that returned arbitrary gigs.
+# ---------------------------------------------------------------------
 
-    "electrician",
-
-    "plumber",
-
-    "cleaner",
-
-    "maid",
-
-    "tutor",
-
-    "mechanic",
-
-    "carpenter",
-
-    "technician",
-
-    "painter",
-
-    "ac technician",
-
-    "driver"
-
-]
-
-
-
+CATEGORY_SYNONYMS = {
+    "Electrician": [
+        "electrician", "electrical", "wiring", "wire", "switchboard",
+        "switch board", "mcb", "short circuit", "fan installation",
+        "light fitting",
+    ],
+    "Plumber": [
+        "plumber", "plumbing", "pipe", "leak", "leakage", "drain",
+        "blocked drain", "tap", "faucet", "water tank", "flush",
+    ],
+    "Cleaner": [
+        "cleaner", "cleaning", "deep cleaning", "maid", "housekeeping",
+        "sweeping", "mopping", "move-in cleaning", "move out cleaning",
+    ],
+    "Tutor": [
+        "tutor", "tuition", "teacher", "o-level", "o level", "a-level",
+        "a level", "home tutor", "matric", "coaching",
+    ],
+    "Mechanic": [
+        "mechanic", "car repair", "bike repair", "vehicle repair",
+        "engine", "car service",
+    ],
+    "Carpenter": [
+        "carpenter", "carpentry", "furniture repair", "wood work",
+        "woodwork",
+    ],
+    "Painter": [
+        "painter", "painting", "paint job", "wall paint",
+    ],
+    "AC Technician": [
+        "ac technician", "ac repair", "air conditioner", "ac service",
+        "hvac", "ac gas", "ac installation",
+    ],
+    "Driver": [
+        "driver", "driving service", "chauffeur",
+    ],
+}
 
 CITIES = [
-
-    "lahore",
-
-    "karachi",
-
-    "islamabad",
-
-    "rawalpindi",
-
-    "multan",
-
-    "faisalabad",
-
-    "peshawar",
-
-    "quetta"
-
+    "lahore", "karachi", "islamabad", "rawalpindi", "multan",
+    "faisalabad", "peshawar", "quetta",
 ]
 
 
-def extract_filters(question: str):
+def extract_category(q: str) -> Optional[str]:
+    """
+    Returns the canonical category name (as stored in MongoDB) if any
+    known synonym is found in the question, else None.
+    """
+
+    for canonical, synonyms in CATEGORY_SYNONYMS.items():
+
+        for phrase in synonyms:
+
+            if phrase in q:
+
+                return canonical
+
+    return None
+
+
+def extract_filters(question: str) -> WorkerSearchFilters:
 
     q = question.lower()
 
     filters = WorkerSearchFilters()
 
-    for service in SERVICE_CATEGORIES:
-
-        if service in q:
-
-            filters.category = service
-
-            break
+    filters.category = extract_category(q)
 
     for city in CITIES:
 
@@ -103,7 +118,6 @@ def extract_filters(question: str):
             filters.city = city.title()
 
             break
-
 
     if "female" in q:
 
@@ -121,73 +135,28 @@ def extract_filters(question: str):
 
         filters.verified = True
 
-
-    exp = re.search(
-
-        r"(\d+)\s*(year|years)",
-
-        q
-
-    )
+    exp = re.search(r"(\d+)\s*(year|years)", q)
 
     if exp:
 
-        filters.min_experience = int(
+        filters.min_experience = int(exp.group(1))
 
-            exp.group(1)
-
-        )
-
-    rating = re.search(
-
-        r"rating\s*(above)?\s*(\d+(\.\d+)?)",
-
-        q
-
-    )
+    rating = re.search(r"rating\s*(above)?\s*(\d+(\.\d+)?)", q)
 
     if rating:
 
-        filters.min_rating = float(
+        filters.min_rating = float(rating.group(2))
 
-            rating.group(2)
-
-        )
-
-
-    under = re.search(
-
-        r"(under|below|less than)\s*rs?\.?\s*(\d+)",
-
-        q
-
-    )
+    under = re.search(r"(under|below|less than)\s*rs?\.?\s*(\d+)", q)
 
     if under:
 
-        filters.max_price = int(
+        filters.max_price = int(under.group(2))
 
-            under.group(2)
-
-        )
-
-
-
-    above = re.search(
-
-        r"(above|over|greater than)\s*rs?\.?\s*(\d+)",
-
-        q
-
-    )
+    above = re.search(r"(above|over|greater than)\s*rs?\.?\s*(\d+)", q)
 
     if above:
 
-        filters.min_price = int(
-
-            above.group(2)
-
-        )
-
+        filters.min_price = int(above.group(2))
 
     return filters
