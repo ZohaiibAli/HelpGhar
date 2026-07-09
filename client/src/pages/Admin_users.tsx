@@ -205,8 +205,8 @@ export default function AdminUsers() {
                     <td>
                       <span
                         className={`inline-flex w-24 justify-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${u.status === "active"
-                          ? "bg-primary-soft text-primary-dark"
-                          : "bg-red-100 text-red-700"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
                           }`}
                       >
                         {u.status}

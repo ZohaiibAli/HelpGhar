@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { MoreVertical, X } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
-import { bookings as initialBookings } from "@/data/mock";
+// import { bookings as initialBookings } from "@/data/mock";
+import { bookingService } from "@/services/bookingService";
+import { toast } from "sonner";
+import type { Booking } from "@/types";
 import type { BookingStatus } from "@/types";
 
 const statusStyles: Record<BookingStatus, string> = {
@@ -14,7 +17,9 @@ const statusStyles: Record<BookingStatus, string> = {
 };
 
 export default function AdminBookings() {
-  const [bookings, setBookings] = useState(initialBookings);
+  // const [bookings, setBookings] = useState(initialBookings);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | BookingStatus>("all");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -23,7 +28,27 @@ export default function AdminBookings() {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const filtered = bookings.filter((b) => filter === "all" || b.status === filter);
-  const cancelTarget = bookings.find((b) => b.id === cancelTargetId) ?? null;
+  const cancelTarget =
+  bookings.find((b) => b.bookingId === cancelTargetId) ?? null;
+
+  const loadBookings = async () => {
+    try {
+      setLoading(true);
+
+      const res = await bookingService.getAllBookings();
+
+      setBookings(res.data.bookings);
+
+    } catch (err) {
+      toast.error("Failed to load bookings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBookings();
+  }, []);
 
   // Close the dropdown on outside click or Escape
   useEffect(() => {
@@ -60,11 +85,20 @@ export default function AdminBookings() {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [cancelTargetId]);
 
-  function confirmCancel() {
+  async function confirmCancel() {
     if (!cancelTargetId) return;
-    setBookings((prev) =>
-      prev.map((b) => (b.id === cancelTargetId ? { ...b, status: "cancelled" as BookingStatus } : b))
-    );
+
+    try {
+      await bookingService.cancelBooking(cancelTargetId);
+
+      toast.success("Booking cancelled");
+
+      await loadBookings();
+
+    } catch {
+      toast.error("Unable to cancel booking");
+    }
+
     setCancelTargetId(null);
   }
 
@@ -82,9 +116,8 @@ export default function AdminBookings() {
               <button
                 key={s}
                 onClick={() => setFilter(s)}
-                className={`rounded-full px-4 py-2 text-xs font-bold capitalize transition ${
-                  filter === s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-                }`}
+                className={`rounded-full px-4 py-2 text-xs font-bold capitalize transition ${filter === s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 {s.replace("_", " ")}
               </button>
@@ -106,7 +139,7 @@ export default function AdminBookings() {
               <tbody>
                 {filtered.map((b) => (
                   <tr key={b.id} className="border-t border-border">
-                    <td className="py-3 text-xs font-bold">#{b.id}</td>
+                    <td className="py-3 text-xs font-bold">#{b.bookingId}</td>
                     <td>
                       <div className="flex items-center gap-2">
                         <img src={b.workerAvatar} className="h-8 w-8 rounded-full object-cover" alt="" />
@@ -133,7 +166,7 @@ export default function AdminBookings() {
                           }
                           const rect = e.currentTarget.getBoundingClientRect();
                           setMenuPosition({ top: rect.bottom + 4, left: rect.right - 144 });
-                          setOpenMenuId(b.id);
+                          setOpenMenuId(b.bookingId);
                         }}
                         className="rounded-full p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
                         aria-label="Booking actions"
@@ -159,7 +192,9 @@ export default function AdminBookings() {
           className="fixed z-40 w-36 overflow-hidden rounded-xl border border-border bg-card shadow-soft"
         >
           <button
-            disabled={bookings.find((b) => b.id === openMenuId)?.status === "cancelled"}
+            disabled={
+  bookings.find((b) => b.bookingId === openMenuId)?.status === "cancelled"
+}
             onClick={() => {
               setCancelTargetId(openMenuId);
               setOpenMenuId(null);

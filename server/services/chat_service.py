@@ -143,6 +143,7 @@ Knowledge Base
                 sources=[
                     document.get("filename")
                     for document in documents
+                    if document.get("filename")
                 ]
             )
 

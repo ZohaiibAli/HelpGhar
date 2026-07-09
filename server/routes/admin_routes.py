@@ -9,6 +9,7 @@ from model.admin_model import AdminLogin
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from helper.password_helper import verify_password
+from helper.auth_helper import get_current_admin
 
 
 router = APIRouter(
@@ -168,3 +169,85 @@ def delete_dispute(dispute_id: str, user=Depends(verify_token)):
         "success": True,
         "message": "Dispute deleted"
     }
+
+@router.get("/users")
+def get_users(current_admin=Depends(get_current_admin)):
+
+    users = []
+
+    for customer in customer_collection.find():
+        users.append({
+            "id": str(customer["_id"]),
+            "customerId": customer.get("customerId"),
+            "fullName": customer["fullName"],
+            "email": customer["email"],
+            "phone": customer["phone"],
+            "role": "customer",
+            "status": customer.get("status", "active"),
+            "joined": customer.get("createdAt", "")
+        })
+
+    for worker in worker_collection.find():
+        users.append({
+            "id": str(worker["_id"]),
+            "workerId": worker.get("workerId"),
+            "fullName": worker["fullName"],
+            "email": worker["email"],
+            "phone": worker["phone"],
+            "role": "worker",
+            "status": worker.get("status", "active"),
+            "joined": worker.get("createdAt", "")
+        })
+
+    return {
+        "success": True,
+        "users": users
+    }
+
+@router.patch("/users/{role}/{id}/status")
+def toggle_user_status(
+    role: str,
+    id: str,
+    current_admin=Depends(get_current_admin)
+):
+
+    collection = customer_collection if role == "customer" else worker_collection
+
+    user = collection.find_one({"_id": __import__("bson").ObjectId(id)})
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    new_status = "suspended" if user.get("status", "active") == "active" else "active"
+
+    collection.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"status": new_status}}
+    )
+
+    return {
+        "success": True,
+        "status": new_status
+    }
+
+@router.delete("/users/{role}/{id}")
+def delete_user(
+    role: str,
+    id: str,
+    current_admin=Depends(get_current_admin)
+):
+
+    collection = customer_collection if role == "customer" else worker_collection
+
+    result = collection.delete_one(
+        {"_id": __import__("bson").ObjectId(id)}
+    )
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "success": True,
+        "message": "User deleted"
+    }
+
