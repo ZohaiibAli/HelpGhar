@@ -17,6 +17,12 @@ from config.gemini import MODEL_NAME
 
 logger = logging.getLogger(__name__)
 
+
+class GeminiQuotaExceededError(Exception):
+    """Raised when Gemini returns 429 RESOURCE_EXHAUSTED."""
+    pass
+
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not GEMINI_API_KEY:
@@ -48,9 +54,13 @@ def generate(prompt: str) -> str:
 
     except APIError as e:
 
-        logger.exception(
-            f"Gemini API error (code={getattr(e, 'code', '?')}): {e}"
-        )
+        code = getattr(e, "code", None)
+
+        logger.exception(f"Gemini API error (code={code}): {e}")
+
+        if code == 429:
+            raise GeminiQuotaExceededError(str(e)) from e
+
         raise
 
     except Exception as e:

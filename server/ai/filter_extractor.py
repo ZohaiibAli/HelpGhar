@@ -36,54 +36,67 @@ class WorkerSearchFilters(BaseModel):
 # CATEGORY SYNONYMS
 #
 # Maps the canonical category name (must match the "category" value
-# stored in MongoDB) to a list of phrases a user might actually type.
-# This fixes the bug where "deep cleaning" / "ac repair" / "wiring
-# issue" never resolved to a category, causing the search to fall back
-# to an unfiltered query that returned arbitrary gigs.
+# stored in MongoDB, confirmed via gig_collection.distinct("category"))
+# to a list of phrases a user might actually type.
 # ---------------------------------------------------------------------
 
 CATEGORY_SYNONYMS = {
-    "Electrician": [
-        "electrician", "electrical", "wiring", "wire", "switchboard",
-        "switch board", "mcb", "short circuit", "fan installation",
-        "light fitting",
+    "House Servants": [
+        "house servant", "house servants", "maid", "domestic help",
+        "housemaid", "servant", "house help", "khadmat", "helper",
     ],
-    "Plumber": [
-        "plumber", "plumbing", "pipe", "leak", "leakage", "drain",
-        "blocked drain", "tap", "faucet", "water tank", "flush",
+    "Drivers": [
+        "driver", "drivers", "driving service", "chauffeur",
     ],
-    "Cleaner": [
-        "cleaner", "cleaning", "deep cleaning", "maid", "housekeeping",
-        "sweeping", "mopping", "move-in cleaning", "move out cleaning",
+    "Baby Sitters": [
+        "baby sitter", "babysitter", "baby sitters", "nanny",
+        "childcare", "child care", "ayah",
     ],
-    "Tutor": [
-        "tutor", "tuition", "teacher", "o-level", "o level", "a-level",
-        "a level", "home tutor", "matric", "coaching",
+    "Cooks": [
+        "cook", "cooks", "chef", "cooking", "khansama",
     ],
-    "Mechanic": [
-        "mechanic", "car repair", "bike repair", "vehicle repair",
-        "engine", "car service",
+    "Home Teachers": [
+        "home teacher", "home teachers", "tutor", "tuition", "teacher",
+        "teachers", "home tutor", "o-level", "o level", "a-level",
+        "a level", "matric", "coaching",
     ],
-    "Carpenter": [
-        "carpenter", "carpentry", "furniture repair", "wood work",
-        "woodwork",
+    "Watchmen": [
+        "watchman", "watchmen", "security guard", "guard", "chowkidar",
     ],
-    "Painter": [
-        "painter", "painting", "paint job", "wall paint",
+    "Electricians": [
+        "electrician", "electricians", "electrical", "wiring", "wire",
+        "switchboard", "switch board", "mcb", "short circuit",
     ],
-    "AC Technician": [
-        "ac technician", "ac repair", "air conditioner", "ac service",
-        "hvac", "ac gas", "ac installation",
+    "Plumbers": [
+        "plumber", "plumbers", "plumbing", "pipe", "leak", "leakage",
+        "drain", "blocked drain", "tap", "faucet",
     ],
-    "Driver": [
-        "driver", "driving service", "chauffeur",
+    "Cleaners": [
+        "cleaner", "cleaners", "cleaning", "deep cleaning",
+        "housekeeping", "sweeping", "mopping",
     ],
 }
 
-CITIES = [
-    "lahore", "karachi", "islamabad", "rawalpindi", "multan",
-    "faisalabad", "peshawar", "quetta",
-]
+# ---------------------------------------------------------------------
+# CITY ALIASES
+#
+# Your gigs collection has the same city stored multiple inconsistent
+# ways (e.g. "Karachi", "Karachi ", "Khi", "khi"). Each canonical city
+# maps to every spelling/abbreviation seen in the wild, and
+# worker_service.build_query() uses these same aliases to build a
+# regex that matches all known variants in the database.
+# ---------------------------------------------------------------------
+
+CITY_ALIASES = {
+    "Karachi": ["karachi", "khi"],
+    "Lahore": ["lahore"],
+    "Islamabad": ["islamabad", "isb"],
+    "Rawalpindi": ["rawalpindi", "pindi"],
+    "Multan": ["multan"],
+    "Faisalabad": ["faisalabad"],
+    "Peshawar": ["peshawar"],
+    "Quetta": ["quetta"],
+}
 
 
 def extract_category(q: str) -> Optional[str]:
@@ -103,6 +116,23 @@ def extract_category(q: str) -> Optional[str]:
     return None
 
 
+def extract_city(q: str) -> Optional[str]:
+    """
+    Returns the canonical city name if any known alias/abbreviation is
+    found in the question, else None.
+    """
+
+    for canonical, aliases in CITY_ALIASES.items():
+
+        for alias in aliases:
+
+            if alias in q:
+
+                return canonical
+
+    return None
+
+
 def extract_filters(question: str) -> WorkerSearchFilters:
 
     q = question.lower()
@@ -110,14 +140,7 @@ def extract_filters(question: str) -> WorkerSearchFilters:
     filters = WorkerSearchFilters()
 
     filters.category = extract_category(q)
-
-    for city in CITIES:
-
-        if city in q:
-
-            filters.city = city.title()
-
-            break
+    filters.city = extract_city(q)
 
     if "female" in q:
 

@@ -36,7 +36,7 @@ from ai.filter_extractor import extract_filters, CATEGORY_SYNONYMS
 
 from services.prompt_service import prompt_service
 
-from ai.llm import generate
+from ai.llm import generate, GeminiQuotaExceededError
 
 from ai.context_builder import context_builder
 
@@ -142,11 +142,25 @@ Knowledge Base
                 workers=[],
                 sources=[
                     document.get("filename")
-
                     for document in documents
-
-                    if document.get("filename")
                 ]
+            )
+
+        except GeminiQuotaExceededError as e:
+
+            logger.warning(f"Gemini quota exceeded: {e}")
+
+            return ChatResponse(
+                success=False,
+                intent="error",
+                message=(
+                    "HelpGhar's AI assistant has reached its usage limit "
+                    "for right now. Please try again shortly, or browse "
+                    "services directly from the site in the meantime."
+                ),
+                workers_found=0,
+                workers=[],
+                sources=[]
             )
 
         except Exception as e:
@@ -435,6 +449,31 @@ Current Search Context
                 message=answer,
                 workers_found=len(serialized_workers),
                 workers=serialized_workers,
+                sources=[]
+            )
+
+        except GeminiQuotaExceededError as e:
+
+            logger.warning(f"Gemini quota exceeded: {e}")
+
+            answer = (
+                "HelpGhar's AI assistant has reached its usage limit for "
+                "right now. Please try again shortly, or browse workers "
+                "directly from the site in the meantime."
+            )
+
+            conversation_service.add_message(
+                session_id=session_id,
+                role="assistant",
+                content=answer
+            )
+
+            return ChatResponse(
+                success=False,
+                intent="error",
+                message=answer,
+                workers_found=0,
+                workers=[],
                 sources=[]
             )
 
