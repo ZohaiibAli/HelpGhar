@@ -18,14 +18,16 @@ import {
   Copy,
   Check,
   Wrench,
+  MessageSquare,
+  Trash2,
 } from "lucide-react";
 
 /* ────────────────────────────────────────────────────────────────────────
- * Types — mirror what the backend is expected to send/receive.
+ * Types
  * ──────────────────────────────────────────────────────────────────────── */
 
 interface WorkerCard {
-  id: string; // Mongo _id — used to build the /workers/:id route
+  id: string;
   workerId: string;
   name: string;
   avatar?: string;
@@ -46,8 +48,14 @@ interface ChatMessage {
   text: string;
   workers?: WorkerCard[];
   timestamp: number;
-  pending?: boolean; // true while a bot message is still awaiting a reply
+  pending?: boolean;
   error?: boolean;
+}
+
+interface SessionMeta {
+  id: string;
+  title: string;
+  updatedAt: number;
 }
 
 const SUGGESTIONS = [
@@ -57,21 +65,51 @@ const SUGGESTIONS = [
   "How does worker verification work?",
 ];
 
+const SESSIONS_KEY = "helpghar-chat-sessions";
+const ACTIVE_SESSION_KEY = "helpghar-active-session";
+
 function makeId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-function newSessionId() {
+/* ────────────────────────────────────────────────────────────────────────
+ * Session list persistence (local to this browser)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+function loadSessions(): SessionMeta[] {
+  try {
+    const raw = localStorage.getItem(SESSIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSessions(sessions: SessionMeta[]) {
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
+}
+
+function upsertSession(sessions: SessionMeta[], id: string, title?: string): SessionMeta[] {
+  const existing = sessions.find((s) => s.id === id);
+  const next: SessionMeta = {
+    id,
+    title: title || existing?.title || "New chat",
+    updatedAt: Date.now(),
+  };
+  const rest = sessions.filter((s) => s.id !== id);
+  const updated = [next, ...rest];
+  saveSessions(updated);
+  return updated;
+}
+
+function createNewSession(sessions: SessionMeta[]): { id: string; sessions: SessionMeta[] } {
   const id = crypto.randomUUID();
-  localStorage.setItem("helpghar-chat", id);
-  return id;
+  const updated = upsertSession(sessions, id, "New chat");
+  return { id, sessions: updated };
 }
 
 /* ────────────────────────────────────────────────────────────────────────
  * Backend contract
- *
- * POST   /api/chat   body: { sessionId, message }
- *   -> { message: string, workers?: WorkerCard[] }
  * ──────────────────────────────────────────────────────────────────────── */
 
 async function sendChatRequest(sessionId: string, message: string) {
@@ -79,17 +117,40 @@ async function sendChatRequest(sessionId: string, message: string) {
 
   const response = await fetch(`${API}/api/chat`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sessionId, message }),
   });
 
-  if (!response.ok) {
-    throw new Error("Chat API failed");
-  }
+  if (!response.ok) throw new Error("Chat API failed");
 
   return await response.json();
+}
+
+async function fetchHistory(sessionId: string): Promise<ChatMessage[]> {
+  const API = import.meta.env.VITE_API_BASE_URL;
+
+  const response = await fetch(`${API}/api/chat/history/${sessionId}`);
+
+  if (!response.ok) return [];
+
+  const data = await response.json();
+
+  return (data.messages || []).map((m: any) => ({
+    id: m.id,
+    role: m.role,
+    text: m.text,
+    timestamp: m.timestamp || Date.now(),
+  }));
+}
+
+async function deleteHistory(sessionId: string) {
+  const API = import.meta.env.VITE_API_BASE_URL;
+
+  try {
+    await fetch(`${API}/api/chat/history/${sessionId}`, { method: "DELETE" });
+  } catch {
+    // best-effort; local session list is the source of truth for the sidebar either way
+  }
 }
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -152,14 +213,24 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
 export function ChatPage() {
   const navigate = useNavigate();
 
-  const [sessionId, setSessionId] = useState(() => {
-    let id = localStorage.getItem("helpghar-chat");
-    if (!id) id = newSessionId();
+  const [sessions, setSessions] = useState<SessionMeta[]>(() => loadSessions());
+
+  const [sessionId, setSessionId] = useState<string>(() => {
+    const active = localStorage.getItem(ACTIVE_SESSION_KEY);
+    const existing = loadSessions();
+
+    if (active && existing.some((s) => s.id === active)) {
+      return active;
+    }
+
+    const { id, sessions: updated } = createNewSession(existing);
+    localStorage.setItem(ACTIVE_SESSION_KEY, id);
+    setTimeout(() => setSessions(updated), 0);
     return id;
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [messagesLoading] = useState(false);
+  const [messagesLoading, setMessagesLoading] = useState(true);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -169,6 +240,27 @@ export function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasStarted = messages.length > 0 || messagesLoading;
+
+  // Load this session's history whenever the active session changes
+  // (covers page refresh, and returning from another route like a
+  // worker's profile page, since this component re-fetches on mount).
+  useEffect(() => {
+    let cancelled = false;
+
+    setMessagesLoading(true);
+
+    fetchHistory(sessionId)
+      .then((history) => {
+        if (!cancelled) setMessages(history);
+      })
+      .finally(() => {
+        if (!cancelled) setMessagesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -184,9 +276,7 @@ export function ChatPage() {
   function resetComposer() {
     setInput("");
     requestAnimationFrame(() => {
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
-      }
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
     });
   }
 
@@ -197,6 +287,8 @@ export function ChatPage() {
     const userMsg: ChatMessage = { id: makeId(), role: "user", text, timestamp: Date.now() };
     const botMsgId = makeId();
 
+    const isFirstMessage = messages.length === 0;
+
     setMessages((prev) => [
       ...prev,
       userMsg,
@@ -204,6 +296,10 @@ export function ChatPage() {
     ]);
     resetComposer();
     setIsStreaming(true);
+
+    // Update the sidebar entry immediately so the title reflects the
+    // first message and the session bubbles to the top of the list.
+    setSessions((prev) => upsertSession(prev, sessionId, isFirstMessage ? text.slice(0, 48) : undefined));
 
     try {
       const response = await sendChatRequest(sessionId, text);
@@ -248,9 +344,36 @@ export function ChatPage() {
   }
 
   function handleNewChat() {
-    setSessionId(newSessionId());
-    setMessages([]);
+    const { id, sessions: updated } = createNewSession(sessions);
+    setSessions(updated);
+    localStorage.setItem(ACTIVE_SESSION_KEY, id);
+    setSessionId(id);
     resetComposer();
+  }
+
+  function handleSelectSession(id: string) {
+    if (id === sessionId) return;
+    localStorage.setItem(ACTIVE_SESSION_KEY, id);
+    setSessionId(id);
+  }
+
+  async function handleDeleteSession(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+
+    await deleteHistory(id);
+
+    const updated = sessions.filter((s) => s.id !== id);
+    setSessions(updated);
+    saveSessions(updated);
+
+    if (id === sessionId) {
+      if (updated.length > 0) {
+        localStorage.setItem(ACTIVE_SESSION_KEY, updated[0].id);
+        setSessionId(updated[0].id);
+      } else {
+        handleNewChat();
+      }
+    }
   }
 
   return (
@@ -270,13 +393,41 @@ export function ChatPage() {
             New chat
           </button>
 
-          <Link
-            to="/"
-            className="mt-4 flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to HelpGhar
-          </Link>
+          <div className="mt-4 flex-1 space-y-1 overflow-y-auto">
+            <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Recent chats
+            </p>
+
+            {sessions.length === 0 && (
+              <p className="px-2 py-3 text-xs text-muted-foreground">No conversations yet.</p>
+            )}
+
+            {sessions
+              .slice()
+              .sort((a, b) => b.updatedAt - a.updatedAt)
+              .map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => handleSelectSession(s.id)}
+                  className={`group flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                    s.id === sessionId
+                      ? "bg-primary/10 font-semibold text-primary"
+                      : "text-foreground/80 hover:bg-accent/50"
+                  }`}
+                >
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                  <span className="min-w-0 flex-1 truncate">{s.title}</span>
+                  <span
+                    role="button"
+                    onClick={(e) => handleDeleteSession(e, s.id)}
+                    className="shrink-0 rounded-md p-1 text-muted-foreground/50 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                    aria-label="Delete chat"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </span>
+                </button>
+              ))}
+          </div>
         </div>
       </aside>
 

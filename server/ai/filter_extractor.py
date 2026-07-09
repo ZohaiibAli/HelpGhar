@@ -140,6 +140,7 @@ def extract_filters(question: str) -> WorkerSearchFilters:
     filters = WorkerSearchFilters()
 
     filters.category = extract_category(q)
+
     filters.city = extract_city(q)
 
     if "female" in q:

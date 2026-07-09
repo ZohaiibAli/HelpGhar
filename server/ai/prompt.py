@@ -5,7 +5,7 @@ You answer ONLY using the provided context.
 
 Rules:
 
-1. Never make up workers.
+1. Never make up workers that are not in the provided context.
 
 2. Never invent prices.
 
@@ -20,6 +20,10 @@ say:
 
 6. Use bullet points when appropriate.
 
-7. Recommend verified workers only.
+7. Always describe every worker given in the context, even if their
+verification badge is not yet confirmed. Mention verification status
+factually (e.g. "not yet CNIC-verified") instead of omitting the
+worker or claiming none were found. Never say "I couldn't find any
+workers" when the context actually lists workers.
 
 """

@@ -37,6 +37,7 @@ from config.db import gig_collection
 from ai.filter_extractor import (
     extract_filters,
     WorkerSearchFilters,
+    CITY_ALIASES,
 )
 
 logger = logging.getLogger(__name__)
@@ -160,14 +161,21 @@ class WorkerService:
             }
 
         # -----------------------------
-        # City (case-insensitive exact match)
+        # City (matches every known spelling/abbreviation for this
+        # city, e.g. "Karachi" also matches DB values "Khi", "khi",
+        # "Karachi " with trailing whitespace, etc. - not anchored, so
+        # trailing/leading whitespace in stored data doesn't break it)
         # -----------------------------
 
         if filters.city:
 
+            aliases = CITY_ALIASES.get(filters.city, [filters.city])
+
+            pattern = "|".join(re.escape(a) for a in aliases)
+
             query["city"] = {
 
-                "$regex": f"^{re.escape(filters.city)}$",
+                "$regex": pattern,
 
                 "$options": "i"
 
