@@ -1,0 +1,46 @@
+HelpGhar - Booking Policy
+
+OVERVIEW
+This policy explains how service bookings work on HelpGhar, from selecting
+a worker to confirming a completed job.
+
+HOW BOOKING WORKS
+1. Customers browse workers by service category and city.
+2. Only verified workers with approved accounts appear in search results.
+3. The customer reviews the worker's profile, ratings, pricing, and
+   availability, then selects a date, start time, and expected duration.
+4. HelpGhar checks that time slot for conflicts. If the worker already has
+   an active booking at that time, the slot is blocked and cannot be
+   double-booked.
+5. Once the slot is confirmed, HelpGhar sends a booking confirmation to
+   both the customer and the worker, including the service type, date,
+   time, and contact details.
+
+TIME SLOTS
+A selected time slot is temporarily locked while the booking is being
+completed, so two customers cannot book the same worker for the same time.
+If payment or confirmation is not completed within the checkout window, the
+slot is released back for other customers.
+
+MODIFYING A BOOKING
+Customers can reschedule a booking to a different available time slot,
+subject to the cancellation policy's cutoff window. Workers are notified
+automatically whenever a booking is modified.
+
+BOOKING HISTORY
+Every customer and worker has access to a full booking history from their
+dashboard, including completed, cancelled, and upcoming services. This
+record is kept for transparency and can be referenced in the event of a
+dispute.
+
+WORKER RESPONSIBILITIES
+Workers are expected to update job status (Started, In Progress, Completed)
+in real time so the customer can track progress. A job is only marked
+"Completed" after the customer confirms it, which protects customers from
+false reporting.
+
+WHAT TO DO IF A WORKER DOES NOT SHOW UP
+If a verified worker fails to arrive for a confirmed booking, the customer
+should report the issue through the dispute form. HelpGhar will investigate
+and may issue a refund, reassign the booking, or take action against the
+worker's account depending on the outcome.

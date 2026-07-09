@@ -1,7 +1,37 @@
-Customers may cancel a booking
-up to 2 hours before the service.
+HelpGhar - Cancellation Policy
 
-Late cancellation may incur charges.
+CUSTOMER CANCELLATIONS
+Customers may cancel a confirmed booking free of charge up to 2 hours
+before the scheduled service start time. Cancellations made after this
+2-hour cutoff may incur a late cancellation charge, since the worker has
+already reserved that time slot and may have turned down other work.
 
-Workers are immediately notified
-of cancellations.
+HOW TO CANCEL
+Cancellations can be made from the "My Bookings" section of the customer
+dashboard. Once cancelled, the system automatically releases the worker's
+time slot so it becomes available to other customers.
+
+WORKER NOTIFICATION
+Workers are notified immediately whenever a customer cancels or reschedules
+a booking, so they can plan the rest of their day accordingly.
+
+RESCHEDULING INSTEAD OF CANCELLING
+If a customer needs to change the date or time rather than cancel entirely,
+rescheduling is available up to the same 2-hour cutoff, subject to the
+worker's availability for the new slot.
+
+LATE CANCELLATION CHARGES
+Charges for cancelling after the 2-hour window are intended to compensate
+the worker for the reserved time and are disclosed to the customer before
+the cancellation is confirmed. Charges vary depending on the service
+category and the amount of notice given.
+
+WORKER-INITIATED CANCELLATIONS
+If a worker cancels a confirmed booking, the customer is notified
+immediately and is not charged. Repeated cancellations by a worker may
+result in a warning or account review by the admin team.
+
+CANCELLATIONS DUE TO EMERGENCIES
+HelpGhar reviews cancellation disputes on a case-by-case basis. If a
+cancellation was due to a genuine emergency on either side, customers or
+workers can raise the issue through the dispute form for a fair review.

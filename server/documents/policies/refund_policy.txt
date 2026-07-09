@@ -1,0 +1,43 @@
+HelpGhar - Refund Policy
+
+WHEN REFUNDS ARE ISSUED
+Refunds are issued when a booking is cancelled within the allowed window,
+when a worker fails to complete a service, or when the admin approves a
+refund as part of resolving a dispute (for example, poor service quality
+or a no-show).
+
+HOW REFUNDS ARE PROCESSED
+Approved refunds are processed automatically through the same payment
+method originally used for the transaction (debit/credit card or digital
+wallet). Refund details, including amount and reason, are logged for
+transparency and can be viewed in the customer's transaction history.
+
+PARTIAL REFUNDS
+In some dispute cases, the admin may approve a partial refund rather than
+a full refund, for example when part of a service was completed
+satisfactorily. The reasoning for a partial refund is shared with the
+customer when the decision is made.
+
+COMMISSION ON REFUNDS
+If a refund is issued before a service is completed, HelpGhar's platform
+commission for that transaction is also reversed. If a service was partly
+delivered, commission handling is decided as part of the dispute
+resolution.
+
+REFUND TIMELINE
+Once a refund is approved, it is initiated immediately on the HelpGhar
+side. The time it takes to appear in the customer's account depends on the
+customer's bank or wallet provider, and is generally outside HelpGhar's
+direct control.
+
+HOW TO REQUEST A REFUND
+Refund requests are made through the dispute form, referencing the
+relevant booking. Provide as much detail as possible (what went wrong, and
+any evidence such as messages or photos) so the admin can review the case
+quickly and fairly.
+
+NON-REFUNDABLE SITUATIONS
+Bookings that were completed and confirmed by the customer, or
+cancellations made after the applicable cancellation cutoff, are generally
+not eligible for a refund unless the admin determines there was a valid
+service issue.

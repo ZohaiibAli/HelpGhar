@@ -70,7 +70,6 @@ export default function AppRouter() {
       <Route path="/dashboard/admin/bookings" element={<AdminBookings />} />
       <Route path="/dashboard/admin/complaints" element={<AdminComplaints />} />
       <Route path="/dashboard/admin/reviews" element={<AdminReviews />} />
-      {/* <Route path="/dashboard/admin/analytics" element={<AdminAnalytics />} /> */}
       <Route path="/dashboard/admin/settings" element={<AdminSettings />} />
       <Route path="/dashboard/admin/profile" element={<AdminProfile />} />
       <Route path="/worker/reviews" element={<WorkerReviewsPage />} />

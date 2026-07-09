@@ -1,0 +1,44 @@
+HelpGhar - Worker Verification Policy
+
+WHY WORKERS ARE VERIFIED
+HelpGhar verifies every worker before they can accept bookings, so
+customers can trust the identity and stated skills of the people they
+invite into their homes.
+
+WHAT WORKERS MUST SUBMIT
+During registration, workers upload a copy of their CNIC (national
+identity card) and any certificates relevant to their service category
+(for example, an electrical trade certificate, a teaching credential, or a
+driving license). These documents are stored securely and are only
+accessible to the HelpGhar admin team.
+
+HOW VERIFICATION WORKS
+1. The worker submits their registration along with CNIC and certificates.
+2. The admin dashboard receives an automatic notification of the new
+   request.
+3. An admin reviews the submitted documents.
+4. The admin can approve the account, reject it, or request additional
+   details or resubmission.
+5. The worker is notified automatically of the outcome.
+
+WHAT "CNIC VERIFIED" MEANS ON A PROFILE
+A "CNIC Verified" badge on a worker's profile means their identity document
+has been reviewed and confirmed by the HelpGhar admin team. Only verified
+workers appear in customer search results and are eligible to receive
+bookings.
+
+REJECTED OR INCOMPLETE APPLICATIONS
+If an application is rejected or documents are unclear, the worker is
+notified with the reason and can resubmit corrected information. Accounts
+remain restricted from taking bookings until verification is approved.
+
+ONGOING TRUST AND SAFETY
+Even after verification, the admin team can review, suspend, or restrict a
+worker's account in response to serious complaints, repeated cancellations,
+or policy violations, as part of the platform's ongoing dispute-handling
+process.
+
+PASSWORD AND DATA SECURITY
+All account passwords are stored in encrypted form, and financial and
+identity data is protected with role-based access control so only
+authorised admin staff can view sensitive records.

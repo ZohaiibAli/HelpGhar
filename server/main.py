@@ -36,7 +36,6 @@ app.include_router(chat_router)
 app.include_router(booking_router)
 app.include_router(payment_router)
 
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
 def home():

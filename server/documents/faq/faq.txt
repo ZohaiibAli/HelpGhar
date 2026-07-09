@@ -1,0 +1,70 @@
+HelpGhar - Frequently Asked Questions
+
+WHAT IS HELPGHAR?
+HelpGhar is an online marketplace that connects customers in Pakistan with
+verified domestic and skilled workers, including electricians, plumbers,
+cleaners, maids, tutors, carpenters, mechanics, painters, AC technicians,
+and drivers. Every worker on the platform goes through a CNIC and
+certificate verification process before they are allowed to accept bookings.
+
+HOW DO I CREATE AN ACCOUNT?
+You can register as either a Customer or a Worker from the HelpGhar
+registration page. You will be asked for your name, email address, contact
+number, and a password. Workers additionally upload their CNIC and any
+relevant skill certificates during registration so the admin team can
+verify their identity and qualifications.
+
+HOW LONG DOES VERIFICATION TAKE?
+After a worker submits their registration with CNIC and certificates, the
+admin reviews the documents and either approves, rejects, or requests
+additional details. Approved workers receive a notification and can log in
+immediately. Verification is manual, so exact timing can vary, but workers
+are notified as soon as a decision is made.
+
+CAN I USE HELPGHAR BEFORE MY ACCOUNT IS VERIFIED?
+No. Unverified accounts cannot access booking, service listings, or
+messaging features. This restriction exists to keep the platform safe and
+trustworthy for both customers and workers.
+
+HOW DO I FIND A WORKER?
+Browse services by category (for example, Electrician, Plumber, Cleaner,
+Tutor) and filter by city, budget, or experience. Only verified workers
+with approved accounts appear in search results. Each worker profile shows
+their rating, reviews, pricing, and availability so you can compare before
+booking.
+
+HOW IS PRICING DETERMINED?
+Workers set their own price range and the unit it applies to (per hour,
+per day, or per month, depending on the service). The price shown on a
+worker's profile is the range you should expect to pay; the exact amount
+can be confirmed with the worker before the job starts.
+
+IS MY PAYMENT SECURE?
+Yes. HelpGhar processes payments through secure, SSL-encrypted payment
+gateways and supports debit/credit cards and digital wallets. The
+platform's commission is deducted automatically, and the remaining amount
+is held until the customer confirms the job is complete, at which point it
+is released to the worker.
+
+WHAT HAPPENS IF I HAVE A COMPLAINT?
+You can submit a complaint through the dispute form in your account,
+describing the issue and referencing the relevant booking. The admin team
+reviews every complaint, communicates with both parties if needed, and can
+issue refunds or warnings as appropriate. All disputes are logged with a
+status (Pending, In Review, Resolved) so you can track progress.
+
+CAN I RATE A WORKER?
+Yes. After a service is marked complete, you will be prompted to rate the
+worker on punctuality, behaviour, and quality of service, and you can leave
+a written review. This feedback contributes to the worker's average rating
+and helps other customers choose the right person for the job.
+
+DOES HELPGHAR OPERATE IN MY CITY?
+HelpGhar currently lists workers across major Pakistani cities including
+Karachi, Lahore, Islamabad, Rawalpindi, Faisalabad, Multan, Peshawar, and
+Quetta. Availability of specific service categories can vary by city.
+
+HOW DO I CONTACT SUPPORT?
+If your question isn't covered here or in the chat assistant, you can reach
+HelpGhar support through the contact options listed on the website, or
+submit a dispute/support request from your account dashboard.
