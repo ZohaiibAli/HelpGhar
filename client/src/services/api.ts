@@ -20,6 +20,7 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     const message =
+      error?.response?.data?.detail ??
       error?.response?.data?.message ??
       error?.message ??
       "Something went wrong. Please try again.";

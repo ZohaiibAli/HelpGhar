@@ -77,7 +77,7 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   setSubmitting(true);
   try {
     const res = await api.post("/bookings/", {
-      workerId: worker.id,
+      workerId: worker.workerId,    // <-- changed from worker.id
       workerName: worker.fullName,
       workerAvatar: worker.avatar,
       category: worker.category,

@@ -44,3 +44,11 @@ def get_current_customer(payload: dict = Depends(verify_token)):
             detail="Only customers can perform this action"
         )
     return payload
+
+def get_current_worker(payload: dict = Depends(verify_token)):
+    if payload.get("role") != "worker":
+        raise HTTPException(
+            status_code=403,
+            detail="Only workers can perform this action"
+        )
+    return payload
