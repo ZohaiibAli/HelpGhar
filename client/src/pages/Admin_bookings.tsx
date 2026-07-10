@@ -10,7 +10,7 @@ import type { BookingStatus } from "@/types";
 
 const statusStyles: Record<BookingStatus, string> = {
   pending: "bg-yellow-100 text-yellow-800",
-  confirmed: "bg-primary-soft text-primary-dark",
+  confirmed: "bg-emerald-100 text-emerald-700",
   in_progress: "bg-blue-100 text-blue-700",
   completed: "bg-secondary text-foreground",
   cancelled: "bg-red-100 text-red-700",
@@ -29,7 +29,7 @@ export default function AdminBookings() {
 
   const filtered = bookings.filter((b) => filter === "all" || b.status === filter);
   const cancelTarget =
-  bookings.find((b) => b.bookingId === cancelTargetId) ?? null;
+    bookings.find((b) => b.bookingId === cancelTargetId) ?? null;
 
   const loadBookings = async () => {
     try {
@@ -138,8 +138,8 @@ export default function AdminBookings() {
               </thead>
               <tbody>
                 {filtered.map((b) => (
-                  <tr key={b.id} className="border-t border-border">
-                    <td className="py-3 text-xs font-bold">#{b.bookingId}</td>
+                  <tr key={b.bookingId} className="border-t border-border">
+                    <td className="py-3 text-xs font-bold">{b.bookingId}</td>
                     <td>
                       <div className="flex items-center gap-2">
                         <img src={b.workerAvatar} className="h-8 w-8 rounded-full object-cover" alt="" />
@@ -159,13 +159,20 @@ export default function AdminBookings() {
                     <td className="text-right">
                       <button
                         onClick={(e) => {
-                          if (openMenuId === b.id) {
+                          if (openMenuId === b.bookingId) {
                             setOpenMenuId(null);
                             setMenuPosition(null);
                             return;
                           }
                           const rect = e.currentTarget.getBoundingClientRect();
-                          setMenuPosition({ top: rect.bottom + 4, left: rect.right - 144 });
+
+                          setMenuPosition({
+                            top: rect.bottom + 6,
+                            left: rect.right - 145,
+                          });
+                          console.log("Clicked:", b.bookingId);
+                          console.log(rect);
+
                           setOpenMenuId(b.bookingId);
                         }}
                         className="rounded-full p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
@@ -188,13 +195,16 @@ export default function AdminBookings() {
       {openMenuId && menuPosition && (
         <div
           ref={menuRef}
-          style={{ top: menuPosition.top, left: menuPosition.left }}
-          className="fixed z-40 w-36 overflow-hidden rounded-xl border border-border bg-card shadow-soft"
+          className="fixed z-[9999] w-40 rounded-xl border border-border bg-card shadow-xl"
+          style={{
+            top: menuPosition.top,
+            left: menuPosition.left,
+          }}
         >
           <button
             disabled={
-  bookings.find((b) => b.bookingId === openMenuId)?.status === "cancelled"
-}
+              bookings.find((b) => b.bookingId === openMenuId)?.status === "cancelled"
+            }
             onClick={() => {
               setCancelTargetId(openMenuId);
               setOpenMenuId(null);
@@ -227,7 +237,7 @@ export default function AdminBookings() {
               </button>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to cancel booking <span className="font-semibold text-foreground">#{cancelTarget.id}</span> with{" "}
+              Are you sure you want to cancel booking <span className="font-semibold text-foreground">{cancelTarget.bookingId}</span> with{" "}
               <span className="font-semibold text-foreground">{cancelTarget.workerName}</span>? This action cannot be undone.
             </p>
             <div className="mt-6 flex justify-end gap-2">
