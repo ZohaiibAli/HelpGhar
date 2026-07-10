@@ -2,6 +2,8 @@ from jose import JWTError, jwt
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
+from config.db import admin_collection
+from bson import ObjectId
 import os
 
 load_dotenv()
@@ -52,7 +54,26 @@ def get_current_worker(payload: dict = Depends(verify_token)):
             detail="Only workers can perform this action"
             )
     
+
+
 def get_current_admin(payload: dict = Depends(verify_token)):
+    if payload.get("role") != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admins can perform this action"
+        )
+
+    admin = admin_collection.find_one(
+        {"_id": ObjectId(payload["id"])}
+    )
+
+    if not admin:
+        raise HTTPException(
+            status_code=404,
+            detail="Admin not found"
+        )
+
+    return admin
     if payload.get("role") != "admin":
         raise HTTPException(
             status_code=403,
