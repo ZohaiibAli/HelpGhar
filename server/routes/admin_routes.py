@@ -6,6 +6,8 @@ from config.db import (
     worker_collection
 )
 from model.admin_model import AdminLogin
+from pydantic import BaseModel
+from helper.password_helper import hash_password
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from helper.password_helper import verify_password
@@ -16,6 +18,17 @@ router = APIRouter(
     prefix="/admin",
     tags=["Admin"]
 )
+
+class UpdateAdminProfile(BaseModel):
+    fullName: str
+    email: str
+    phone: str
+    address: str
+
+
+class ChangePassword(BaseModel):
+    currentPassword: str
+    newPassword: str
 
 
 @router.post("/login")
@@ -75,6 +88,69 @@ def dashboard(user=Depends(verify_token)):
         "success": True
     }
 
+@router.get("/profile")
+def get_admin_profile(current_admin=Depends(get_current_admin)):
+
+    return {
+        "id": str(current_admin["_id"]),
+        "fullName": current_admin.get("fullName", current_admin.get("name", "")),
+        "email": current_admin["email"],
+        "phone": current_admin.get("phone", ""),
+        "address": current_admin.get("address", "")
+    }
+
+@router.put("/profile")
+def update_admin_profile(
+    data: UpdateAdminProfile,
+    current_admin=Depends(get_current_admin)
+):
+
+    admin_collection.update_one(
+        {"_id": current_admin["_id"]},
+        {
+            "$set": {
+                "name": data.fullName,
+                "fullName": data.fullName,
+                "email": data.email,
+                "phone": data.phone,
+                "address": data.address
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "Profile updated successfully"
+    }
+
+@router.put("/change-password")
+def change_password(
+    data: ChangePassword,
+    current_admin=Depends(get_current_admin)
+):
+
+    if not verify_password(
+        data.currentPassword,
+        current_admin["password"]
+    ):
+        return {
+            "success": False,
+            "message": "Current password is incorrect"
+        }
+
+    admin_collection.update_one(
+        {"_id": current_admin["_id"]},
+        {
+            "$set": {
+                "password": hash_password(data.newPassword)
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "Password updated successfully"
+    }
 
 @router.get("/disputes/customer")
 def get_customer_disputes_admin(user=Depends(verify_token)):

@@ -15,7 +15,7 @@ def create_booking(
     current_customer: dict = Depends(get_current_customer)
 ):
     booking_data = booking.dict()
-    booking_data["id"] = generate_booking_id()
+    booking_data["bookingId"] = generate_booking_id()
     booking_data["customerId"] = current_customer["customerId"]
     booking_data["status"] = "pending"
     booking_data["createdAt"] = datetime.utcnow().isoformat()
@@ -29,7 +29,7 @@ def create_booking(
     return {
         "success": True,
         "message": "Booking created",
-        "id": booking_data["id"]
+        "bookingId": booking_data["bookingId"]
     }
 
 
@@ -57,7 +57,7 @@ def get_worker_bookings(current_worker: dict = Depends(get_current_worker)):
 @router.get("/{booking_id}")
 def get_booking(booking_id: str, current_customer: dict = Depends(get_current_customer)):
     booking = booking_collection.find_one({
-        "id": booking_id,
+        "bookingId": booking_id,
         "customerId": current_customer["customerId"]
     })
     if not booking:
@@ -78,7 +78,7 @@ def worker_cancel_booking(booking_id: str, current_worker: dict = Depends(get_cu
     if booking["status"] not in ("pending", "confirmed"):
         raise HTTPException(status_code=400, detail="This booking can no longer be cancelled")
 
-    booking_collection.update_one({"id": booking_id}, {"$set": {"status": "cancelled"}})
+    booking_collection.update_one({"bookingId": booking_id}, {"$set": {"status": "cancelled"}})
     return {"success": True, "message": "Booking cancelled"}
 
 
@@ -98,7 +98,7 @@ def worker_reschedule_booking(
         raise HTTPException(status_code=400, detail="Only confirmed bookings can be rescheduled")
 
     booking_collection.update_one(
-        {"id": booking_id},
+        {"bookingId": booking_id},
         {"$set": {"date": payload.date, "timeSlot": payload.timeSlot}}
     )
     return {"success": True, "message": "Booking rescheduled"}
@@ -115,7 +115,7 @@ def complete_booking(booking_id: str, current_worker: dict = Depends(get_current
     if booking["status"] not in ("pending", "confirmed"):
         raise HTTPException(status_code=400, detail="This booking can no longer be cancelled")
 
-    booking_collection.update_one({"id": booking_id}, {"$set": {"status": "cancelled"}})
+    booking_collection.update_one({"bookingId": booking_id}, {"$set": {"status": "cancelled"}})
     return {"success": True, "message": "Booking cancelled"}
 
 
@@ -135,7 +135,7 @@ def worker_reschedule_booking(
         raise HTTPException(status_code=400, detail="Only confirmed bookings can be rescheduled")
 
     booking_collection.update_one(
-        {"id": booking_id},
+        {"bookingId": booking_id},
         {"$set": {"date": payload.date, "timeSlot": payload.timeSlot}}
     )
     return {"success": True, "message": "Booking rescheduled"}
@@ -152,7 +152,7 @@ def complete_booking(booking_id: str, current_worker: dict = Depends(get_current
     if booking["status"] not in ("confirmed", "in_progress"):
         raise HTTPException(status_code=400, detail="Only confirmed bookings can be marked completed")
 
-    booking_collection.update_one({"id": booking_id}, {"$set": {"status": "completed"}})
+    booking_collection.update_one({"bookingId": booking_id}, {"$set": {"status": "completed"}})
     return {"success": True, "message": "Booking marked as completed"}
 @router.get("/admin/all")
 def get_all_bookings(current_admin: dict = Depends(get_current_admin)):
@@ -161,8 +161,7 @@ def get_all_bookings(current_admin: dict = Depends(get_current_admin)):
     )
 
     for booking in bookings:
-        booking["id"] = str(booking["_id"])
-        del booking["_id"]
+        booking["_id"] = str(booking["_id"])
 
     return {
         "success": True,
