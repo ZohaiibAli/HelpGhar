@@ -68,55 +68,99 @@ def get_booking(booking_id: str, current_customer: dict = Depends(get_current_cu
 
 
 @router.patch("/{booking_id}/cancel")
-def worker_cancel_booking(booking_id: str, current_worker: dict = Depends(get_current_worker)):
-    booking = booking_collection.find_one({
-        "id": booking_id,
-        "workerId": current_worker["id"]   # was ["workerId"]
-    })
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    if booking["status"] not in ("pending", "confirmed"):
-        raise HTTPException(status_code=400, detail="This booking can no longer be cancelled")
-
-    booking_collection.update_one({"bookingId": booking_id}, {"$set": {"status": "cancelled"}})
-    return {"success": True, "message": "Booking cancelled"}
-
-
-@router.patch("/{booking_id}/reschedule")
-def worker_reschedule_booking(
+def customer_cancel_booking(
     booking_id: str,
-    payload: BookingReschedule,
-    current_worker: dict = Depends(get_current_worker)
+    current_customer: dict = Depends(get_current_customer)
 ):
     booking = booking_collection.find_one({
-        "id": booking_id,
-        "workerId": current_worker["id"]   # was ["workerId"]
+        "bookingId": booking_id,
+        "customerId": current_customer["customerId"]
     })
+
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    if booking["status"] != "confirmed":
-        raise HTTPException(status_code=400, detail="Only confirmed bookings can be rescheduled")
+
+    if booking["status"] not in ("pending", "confirmed"):
+        raise HTTPException(
+            status_code=400,
+            detail="This booking can no longer be cancelled"
+        )
 
     booking_collection.update_one(
         {"bookingId": booking_id},
-        {"$set": {"date": payload.date, "timeSlot": payload.timeSlot}}
+        {"$set": {"status": "cancelled"}}
     )
-    return {"success": True, "message": "Booking rescheduled"}
+
+    return {
+        "success": True,
+        "message": "Booking cancelled"
+    }
+
+
+@router.patch("/{booking_id}/reschedule")
+def customer_reschedule_booking(
+    booking_id: str,
+    payload: BookingReschedule,
+    current_customer: dict = Depends(get_current_customer)
+):
+    booking = booking_collection.find_one({
+        "bookingId": booking_id,
+        "customerId": current_customer["customerId"]
+    })
+
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if booking["status"] != "confirmed":
+        raise HTTPException(
+            status_code=400,
+            detail="Only confirmed bookings can be rescheduled"
+        )
+
+    booking_collection.update_one(
+        {"bookingId": booking_id},
+        {
+            "$set": {
+                "date": payload.date,
+                "timeSlot": payload.timeSlot
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "Booking rescheduled"
+    }
 
 
 @router.patch("/{booking_id}/worker/cancel")
-def complete_booking(booking_id: str, current_worker: dict = Depends(get_current_worker)):
+def worker_cancel_booking(
+    booking_id: str,
+    current_worker: dict = Depends(get_current_worker)
+):
     booking = booking_collection.find_one({
-        "id": booking_id,
-        "workerId": current_worker["id"]   # was ["workerId"]
+        "bookingId": booking_id,
+        "workerId": current_worker["id"]
     })
+
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    if booking["status"] not in ("pending", "confirmed"):
-        raise HTTPException(status_code=400, detail="This booking can no longer be cancelled")
 
-    booking_collection.update_one({"bookingId": booking_id}, {"$set": {"status": "cancelled"}})
-    return {"success": True, "message": "Booking cancelled"}
+    if booking["status"] not in ("pending", "confirmed"):
+        raise HTTPException(
+            status_code=400,
+            detail="This booking can no longer be cancelled"
+        )
+
+    booking_collection.update_one(
+        {"bookingId": booking_id},
+        {"$set": {"status": "cancelled"}}
+    )
+
+    return {
+        "success": True,
+        "message": "Booking cancelled"
+    }
 
 
 @router.patch("/{booking_id}/worker/reschedule")
@@ -126,27 +170,41 @@ def worker_reschedule_booking(
     current_worker: dict = Depends(get_current_worker)
 ):
     booking = booking_collection.find_one({
-        "id": booking_id,
-        "workerId": current_worker["id"]   # was ["workerId"]
+        "bookingId": booking_id,
+        "workerId": current_worker["id"]
     })
+
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
     if booking["status"] != "confirmed":
-        raise HTTPException(status_code=400, detail="Only confirmed bookings can be rescheduled")
+        raise HTTPException(
+            status_code=400,
+            detail="Only confirmed bookings can be rescheduled"
+        )
 
     booking_collection.update_one(
         {"bookingId": booking_id},
-        {"$set": {"date": payload.date, "timeSlot": payload.timeSlot}}
+        {
+            "$set": {
+                "date": payload.date,
+                "timeSlot": payload.timeSlot
+            }
+        }
     )
-    return {"success": True, "message": "Booking rescheduled"}
 
+    return {
+        "success": True,
+        "message": "Booking rescheduled"
+    }
 
 @router.patch("/{booking_id}/complete")
 def complete_booking(booking_id: str, current_worker: dict = Depends(get_current_worker)):
     booking = booking_collection.find_one({
-        "id": booking_id,
-        "workerId": current_worker["workerId"]
+        "bookingId": booking_id,
+        "workerId": current_worker["id"]
     })
+
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     if booking["status"] not in ("confirmed", "in_progress"):
