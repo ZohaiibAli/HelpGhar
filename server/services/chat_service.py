@@ -414,17 +414,6 @@ Current Search Context
 
             answer = generate(prompt)
 
-            conversation_service.add_message(
-                session_id=session_id,
-                role="assistant",
-                content=answer
-            )
-
-            conversation_service.trim_messages(
-                session_id=session_id,
-                keep_last=20
-            )
-
             serialized_workers = [
                 {
                     "id": str(worker.get("_id")),
@@ -443,6 +432,18 @@ Current Search Context
                 }
                 for worker in top_workers
             ]
+
+            conversation_service.add_message(
+                session_id=session_id,
+                role="assistant",
+                content=answer,
+                metadata={"workers": serialized_workers}
+            )
+
+            conversation_service.trim_messages(
+                session_id=session_id,
+                keep_last=20
+            )
 
             return ChatResponse(
                 success=True,

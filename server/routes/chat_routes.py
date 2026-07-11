@@ -63,16 +63,24 @@ def get_history(session_id: str):
 
         messages = conversation_service.get_messages(session_id)
 
-        formatted = [
-            {
+        formatted = []
+
+        for index, message in enumerate(messages):
+
+            metadata = message.get("metadata") or {}
+
+            entry = {
                 "id": f"{session_id}-{index}",
                 "role": "user" if message.get("role") == "user" else "bot",
                 "text": message.get("content", ""),
                 "timestamp": message.get("timestamp").timestamp() * 1000
                 if message.get("timestamp") else None,
             }
-            for index, message in enumerate(messages)
-        ]
+
+            if metadata.get("workers"):
+                entry["workers"] = metadata["workers"]
+
+            formatted.append(entry)
 
         return {"sessionId": session_id, "messages": formatted}
 
