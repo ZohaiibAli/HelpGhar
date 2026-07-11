@@ -140,6 +140,7 @@ async function fetchHistory(sessionId: string): Promise<ChatMessage[]> {
     role: m.role,
     text: m.text,
     timestamp: m.timestamp || Date.now(),
+    workers: m.workers,
   }));
 }
 
@@ -151,6 +152,65 @@ async function deleteHistory(sessionId: string) {
   } catch {
     // best-effort; local session list is the source of truth for the sidebar either way
   }
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * Lightweight markdown rendering (bold + bullet lists only — Gemini's
+ * replies use **bold** and "* item" bullets; a full markdown library
+ * is overkill for this).
+ * ──────────────────────────────────────────────────────────────────────── */
+
+function renderInlineBold(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i}>{part.slice(2, -2)}</strong>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+function renderMessageText(text: string): React.ReactNode {
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+  let bulletBuffer: string[] = [];
+
+  const flushBullets = (key: string) => {
+    if (bulletBuffer.length === 0) return;
+    elements.push(
+      <ul key={`ul-${key}`} className="list-disc space-y-1 pl-4">
+        {bulletBuffer.map((b, i) => (
+          <li key={i}>{renderInlineBold(b)}</li>
+        ))}
+      </ul>
+    );
+    bulletBuffer = [];
+  };
+
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushBullets(String(idx));
+      return;
+    }
+
+    if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+      bulletBuffer.push(trimmed.replace(/^[-*]\s+/, ""));
+    } else {
+      flushBullets(String(idx));
+      elements.push(
+        <p key={idx} className="mb-1 last:mb-0">
+          {renderInlineBold(trimmed)}
+        </p>
+      );
+    }
+  });
+
+  flushBullets("end");
+
+  return <>{elements}</>;
 }
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -611,8 +671,10 @@ function MessageBubble({
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Thinking…
             </span>
-          ) : (
+          ) : isUser ? (
             msg.text
+          ) : (
+            renderMessageText(msg.text)
           )}
         </div>
 
