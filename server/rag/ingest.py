@@ -41,7 +41,12 @@ def ingest():
 
         for chunk in chunks:
 
-            vector = embedding_model.encode(chunk).tolist()
+            # E5 multilingual models expect a "passage: " prefix on
+            # indexed documents (and "query: " on search queries, see
+            # rag/retriever.py) - this asymmetric prefixing is part of
+            # how the model was trained and meaningfully affects
+            # retrieval quality if skipped.
+            vector = embedding_model.encode(f"passage: {chunk}").tolist()
 
             points.append(
                 PointStruct(

@@ -12,8 +12,6 @@ from config.qdrant import (
 )
 
 
-
-
 def create_collection():
 
     collections = client.get_collections().collections
@@ -32,11 +30,18 @@ def create_collection():
         ),
     )
 
+    print("Collection created successfully.")
+
+
 def insert_test_vector():
+    """
+    Debug helper only - not used by the real ingestion pipeline.
+    Kept here in case you want to sanity-check the collection manually.
+    """
 
     text = "HelpGhar provides verified electricians."
 
-    vector = embedding_model.encode(text).tolist()
+    vector = embedding_model.encode(f"passage: {text}").tolist()
 
     client.upsert(
         collection_name=QDRANT_COLLECTION,
@@ -47,28 +52,26 @@ def insert_test_vector():
                 vector=vector,
                 payload={
                     "text": text,
+                    "filename": "_debug_test_point.txt",
                     "category": "service"
                 },
             )
         ],
     )
 
-
     print("Vector inserted.")
 
-    print("Collection created successfully.")
 
 def search_test():
 
     query = "electrician"
 
-    vector = embedding_model.encode(query).tolist()
+    vector = embedding_model.encode(f"query: {query}").tolist()
 
     result = client.query_points(
-    collection_name=QDRANT_COLLECTION,
-    query=vector,
-    limit=5,
-)
+        collection_name=QDRANT_COLLECTION,
+        query=vector,
+        limit=5,
+    )
 
     return result
-

@@ -6,7 +6,11 @@ from rag.embeddings import embedding_model
 
 def retrieve(query, limit=5):
 
-    vector = embedding_model.encode(query).tolist()
+    # E5 multilingual models expect a "query: " prefix on search
+    # queries (documents were indexed with "passage: ", see
+    # rag/ingest.py). Must match what was used at ingestion time or
+    # similarity scores become unreliable.
+    vector = embedding_model.encode(f"query: {query}").tolist()
 
     response = client.query_points(
         collection_name=QDRANT_COLLECTION,
