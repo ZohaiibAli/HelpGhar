@@ -351,9 +351,9 @@ def create_gig(
 
     gig_data = gig.dict()
 
-    gig_data["workerId"] = user["id"]
+    gig_data["workerId"] = user["workerId"]
 
-    gig_data["status"] = worker["status"]
+    gig_data["status"] = "Active"
 
     result = gig_collection.insert_one(gig_data)
 

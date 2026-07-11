@@ -7,6 +7,9 @@ import { useGigStore } from "@/store/gigStore";
 
 export default function ServicesPage() {
   const gigs = useGigStore((s) => s.gigs);
+  useEffect(() => {
+  console.log("Gigs in store:", gigs);
+}, [gigs]);
   const fetchGigs = useGigStore((s) => s.fetchGigs);
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState<string>("All");

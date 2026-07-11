@@ -61,5 +61,7 @@ export const getGigs = async (): Promise<Worker[]> => {
     }
   );
 
+  console.log("API Response:", response.data);
+
   return response.data.gigs;
 };
