@@ -5,7 +5,7 @@ import {
   Bot,
   Sparkles,
   Send,
-  ArrowLeft,
+  Home,
   ShieldCheck,
   Star,
   MapPin,
@@ -513,16 +513,19 @@ export function ChatPage() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </span>
-              Grounded in verified worker data
+              Answers grounded in verified worker listings
             </p>
           </div>
 
+          <div className="h-6 w-px shrink-0 bg-border/60" aria-hidden="true" />
+
           <button
             onClick={() => navigate("/")}
-            className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground sm:flex"
+            title="Back to HelpGhar"
+            aria-label="Back to HelpGhar"
+            className="group flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Home
+            <Home className="h-4.5 w-4.5 transition-transform group-hover:-translate-y-0.5" />
           </button>
         </header>
 
