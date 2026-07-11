@@ -2,10 +2,11 @@ HelpGhar - Frequently Asked Questions
 
 WHAT IS HELPGHAR?
 HelpGhar is an online marketplace that connects customers in Pakistan with
-verified domestic and skilled workers, including electricians, plumbers,
-cleaners, maids, tutors, carpenters, mechanics, painters, AC technicians,
-and drivers. Every worker on the platform goes through a CNIC and
-certificate verification process before they are allowed to accept bookings.
+verified domestic and skilled workers across nine categories: House
+Servants, Drivers, Baby Sitters, Cooks, Home Teachers, Watchmen,
+Electricians, Plumbers, and Cleaners. Every worker on the platform goes
+through a CNIC verification process before they are allowed to accept
+bookings.
 
 HOW DO I CREATE AN ACCOUNT?
 You can register as either a Customer or a Worker from the HelpGhar
@@ -27,11 +28,11 @@ messaging features. This restriction exists to keep the platform safe and
 trustworthy for both customers and workers.
 
 HOW DO I FIND A WORKER?
-Browse services by category (for example, Electrician, Plumber, Cleaner,
-Tutor) and filter by city, budget, or experience. Only verified workers
-with approved accounts appear in search results. Each worker profile shows
-their rating, reviews, pricing, and availability so you can compare before
-booking.
+Browse services by category (for example, Electricians, Plumbers, Cleaners,
+Home Teachers) and filter by city, budget, or experience. Only verified
+workers with approved accounts appear in search results. Each worker
+profile shows their rating, reviews, pricing, and availability so you
+can compare before booking.
 
 HOW IS PRICING DETERMINED?
 Workers set their own price range and the unit it applies to (per hour,
