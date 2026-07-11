@@ -15,10 +15,16 @@ def make_payment(
     payment: PaymentCreate,
     current_customer: dict = Depends(get_current_customer)
 ):
+    print("Received bookingId:", payment.bookingId)
+    print("Customer:", current_customer["customerId"])
+    
     booking = booking_collection.find_one({
-        "id": payment.bookingId,
-        "customerId": current_customer["customerId"]
-    })
+    "bookingId": payment.bookingId,
+    "customerId": current_customer["customerId"]
+})
+
+    print("Booking found:", booking)
+
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     if booking["status"] == "confirmed":
@@ -61,7 +67,7 @@ def make_payment(
 
     payment_collection.insert_one(payment_data)
     booking_collection.update_one(
-        {"id": payment.bookingId},
+        {"bookingId": payment.bookingId},
         {"$set": {"status": "confirmed"}}
     )
 

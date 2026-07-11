@@ -68,7 +68,7 @@ export default function MyBookingsPage() {
   const doCancel = async (bookingId: string) => {
     try {
       await api.patch(`/bookings/${bookingId}/cancel`);
-      setBookings((prev) => prev.map(b => b.id === bookingId ? { ...b, status: "cancelled" } : b));
+      setBookings((prev) => prev.map(b => b.bookingId === bookingId ? { ...b, status: "cancelled" } : b));
       setAlertState({
         open: true,
         type: "success",
@@ -88,7 +88,7 @@ export default function MyBookingsPage() {
   const handleReschedule = async (bookingId: string, date: string, timeSlot: string) => {
     try {
       await api.patch(`/bookings/${bookingId}/reschedule`, { date, timeSlot });
-      setBookings((prev) => prev.map(b => b.id === bookingId ? { ...b, date, timeSlot } : b));
+      setBookings((prev) => prev.map(b => b.bookingId === bookingId ? { ...b, date, timeSlot } : b));
       setReschedulingId(null);
       setAlertState({
         open: true,
@@ -145,13 +145,13 @@ export default function MyBookingsPage() {
           )}
           {filtered.map(b => (
             <BookingRow
-              key={b.id}
+              key={b.bookingId}
               booking={b}
-              isRescheduling={reschedulingId === b.id}
-              onStartReschedule={() => setReschedulingId(b.id)}
+              isRescheduling={reschedulingId === b.bookingId}
+              onStartReschedule={() => setReschedulingId(b.bookingId)}
               onCancelReschedule={() => setReschedulingId(null)}
-              onConfirmReschedule={(date, timeSlot) => handleReschedule(b.id, date, timeSlot)}
-              onCancelBooking={() => confirmCancel(b.id)}
+              onConfirmReschedule={(date, timeSlot) => handleReschedule(b.bookingId, date, timeSlot)}
+              onCancelBooking={() => confirmCancel(b.bookingId)}
             />
           ))}
         </div>
@@ -195,7 +195,7 @@ function BookingRow({
       <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
         <img src={booking.workerAvatar} alt="" className="h-14 w-14 rounded-2xl object-cover" />
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">#{booking.id}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">#{booking.bookingId}</p>
           <p className="truncate text-base font-bold">{booking.workerName}</p>
           <p className="truncate text-xs text-muted-foreground">{booking.category}</p>
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">

@@ -52,7 +52,9 @@ def get_current_worker(payload: dict = Depends(verify_token)):
         raise HTTPException(
             status_code=403,
             detail="Only workers can perform this action"
-            )
+        )
+
+    return payload
     
 
 

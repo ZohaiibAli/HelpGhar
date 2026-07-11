@@ -89,7 +89,7 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
       platformFee,
       total,
     });
-    navigate(`/payment?bookingId=${res.data.id}`);
+    navigate(`/payment?bookingId=${res.data.bookingId}`);
   } catch (err: any) {
     setAlertState({
       open: true,
