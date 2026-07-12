@@ -15,15 +15,15 @@ def make_payment(
     payment: PaymentCreate,
     current_customer: dict = Depends(get_current_customer)
 ):
-    print("Received bookingId:", payment.bookingId)
-    print("Customer:", current_customer["customerId"])
+    # print("Received bookingId:", payment.bookingId)
+    # print("Customer:", current_customer["customerId"])
     
     booking = booking_collection.find_one({
     "bookingId": payment.bookingId,
     "customerId": current_customer["customerId"]
 })
 
-    print("Booking found:", booking)
+    # print("Booking found:", booking)
 
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")

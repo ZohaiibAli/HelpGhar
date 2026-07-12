@@ -39,7 +39,14 @@ export default function WorkerBookingsPage() {
   const loadBookings = () => {
     setLoading(true);
     api.get("/bookings/worker/my")
-      .then((res) => setBookings(res.data.bookings))
+      .then((res) =>
+        setBookings(
+          res.data.bookings.map((b: any) => ({
+            ...b,
+            id: b.bookingId,
+          }))
+        )
+      )
       .catch((err) => setAlertState({
         open: true,
         type: "error",
