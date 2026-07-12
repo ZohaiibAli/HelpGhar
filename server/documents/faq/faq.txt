@@ -69,3 +69,40 @@ HOW DO I CONTACT SUPPORT?
 If your question isn't covered here or in the chat assistant, you can reach
 HelpGhar support through the contact options listed on the website, or
 submit a dispute/support request from your account dashboard.
+
+CAN I BOOK MULTIPLE SERVICES AT THE SAME TIME?
+Yes. There's no limit on how many different services or workers you can
+book - you can send booking requests to an electrician, a cook, and a
+home teacher all in the same day if you like. The only restriction is
+per worker, not per customer: a single worker can't be double-booked
+for two overlapping time slots, so if you're booking the same worker
+for multiple sessions, make sure the times don't conflict. Each
+booking is tracked and confirmed separately in your booking history.
+
+CAN I SEARCH BY BUDGET?
+Yes. You can tell the assistant your budget (for example, "I need a
+home teacher under Rs. 15,000" or "mera budget 15000 hai") and it will
+only show workers whose pricing fits within that amount. If no workers
+match your exact budget, try widening it slightly or removing other
+filters like minimum experience or rating.
+
+CAN I COMPARE MULTIPLE WORKERS BEFORE BOOKING?
+Yes. Search results show several matching workers at once with their
+rating, price range, experience, and verification status side by side,
+so you can compare before choosing who to book. You can also view each
+worker's full profile for more detail before deciding.
+
+CAN I BOOK A WORKER FOR A GROUP OR SHARED EVENT?
+HelpGhar's booking flow is built around individual customer-to-worker
+bookings rather than group bookings. If you need a worker for a larger
+event (for example, a cook for a family gathering), you can still book
+them directly and discuss the scope of the job with the worker before
+confirming, since pricing may vary for larger jobs.
+
+CAN I NEGOTIATE THE PRICE WITH A WORKER?
+The price range shown on a worker's profile reflects what they're
+generally willing to charge. You're welcome to discuss the exact rate
+with the worker directly before confirming a booking, especially for
+longer-term arrangements (e.g. monthly cooks, home teachers, or house
+servants), but HelpGhar itself doesn't set or negotiate prices on your
+behalf.

@@ -79,6 +79,9 @@ For each worker mention:
 - Whether they are CNIC-verified (state this factually either way,
   don't hide unverified workers)
 
+If the question mentions a budget, briefly confirm each listed worker
+fits within it (the context has already been filtered accordingly).
+
 Keep your answer concise.
 
 Recommend the highest ranked workers first.

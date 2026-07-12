@@ -133,9 +133,21 @@ def extract_city(q: str) -> Optional[str]:
     return None
 
 
+def normalize_numbers(q: str) -> str:
+    """
+    Expands shorthand like "15k" -> "15000" and strips thousands
+    commas like "15,000" -> "15000" so the price regexes below match
+    consistently regardless of how the number was written.
+    """
+
+    q = re.sub(r"(\d+)\s*k\b", lambda m: str(int(m.group(1)) * 1000), q)
+    q = re.sub(r"(\d),(\d{3})\b", r"\1\2", q)
+    return q
+
+
 def extract_filters(question: str) -> WorkerSearchFilters:
 
-    q = question.lower()
+    q = normalize_numbers(question.lower())
 
     filters = WorkerSearchFilters()
 
@@ -171,16 +183,45 @@ def extract_filters(question: str) -> WorkerSearchFilters:
 
         filters.min_rating = float(rating.group(2))
 
-    under = re.search(r"(under|below|less than)\s*rs?\.?\s*(\d+)", q)
+    under = re.search(r"(under|below|less than|upto|up to)\s*rs?\.?\s*(\d+)", q)
 
     if under:
 
         filters.max_price = int(under.group(2))
 
-    above = re.search(r"(above|over|greater than)\s*rs?\.?\s*(\d+)", q)
+    above = re.search(r"(above|over|greater than|more than)\s*rs?\.?\s*(\d+)", q)
 
     if above:
 
         filters.min_price = int(above.group(2))
+
+    # -------------------------------------------------------------
+    # Roman Urdu / mixed-language ceiling phrasing.
+    #
+    # Rather than enumerate every possible phrase ("andar", "tak",
+    # "budget", "kam", and dozens of spelling variants people
+    # actually type), use a broad fallback: if any recognised
+    # "ceiling" indicator word appears anywhere in the message and a
+    # number is present, treat that number as max_price. This is
+    # intentionally loose - within a worker-search question, a stated
+    # number next to any of these words is overwhelmingly likely to
+    # be the person's budget ceiling, not something else.
+    # -------------------------------------------------------------
+
+    if filters.max_price is None:
+
+        CEILING_INDICATORS = [
+            "budget", "andar", "andr", "tak", "takk", "kam", "km",
+            "under", "below", "less than", "upto", "up to", "max",
+            "maximum", "se zyada nahi", "se kam", "bss", "bas", "sirf",
+        ]
+
+        if any(word in q for word in CEILING_INDICATORS):
+
+            number_match = re.search(r"\d+", q)
+
+            if number_match:
+
+                filters.max_price = int(number_match.group())
 
     return filters
