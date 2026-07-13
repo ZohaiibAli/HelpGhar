@@ -1,25 +1,63 @@
 import { Star } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
-import { useEffect } from "react";
-import { reviews } from "@/data/mock";
-import { useGigStore } from "@/store/gigStore";
+import { useEffect, useState } from "react";
 
-// Read-only view of reviews left about the logged-in worker.
-// Swap CURRENT_WORKER_ID out for whatever your auth/session gives you.
-const CURRENT_WORKER_ID = "current-worker-id";
+interface Review {
+  _id: string;
+  reviewId: string;
+  customerId: string;
+  customerName: string;
+  workerId: string;
+  workerName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
 
 export default function WorkerReviewsPage() {
-  const gigs = useGigStore((state) => state.gigs);
-  const fetchGigs = useGigStore((state) => state.fetchGigs);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchGigs();
-  }, [fetchGigs]);
+useEffect(() => {
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const myReviews = reviews.filter(r => r.workerId === CURRENT_WORKER_ID);
-  const avgRating = myReviews.length
-    ? (myReviews.reduce((sum, r) => sum + r.rating, 0) / myReviews.length).toFixed(1)
+      const token = localStorage.getItem("token"); 
+
+      if (!token) {
+        setError("You are not logged in.");
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch("http://localhost:8000/reviews/my-reviews", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setReviews(data.reviews);
+      } else {
+        setError("Failed to load reviews");
+      }
+    } catch (err) {
+      setError("Something went wrong while fetching reviews");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchReviews();
+}, []);
+
+  const avgRating = reviews.length
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : null;
 
   return (
@@ -34,33 +72,31 @@ export default function WorkerReviewsPage() {
             <div className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2">
               <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
               <span className="text-sm font-bold">{avgRating}</span>
-              <span className="text-xs text-muted-foreground">({myReviews.length})</span>
+              <span className="text-xs text-muted-foreground">({reviews.length})</span>
             </div>
           )}
         </div>
 
         <div className="mt-6 space-y-4">
-          {myReviews.length === 0 && (
+          {loading && <p className="text-sm text-muted-foreground">Loading reviews...</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          {!loading && !error && reviews.length === 0 && (
             <p className="text-sm text-muted-foreground">No reviews yet.</p>
           )}
-          {myReviews.map(r => {
-            const gig = gigs.find(g => g.id === r.workerId);
-            return (
-              <div key={r.id} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold">{r.customerName}</p>
-                    {gig?.category && <p className="text-xs text-muted-foreground">{gig.category}</p>}
-                  </div>
-                  <div className="flex items-center gap-0.5 text-yellow-400">
-                    {Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-current" />)}
-                  </div>
+          {reviews.map(r => (
+            <div key={r._id} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-bold">{r.customerName}</p>
+                <div className="flex items-center gap-0.5 text-yellow-400">
+                  {Array.from({ length: r.rating }).map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5 fill-current" />
+                  ))}
                 </div>
-                <p className="mt-3 text-sm text-muted-foreground">{r.comment}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{new Date(r.date).toDateString()}</p>
               </div>
-            );
-          })}
+              <p className="mt-3 text-sm text-muted-foreground">{r.comment}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{new Date(r.createdAt).toDateString()}</p>
+            </div>
+          ))}
         </div>
       </div>
     </DashboardLayout>

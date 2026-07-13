@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from helper.auth_helper import get_current_customer, get_current_worker
 
 from config.db import (
     review_collection,
@@ -126,3 +127,22 @@ def get_reviews(
         "reviews": reviews
     }
 
+@router.get("/my-reviews")
+def get_my_reviews(
+    current_worker=Depends(get_current_worker)
+):
+    # Fetch all reviews left for the logged-in worker
+    reviews = list(
+        review_collection.find({
+            "workerId": current_worker["workerId"]
+        }).sort("createdAt", -1)
+    )
+
+    # Convert ObjectId to string
+    for review in reviews:
+        review["_id"] = str(review["_id"])
+
+    return {
+        "success": True,
+        "reviews": reviews
+    }
