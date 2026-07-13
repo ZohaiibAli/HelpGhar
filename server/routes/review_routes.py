@@ -146,3 +146,22 @@ def get_my_reviews(
         "success": True,
         "reviews": reviews
     }
+
+@router.get("/worker/{worker_id}")
+def get_worker_reviews(worker_id: str):
+
+    reviews = list(
+        review_collection.find(
+            {
+                "workerId": worker_id
+            }
+        ).sort("createdAt", -1)
+    )
+
+    for review in reviews:
+        review["_id"] = str(review["_id"])
+
+    return {
+        "success": True,
+        "reviews": reviews
+    }
