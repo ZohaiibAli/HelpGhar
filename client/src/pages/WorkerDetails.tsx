@@ -10,7 +10,6 @@ import {
   Award,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { reviews } from "@/data/mock";
 import { Button } from "@/components/ui/button";
 import { useGigStore } from "@/store/gigStore";
 import { useAuthStore } from "@/store/authStore";
@@ -29,6 +28,11 @@ export default function WorkerDetailsPage() {
     skills: "",
     certifications: "",
   });
+  const [reviews, setReviews] = useState<any[]>([]);
+  const averageRating =
+  reviews.length > 0
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    : 0;
   const { id } = useParams<{ id: string }>();
 
   const gigs = useGigStore((state) => state.gigs);
@@ -61,6 +65,28 @@ export default function WorkerDetailsPage() {
     fetchDetails();
   }, [worker?.workerId]);
 
+  useEffect(() => {
+  if (!worker?.workerId) return;
+
+  const fetchReviews = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/reviews/worker/${worker.workerId}`
+      );
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      setReviews(data.reviews || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  fetchReviews();
+}, [worker?.workerId]);
+
   if (gigs.length === 0) {
     return (
       <MainLayout>
@@ -86,7 +112,6 @@ export default function WorkerDetailsPage() {
       </MainLayout>
     );
   }
-  const wReviews = reviews.filter(r => r.workerId === worker.id);
 
   return (
     <MainLayout>
@@ -105,7 +130,7 @@ export default function WorkerDetailsPage() {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{worker.category} • {worker.city}</p>
                   <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" /> <strong className="text-foreground">{worker.rating}</strong> ({worker.reviewsCount} reviews)</span>
+                    <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" /> <strong className="text-foreground"> {averageRating.toFixed(1)}</strong>{" "}({reviews.length} reviews) </span>
                     <span className="inline-flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" /> {worker.experienceYears} years experience</span>
                     <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {worker.city}</span>
                     <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Since {new Date(worker.memberSince).getFullYear()}</span>
@@ -144,11 +169,11 @@ export default function WorkerDetailsPage() {
               </ul>
             </Section>
 
-            <Section title={`Reviews (${wReviews.length})`}>
+            <Section title={`Reviews (${reviews.length})`}>
               <div className="space-y-4">
-                {wReviews.length === 0 && <p className="text-sm text-muted-foreground">No reviews yet.</p>}
-                {wReviews.map(r => (
-                  <div key={r.id} className="rounded-2xl border border-border bg-background p-4">
+                {reviews.length === 0 && <p className="text-sm text-muted-foreground">No reviews yet.</p>}
+                {reviews.map(r => (
+                  <div key={r._id} className="rounded-2xl border border-border bg-background p-4">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-bold">{r.customerName}</p>
                       <div className="flex items-center gap-0.5 text-yellow-400">
@@ -156,7 +181,9 @@ export default function WorkerDetailsPage() {
                       </div>
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">{r.comment}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">{new Date(r.date).toDateString()}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {new Date(r.createdAt).toDateString()}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -190,9 +217,9 @@ export default function WorkerDetailsPage() {
                 <Link to="/services">Back to results</Link>
               </Button>
               <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs">
-                <Stat n={worker.reviewsCount} l="Reviews" />
+                <Stat n={reviews.length} l="Reviews" />
                 <Stat n={worker.experienceYears + "y"} l="Exp" />
-                <Stat n={worker.rating.toFixed(1)} l="Rating" />
+                <Stat n={averageRating.toFixed(1)} l="Rating" />
               </div>
             </div>
           </aside>

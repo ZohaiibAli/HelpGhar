@@ -9,6 +9,7 @@ from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
 from helper.id_helper import generate_worker_id
+from config.db import review_collection
 
 router = APIRouter(prefix="/worker", tags=["Worker"])
 
@@ -123,35 +124,20 @@ def get_worker_profile(user=Depends(verify_token)):
         )
 
     return {
-
         "id": str(worker["_id"]),
-
         "workerId":worker["workerId"],
-
         "fullName": worker["fullName"],
-
         "email": worker["email"],
-
         "phone": worker["phone"],
-
         "address": worker["address"],
-
         "cnic": worker["cnic"],
-
         "dob": worker["dob"],
-
         "gender": worker["gender"],
-
         "category": worker["category"],
-
         "experience": worker["experience"],
-
         "pricing": worker["pricing"],
-
         "skills": worker["skills"],
-
         "status": worker["status"],
-
     }
 
 @router.put("/profile")
@@ -232,7 +218,6 @@ def get_worker_details(user=Depends(verify_token)):
         "certifications": details.get("certifications", "")
     }
 
-
 @router.put("/details")
 def update_worker_details(
     payload: WorkerDetailsUpdate,
@@ -269,9 +254,7 @@ def update_worker_details(
 def update_worker_password(
 
     payload: WorkerPasswordUpdate,
-
     user=Depends(verify_token)
-
 ):
 
     if user["role"] != "worker":
@@ -321,7 +304,6 @@ def update_worker_password(
     return {
 
         "success": True,
-
         "message": "Password Updated Successfully"
 
     }
@@ -367,13 +349,27 @@ def create_gig(
 def get_gigs():
     gigs = []
 
-    for gig in gig_collection.find(
-    {
-        "status": "Active"
-    }
-):
+    for gig in gig_collection.find({"status": "Active"}):
+        worker_reviews = list(
+            review_collection.find({"workerId": gig["workerId"]})
+        )
+
+        reviews_count = len(worker_reviews)
+
+        if reviews_count > 0:
+            average_rating = (
+                sum(r["rating"] for r in worker_reviews)
+                / reviews_count
+            )
+        else:
+            average_rating = 0
+
+        gig["rating"] = round(average_rating, 1)
+        gig["reviewsCount"] = reviews_count
+
         gig["id"] = str(gig["_id"])
         del gig["_id"]
+
         gigs.append(gig)
 
     return {
