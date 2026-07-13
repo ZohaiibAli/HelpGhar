@@ -108,3 +108,16 @@ def generate_booking_id():
 def generate_transaction_id():
     seq = _next_sequence("transaction_id")
     return f"TXN-{seq:05d}"
+
+def generate_review_id():
+
+    counter = counter_collection.find_one_and_update(
+        {"_id": "reviewId"},
+        {"$inc": {"sequence_value": 1}},
+        upsert=True,
+        return_document=True
+    )
+
+    number = counter["sequence_value"]
+
+    return f"HGR-{number:03d}"

@@ -14,7 +14,7 @@ from routes.chat_routes import router as chat_router
 from routes.booking_route import router as booking_router
 from routes.payment_route import router as payment_router
 from helper.seed_helper import seed_default_card
-
+from routes.review_routes import router as review_router
 
 
 app = FastAPI(title="HelpGhar API", version="1.0.0")
@@ -40,6 +40,7 @@ app.include_router(website_settings_router)
 app.include_router(chat_router)
 app.include_router(booking_router)
 app.include_router(payment_router)
+app.include_router(review_router)
 
 
 @app.get("/")
