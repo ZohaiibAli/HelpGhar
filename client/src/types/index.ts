@@ -57,6 +57,40 @@ export interface Worker {
   bio: string;
   skills: string[];
   certificates: string[];
+  /*
+ -------------------------
+ AI Fields
+ -------------------------
+ */
+
+  marketplaceScore?: number;
+
+  reputationLabel?: string;
+
+  reviewSummary?: {
+
+    positive: number;
+
+    neutral: number;
+
+    negative: number;
+
+    positivePercentage: number;
+
+  };
+
+  aiSummary?: {
+
+    headline: string;
+
+    summary: string;
+
+    strengths: string[];
+
+    improvements: string[];
+
+  };
+
 }
 
 export type BookingStatus =

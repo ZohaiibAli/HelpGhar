@@ -347,34 +347,63 @@ def create_gig(
 
 @router.get("/gigs")
 def get_gigs():
+
     gigs = []
 
     for gig in gig_collection.find({"status": "Active"}):
-        worker_reviews = list(
-            review_collection.find({"workerId": gig["workerId"]})
+
+        worker = worker_collection.find_one(
+            {
+                "workerId": gig["workerId"]
+            }
         )
 
-        reviews_count = len(worker_reviews)
+        if worker:
 
-        if reviews_count > 0:
-            average_rating = (
-                sum(r["rating"] for r in worker_reviews)
-                / reviews_count
+            gig["rating"] = worker.get("rating", 0)
+            gig["reviewsCount"] = worker.get("reviewsCount", 0)
+
+            # ------------------------
+            # AI Fields
+            # ------------------------
+
+            gig["marketplaceScore"] = worker.get(
+                "marketplaceScore",
+                0
             )
-        else:
-            average_rating = 0
 
-        gig["rating"] = round(average_rating, 1)
-        gig["reviewsCount"] = reviews_count
+            gig["reputationLabel"] = worker.get(
+                "reputationLabel",
+                "New Worker"
+            )
+
+            gig["reviewSummary"] = worker.get(
+                "reviewSummary",
+                {}
+            )
+
+            gig["aiSummary"] = worker.get(
+                "aiSummary",
+                {}
+            )
+
+            gig["badges"] = worker.get(
+                "badges",
+                []
+            )
 
         gig["id"] = str(gig["_id"])
+
         del gig["_id"]
 
         gigs.append(gig)
 
     return {
+
         "success": True,
+
         "gigs": gigs
+
     }
 
 @router.post("/upload-avatar")

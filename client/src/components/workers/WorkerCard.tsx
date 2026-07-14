@@ -6,6 +6,7 @@ import type { Worker } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { handleHireNowClick } from "@/lib/hireNow";
+import ReputationBadge from "@/components/ai/ReputationBadge";
 
 export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: number }) {
   const navigate = useNavigate();
@@ -49,6 +50,21 @@ export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: numb
           <div className="min-w-0">
             <h3 className="truncate text-base font-bold">{worker.fullName}</h3>
             <p className="text-xs text-muted-foreground">{worker.category}</p>
+            {
+              worker.reputationLabel && (
+
+                <div className="mt-2">
+
+                  <ReputationBadge
+
+                    label={worker.reputationLabel}
+
+                  />
+
+                </div>
+
+              )
+            }
           </div>
           <div className="shrink-0 text-right">
             <div className="flex items-center gap-1 text-sm font-bold">
@@ -66,6 +82,48 @@ export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: numb
           <span>Since {new Date(worker.memberSince).getFullYear()}</span>
         </div>
 
+        {
+          worker.reviewSummary && (
+
+            <div className="mt-3">
+
+              <div className="flex justify-between text-xs">
+
+                <span className="text-muted-foreground">
+
+                  Positive Reviews
+
+                </span>
+
+                <span className="font-semibold text-emerald-600">
+
+                  {worker.reviewSummary.positivePercentage}%
+
+                </span>
+
+              </div>
+
+              <div className="mt-1 h-2 rounded-full bg-gray-200">
+
+                <div
+
+                  className="h-2 rounded-full bg-emerald-500"
+
+                  style={{
+
+                    width: `${worker.reviewSummary.positivePercentage}%`
+
+                  }}
+
+                />
+
+              </div>
+
+            </div>
+
+          )
+        }
+
         <div className="mt-4 rounded-xl bg-muted/60 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Price</p>
           <p className="text-sm font-bold text-foreground">
@@ -74,6 +132,28 @@ export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: numb
           </p>
         </div>
 
+        {
+          worker.marketplaceScore && (
+
+            <div className="mt-4 rounded-xl bg-emerald-50 p-3">
+
+              <p className="text-xs text-gray-500">
+
+                Marketplace Score
+
+              </p>
+
+              <p className="text-xl font-bold text-emerald-600">
+
+                {worker.marketplaceScore.toFixed(1)}
+
+              </p>
+
+            </div>
+
+          )
+        }
+
         <div className="mt-4 flex gap-2">
           <Link
             to={`/workers/${worker.id}`}
@@ -81,7 +161,7 @@ export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: numb
           >
             View Profile
           </Link>
-         <button
+          <button
             onClick={() =>
               handleHireNowClick({
                 user,

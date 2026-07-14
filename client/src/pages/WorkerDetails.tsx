@@ -15,6 +15,7 @@ import { useGigStore } from "@/store/gigStore";
 import { useAuthStore } from "@/store/authStore";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { handleHireNowClick } from "@/lib/hireNow";
+import AIInsightsCard from "@/components/ai/AIInsightsCard";
 
 
 export default function WorkerDetailsPage() {
@@ -30,9 +31,9 @@ export default function WorkerDetailsPage() {
   });
   const [reviews, setReviews] = useState<any[]>([]);
   const averageRating =
-  reviews.length > 0
-    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-    : 0;
+    reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+      : 0;
   const { id } = useParams<{ id: string }>();
 
   const gigs = useGigStore((state) => state.gigs);
@@ -66,26 +67,26 @@ export default function WorkerDetailsPage() {
   }, [worker?.workerId]);
 
   useEffect(() => {
-  if (!worker?.workerId) return;
+    if (!worker?.workerId) return;
 
-  const fetchReviews = async () => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/reviews/worker/${worker.workerId}`
-      );
+    const fetchReviews = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/reviews/worker/${worker.workerId}`
+        );
 
-      if (!response.ok) return;
+        if (!response.ok) return;
 
-      const data = await response.json();
+        const data = await response.json();
 
-      setReviews(data.reviews || []);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+        setReviews(data.reviews || []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
-  fetchReviews();
-}, [worker?.workerId]);
+    fetchReviews();
+  }, [worker?.workerId]);
 
   if (gigs.length === 0) {
     return (
@@ -139,6 +140,18 @@ export default function WorkerDetailsPage() {
               </div>
             </div>
 
+            {
+              worker.marketplaceScore && (
+
+                <AIInsightsCard
+
+                  worker={worker}
+
+                />
+
+              )
+            }
+
             <Section title="About">
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {details.about || "This worker hasn't added a description yet."}
@@ -176,6 +189,28 @@ export default function WorkerDetailsPage() {
                   <div key={r._id} className="rounded-2xl border border-border bg-background p-4">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-bold">{r.customerName}</p>
+
+                      <span
+
+                        className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold
+
+${r.sentiment === "Positive"
+
+                            ? "bg-emerald-100 text-emerald-700"
+
+                            : r.sentiment === "Neutral"
+
+                              ? "bg-yellow-100 text-yellow-700"
+
+                              : "bg-red-100 text-red-700"
+
+                          }`}
+
+                      >
+
+                        {r.sentiment}
+
+                      </span>
                       <div className="flex items-center gap-0.5 text-yellow-400">
                         {Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-current" />)}
                       </div>
