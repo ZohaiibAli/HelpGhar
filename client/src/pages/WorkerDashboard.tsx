@@ -1,24 +1,49 @@
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Briefcase, Star, Award, Bell, User, Settings, Timer, TrendingUp, X } from "lucide-react";
+import { Briefcase, Star, Award, User, Timer, TrendingUp, X, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { bookings, notifications, categories } from "@/data/mock";
-import { useState } from "react";
+import { categories } from "@/data/mock";
+import { useEffect, useState } from "react";
 import { WorkerCategory } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 
 import {
   uploadAvatar,
   createGig,
+  getWorkerDashboard,
 } from "@/services/workerService";
 
-
 import { workerItems } from "@/data/workerMenu";
+
+type ActiveJob = {
+  bookingId: string;
+  category: string;
+  address: string;
+  date: string;
+  timeSlot: string;
+  durationHours: number;
+  customerName: string;
+  status: string;
+};
+
+type DashboardStats = {
+  totalJobs: number;
+  completedJobs: number;
+  completionRate: number;
+  avgRating: number;
+  reviewsCount: number;
+  totalEarnings: number;
+};
 
 export default function WorkerDashboard() {
   const { user } = useAuthStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState<"success" | "error" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     fullName: user?.fullName || "",
@@ -35,6 +60,24 @@ export default function WorkerDashboard() {
     avatarFile: null as File | null,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  async function loadDashboard() {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const data = await getWorkerDashboard();
+      setStats(data.stats);
+      setActiveJobs(data.activeJobs);
+    } catch (err: any) {
+      setLoadError(err?.message ?? "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
   function validate() {
     const e: Record<string, string> = {};
@@ -105,6 +148,8 @@ export default function WorkerDashboard() {
 
       setErrors({});
       setIsSubmitting(false);
+
+      loadDashboard();
     } catch (err) {
       console.error(err);
       setToast("error");
@@ -126,7 +171,9 @@ export default function WorkerDashboard() {
             <h1 className="text-3xl font-black tracking-tight text-foreground">
               Hello, {user?.fullName ?? "Worker"}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">You have 2 active jobs today.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              You have {activeJobs.length} active job{activeJobs.length === 1 ? "" : "s"} right now.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-primary-soft px-3 py-1.5 text-xs font-bold text-primary-dark">Available now</span>
@@ -139,58 +186,69 @@ export default function WorkerDashboard() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Total jobs" value="184" hint="+12 this month" icon={Briefcase} />
-          <Stat label="Completed" value="172" hint="93% rate" icon={TrendingUp} />
-          <Stat label="Avg rating" value="4.9" hint="From 184 reviews" icon={Star} />
-          <Stat label="Incentive points" value="2,540" hint="Top 5%" icon={Award} />
-        </div>
+        {loadError && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+            {loadError}{" "}
+            <button onClick={loadDashboard} className="font-bold underline">
+              Retry
+            </button>
+          </div>
+        )}
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-            <h2 className="text-base font-bold">Active jobs</h2>
-            <div className="mt-4 space-y-3">
-              {bookings.map(b => (
-                <div key={b.id} className="rounded-2xl border border-border bg-background p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-bold">{b.category} — {b.address}</p>
-                      <p className="text-xs text-muted-foreground">{b.date} • {b.timeSlot}</p>
+        {loading ? (
+          <div className="flex items-center justify-center rounded-3xl border border-border bg-card p-16 shadow-soft">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Stat label="Total jobs" value={String(stats?.totalJobs ?? 0)} hint={`${stats?.completedJobs ?? 0} completed`} icon={Briefcase} />
+              <Stat label="Completed" value={String(stats?.completedJobs ?? 0)} hint={`${stats?.completionRate ?? 0}% rate`} icon={TrendingUp} />
+              <Stat label="Avg rating" value={String(stats?.avgRating ?? 0)} hint={`From ${stats?.reviewsCount ?? 0} reviews`} icon={Star} />
+              <Stat label="Total earnings" value={`Rs. ${(stats?.totalEarnings ?? 0).toLocaleString()}`} hint="From completed jobs" icon={Award} />
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
+                <h2 className="text-base font-bold">Active jobs</h2>
+                <div className="mt-4 space-y-3">
+                  {activeJobs.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No active jobs right now.</p>
+                  )}
+                  {activeJobs.map(b => (
+                    <div key={b.bookingId} className="rounded-2xl border border-border bg-background p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-bold">{b.category} — {b.address}</p>
+                          <p className="text-xs text-muted-foreground">{b.date} • {b.timeSlot} • {b.customerName}</p>
+                        </div>
+                        <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-bold uppercase text-primary-dark">{b.status}</span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <button className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark">Start</button>
+                        <button className="rounded-xl border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">Mark in progress</button>
+                        <button className="rounded-xl border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">Complete</button>
+                        <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground"><Timer className="h-3 w-3" /> {b.durationHours}h job</span>
+                      </div>
                     </div>
-                    <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-bold uppercase text-primary-dark">{b.status}</span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <button className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark">Start</button>
-                    <button className="rounded-xl border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">Mark in progress</button>
-                    <button className="rounded-xl border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">Complete</button>
-                    <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground"><Timer className="h-3 w-3" /> 01:24:53 worked</span>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-              <h2 className="text-base font-bold">Performance</h2>
-              <PerfBar label="Completion rate" value={93} />
-              <PerfBar label="Punctuality" value={88} />
-              <PerfBar label="Reliability" value={95} />
-            </div>
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-              <h2 className="text-base font-bold">Notifications</h2>
-              <div className="mt-3 space-y-3">
-                {notifications.map(n => (
-                  <div key={n.id} className="flex gap-3 rounded-xl border border-border bg-background p-3">
-                    <Bell className="h-4 w-4 shrink-0 text-primary" />
-                    <div className="min-w-0"><p className="truncate text-xs font-bold">{n.title}</p><p className="text-xs text-muted-foreground">{n.message}</p></div>
-                  </div>
-                ))}
               </div>
-              <Link to="/profile" className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">Manage profile →</Link>
+
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
+                  <h2 className="text-base font-bold">Performance</h2>
+                  <PerfBar label="Completion rate" value={stats?.completionRate ?? 0} />
+                </div>
+                <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
+                  <h2 className="text-base font-bold">Profile</h2>
+                  <p className="mt-2 text-xs text-muted-foreground">Manage your profile, gigs, and availability.</p>
+                  <Link to="/profile" className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">Manage profile →</Link>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Create Gig Modal */}
@@ -209,7 +267,6 @@ export default function WorkerDashboard() {
 
             <div className="mt-5 space-y-4">
 
-              {/* Avatar */}
               <Field label="Profile Photo">
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-16 rounded-2xl border border-border bg-muted overflow-hidden flex items-center justify-center shrink-0">
@@ -237,7 +294,6 @@ export default function WorkerDashboard() {
                 </div>
               </Field>
 
-              {/* Category */}
               <Field label="Category" error={errors.category}>
                 <select
                   value={form.category}
@@ -249,7 +305,6 @@ export default function WorkerDashboard() {
                 </select>
               </Field>
 
-              {/* City */}
               <Field label="City" error={errors.city}>
                 <input
                   value={form.city}
@@ -259,7 +314,6 @@ export default function WorkerDashboard() {
                 />
               </Field>
 
-              {/* Gender & Age */}
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Gender">
                   <select
@@ -284,7 +338,6 @@ export default function WorkerDashboard() {
                 </Field>
               </div>
 
-              {/* Experience & Since */}
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Years of experience">
                   <input
@@ -309,7 +362,6 @@ export default function WorkerDashboard() {
                 </Field>
               </div>
 
-              {/* Price */}
               <div>
                 <p className="mb-1 text-xs font-semibold text-muted-foreground">Price Range (Rs.)</p>
                 <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-start">
@@ -370,7 +422,6 @@ export default function WorkerDashboard() {
         </div>
       )}
 
-      {/* Toast Notification */}
       {toast && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className={`flex flex-col items-center gap-4 rounded-3xl p-10 shadow-xl text-center w-80 ${toast === "success" ? "bg-card" : "bg-card"
