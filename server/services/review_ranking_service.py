@@ -8,6 +8,8 @@ from config.db import (
 
 from ml.sentiment.reputation import get_reputation_label
 
+from ml.summary.review_summary import review_summary_generator
+
 
 class ReviewRankingService:
 
@@ -321,9 +323,13 @@ class ReviewRankingService:
 
         marketplace_score,
 
-        label
-
+        label,
+       
     ):
+
+        summary = review_summary_generator.generate(
+        worker["workerId"]
+    )
 
         worker_collection.update_one(
 
@@ -375,6 +381,8 @@ class ReviewRankingService:
                         ]
 
                     },
+
+                    "aiSummary": summary,
 
                     "badges": [
 
