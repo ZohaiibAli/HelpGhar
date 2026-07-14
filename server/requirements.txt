@@ -16,3 +16,5 @@ langchain-community
 langchain-google-genai 
 google-generativeai 
 langchain-text-splitters
+
+nltk==3.9.1
