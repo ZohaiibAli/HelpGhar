@@ -162,17 +162,27 @@ class FeatureEngineering:
 
         return [
 
-            encode_category(favourite_category),
+        encode_category(favourite_category),
 
-            encode_city(favourite_city),
+        encode_city(favourite_city),
 
-            normalize(average_budget, 50000),
+        normalize(average_budget, 50000),
 
-            normalize(average_rating_given, 5),
+        normalize(average_budget, 50000),
 
-            normalize(len(bookings), 100)
+        0,
 
-        ]
+        0,
+
+        0,
+
+        0,
+
+        1,
+
+        1
+
+    ]
 
 
 feature_engineering = FeatureEngineering()
