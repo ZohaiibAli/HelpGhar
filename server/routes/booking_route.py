@@ -45,12 +45,20 @@ def get_my_bookings(current_customer: dict = Depends(get_current_customer)):
 
 @router.get("/worker/my")
 def get_worker_bookings(current_worker: dict = Depends(get_current_worker)):
+
     bookings = list(
-        booking_collection.find({"workerId": current_worker["id"]})  # was ["workerId"]
+        booking_collection.find({
+            "workerId": current_worker["workerId"]
+        })
     )
+
     for b in bookings:
         del b["_id"]
-    return {"success": True, "bookings": bookings}
+
+    return {
+        "success": True,
+        "bookings": bookings
+    }
 
 
 
@@ -140,7 +148,7 @@ def worker_cancel_booking(
 ):
     booking = booking_collection.find_one({
         "bookingId": booking_id,
-        "workerId": current_worker["id"]
+        "workerId": current_worker["workerId"]
     })
 
     if not booking:
@@ -171,7 +179,7 @@ def worker_reschedule_booking(
 ):
     booking = booking_collection.find_one({
         "bookingId": booking_id,
-        "workerId": current_worker["id"]
+        "workerId": current_worker["workerId"]
     })
 
     if not booking:
@@ -202,7 +210,7 @@ def worker_reschedule_booking(
 def complete_booking(booking_id: str, current_worker: dict = Depends(get_current_worker)):
     booking = booking_collection.find_one({
         "bookingId": booking_id,
-        "workerId": current_worker["id"]
+        "workerId": current_worker["workerId"]
     })
 
     if not booking:
