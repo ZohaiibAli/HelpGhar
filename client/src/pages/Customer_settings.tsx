@@ -1,8 +1,10 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export default function CustomerSettingsPage() {
+  const navigate = useNavigate();
   return (
     <DashboardLayout
       title="Customer"
@@ -29,7 +31,13 @@ export default function CustomerSettingsPage() {
           </Card>
           <Card title="Security">
             <div className="flex flex-col gap-3">
-              <Button variant="outline" className="w-fit">Change password</Button>
+              <Button
+                variant="outline"
+                className="w-fit"
+                onClick={() => navigate("/profile")}
+              >
+                Change password
+              </Button>
               <Button variant="outline" className="w-fit">Enable two-factor authentication</Button>
               <Button variant="outline" className="w-fit text-destructive">Delete my account</Button>
             </div>
