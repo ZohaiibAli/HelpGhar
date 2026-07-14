@@ -58,6 +58,8 @@ def make_payment(
     "customerName": booking["customerName"],
 
     "workerName": booking["workerName"],
+    "workerId": booking["workerId"],
+    
     "category": booking["category"],
 
     "method": METHOD_LABELS.get(payment.method, payment.method),

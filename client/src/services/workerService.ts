@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Worker } from "@/types";
+import { api } from "@/services/api";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
@@ -65,3 +66,29 @@ export const getGigs = async (): Promise<Worker[]> => {
 
   return response.data.gigs;
 };
+
+
+export async function getWorkerDashboard() {
+  const { data } = await api.get("/dashboard/worker");
+  return data as {
+    success: boolean;
+    stats: {
+      totalJobs: number;
+      completedJobs: number;
+      completionRate: number;
+      avgRating: number;
+      reviewsCount: number;
+      totalEarnings: number;
+    };
+    activeJobs: {
+      bookingId: string;
+      category: string;
+      address: string;
+      date: string;
+      timeSlot: string;
+      durationHours: number;
+      customerName: string;
+      status: string;
+    }[];
+  };
+}
