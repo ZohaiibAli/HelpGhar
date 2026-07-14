@@ -51,20 +51,25 @@ def make_payment(
     transaction_id = generate_transaction_id()
 
     payment_data = {
-        "id": transaction_id,
-        "bookingId": payment.bookingId,
-        "customerId": current_customer["customerId"],
-        "method": METHOD_LABELS.get(payment.method, payment.method),
-        "amount": booking["amount"],
-        "platformFee": booking["platformFee"],
-        "total": booking["total"],
-        "cardHolder": card["cardHolder"],
-        "cardNumber": card["cardNumber"],
-        "expiry": card["expiry"],
-        "date": datetime.utcnow().isoformat(),
-        "status": "successful",
-    }
+    "id": transaction_id,
+    "bookingId": payment.bookingId,
 
+    "customerId": current_customer["customerId"],
+    "customerName": booking["customerName"],
+
+    "workerName": booking["workerName"],
+    "category": booking["category"],
+
+    "method": METHOD_LABELS.get(payment.method, payment.method),
+
+    "amount": booking["amount"],
+    "platformFee": booking["platformFee"],
+    "total": booking["total"],
+
+    "date": datetime.utcnow().isoformat(),
+
+    "status": "successful",
+}
     payment_collection.insert_one(payment_data)
     booking_collection.update_one(
         {"bookingId": payment.bookingId},

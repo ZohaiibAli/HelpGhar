@@ -74,48 +74,164 @@ export default function PaymentPage() {
     }
   };
 
-  const handleDownloadReceipt = () => {
-    if (!payment) return;
+const handleDownloadReceipt = () => {
+  if (!payment) return;
 
-    const doc = new jsPDF();
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
 
-    doc.setFontSize(18);
+  // ================= HEADER =================
+  doc.setFillColor(16, 185, 129); // Emerald Green
+  doc.rect(0, 0, pageWidth, 38, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(24);
+  doc.text("HelpGhar", 20, 18);
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text("Professional Home Services", 20, 28);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("PAYMENT RECEIPT", pageWidth - 20, 22, { align: "right" });
+
+  // Reset
+  doc.setTextColor(0, 0, 0);
+
+  // ================= PAID BADGE =================
+  doc.setFillColor(220, 252, 231);
+  doc.roundedRect(155, 45, 28, 10, 3, 3, "F");
+
+  doc.setTextColor(22, 163, 74);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("PAID", 169, 52, { align: "center" });
+
+  doc.setTextColor(0);
+
+  let y = 65;
+
+  // ================= RECEIPT DETAILS =================
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("Receipt Information", 20, y);
+
+  y += 10;
+
+  const detailRow = (label: string, value: string) => {
     doc.setFont("helvetica", "bold");
-    doc.text("Payment Receipt", 20, 20);
-
-    doc.setDrawColor(200);
-    doc.line(20, 25, 190, 25);
-
     doc.setFontSize(11);
+    doc.text(label, 20, y);
+
     doc.setFont("helvetica", "normal");
+    doc.text(value, 75, y);
 
-    const rows: [string, string][] = [
-      ["Transaction ID", payment.id],
-      ["Booking ID", payment.bookingId],
-      ["Date", new Date(payment.date).toLocaleString()],
-      ["Method", payment.method],
-      ["Service Amount", `Rs. ${payment.amount.toLocaleString()}`],
-      ["Platform Fee", `Rs. ${payment.platformFee.toLocaleString()}`],
-      ["Total Paid", `Rs. ${payment.total.toLocaleString()}`],
-    ];
-
-    let y = 40;
-    rows.forEach(([label, value]) => {
-      doc.setFont("helvetica", "bold");
-      doc.text(`${label}:`, 20, y);
-      doc.setFont("helvetica", "normal");
-      doc.text(String(value), 80, y);
-      y += 10;
-    });
-
-    doc.setDrawColor(200);
-    doc.line(20, y + 2, 190, y + 2);
-    doc.setFontSize(9);
-    doc.setTextColor(120);
-    doc.text("This is a system-generated receipt.", 20, y + 12);
-
-    doc.save(`receipt-${payment.id}.pdf`);
+    y += 9;
   };
+
+  detailRow("Transaction ID", payment.id);
+  detailRow("Booking ID", payment.bookingId);
+  detailRow("Date", new Date(payment.date).toLocaleString());
+  detailRow("Payment Method", payment.method);
+
+  if (booking.customerName)
+    detailRow("Customer", booking.customerName);
+
+  if (booking.workerName)
+    detailRow("Worker", booking.workerName);
+
+  if (booking.category)
+    detailRow("Service", booking.category);
+
+  y += 5;
+
+  // ================= PAYMENT SUMMARY =================
+  doc.setFillColor(245, 245, 245);
+  doc.roundedRect(20, y, 170, 60, 3, 3, "F");
+
+  y += 10;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("Payment Summary", 28, y);
+
+  y += 12;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+
+  doc.text("Service Amount", 28, y);
+  doc.text(`Rs. ${payment.amount.toLocaleString()}`, 180, y, {
+    align: "right",
+  });
+
+  y += 10;
+
+  doc.text("Platform Fee", 28, y);
+  doc.text(`Rs. ${payment.platformFee.toLocaleString()}`, 180, y, {
+    align: "right",
+  });
+
+  y += 10;
+
+  doc.setDrawColor(180);
+  doc.line(28, y, 180, y);
+
+  y += 10;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+
+  doc.text("TOTAL PAID", 28, y);
+
+  doc.setTextColor(16, 185, 129);
+  doc.text(`Rs. ${payment.total.toLocaleString()}`, 180, y, {
+    align: "right",
+  });
+
+  doc.setTextColor(0);
+
+  y += 25;
+
+  // ================= FOOTER =================
+  doc.setDrawColor(220);
+  doc.line(20, y, 190, y);
+
+  y += 12;
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+
+  doc.text(
+    "Thank you for choosing HelpGhar!",
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  );
+
+  y += 7;
+
+  doc.text(
+    "This is a system-generated payment receipt.",
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  );
+
+  y += 7;
+
+  doc.text(
+    "Please keep this receipt for your records.",
+    pageWidth / 2,
+    y,
+    { align: "center" }
+  );
+
+  doc.save(`HelpGhar_Receipt_${payment.id}.pdf`);
+};
 
   if (loading) {
     return (
