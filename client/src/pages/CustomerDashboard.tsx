@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { LayoutDashboard, Calendar, CreditCard, Star, MessageSquareWarning, User, Settings, Bell, ArrowRight } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { bookings, notifications } from "@/data/mock";
+import { notifications } from "@/data/mock";
 import { customerItems } from "@/data/customerMenu";
+import { useEffect, useState } from "react";
 
 const items = [
   { label: "Overview", to: "/dashboard/customer", icon: LayoutDashboard },
@@ -13,8 +14,81 @@ const items = [
   { label: "Profile", to: "/profile", icon: User },
   { label: "Settings", to: "/settings", icon: Settings },
 ];
-
+interface Booking {
+  _id: string;
+  bookingId: string;
+  workerName: string;
+  workerAvatar: string;
+  category: string;
+  date: string;
+  timeSlot: string;
+  status: string;
+}
 export default function CustomerDashboard() {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  const [stats, setStats] = useState({
+
+    activeBookings: 0,
+
+    totalSpent: 0,
+
+    favoriteWorkers: 0,
+
+    reviewsLeft: 0
+
+  });
+
+  const [bookings, setBookings] = useState<Booking[]>([]);
+
+  useEffect(() => {
+    fetchDashboard();
+    fetchBookings();
+  }, []);
+  const fetchDashboard = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`${API_BASE_URL}/dashboard/customer`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("Status:", response.status);
+
+      const data = await response.json();
+      console.log(data);
+
+      if (data.success) {
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error("Dashboard fetch failed:", error);
+    }
+  };
+  const fetchBookings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${API_BASE_URL}/bookings/my`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setBookings(data.bookings);
+      }
+    } catch (error) {
+      console.error("Bookings fetch failed:", error);
+    }
+  };
   return (
     <DashboardLayout
       title="Customer"
@@ -27,10 +101,10 @@ export default function CustomerDashboard() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Active bookings" value="3" hint="2 confirmed" />
-          <StatCard label="Total spent" value="Rs. 42,500" hint="Last 30 days" />
-          <StatCard label="Favourite workers" value="8" hint="Saved" />
-          <StatCard label="Reviews left" value="12" hint="Avg 4.8 ★" />
+          <StatCard label="Active bookings" value={stats.activeBookings.toString()} hint="2 confirmed" />
+          <StatCard label="Total spent" value={`Rs. ${stats.totalSpent}`} hint="Last 30 days" />
+          <StatCard label="Favourite workers" value={stats.favoriteWorkers.toString()} hint="Saved" />
+          <StatCard label="Reviews left" value={stats.reviewsLeft.toString()} hint="Avg 4.8 ★" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -41,7 +115,7 @@ export default function CustomerDashboard() {
             </div>
             <div className="mt-4 space-y-3">
               {bookings.slice(0, 3).map(b => (
-                <div key={b.id} className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3">
+                <div key={b.bookingId} className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3">
                   <img src={b.workerAvatar} alt="" className="h-10 w-10 rounded-xl object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{b.workerName}</p>
