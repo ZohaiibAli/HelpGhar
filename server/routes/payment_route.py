@@ -85,3 +85,24 @@ def get_receipt(transaction_id: str, current_customer: dict = Depends(get_curren
 
     del payment["_id"]
     return {"success": True, "receipt": payment}
+
+@router.get("/my")
+def get_my_transactions(
+    current_customer: dict = Depends(get_current_customer)
+):
+
+    payments = list(
+        payment_collection.find(
+            {
+                "customerId": current_customer["customerId"]
+            }
+        ).sort("date", -1)
+    )
+
+    for payment in payments:
+        payment["_id"] = str(payment["_id"])
+
+    return {
+        "success": True,
+        "transactions": payments
+    }
