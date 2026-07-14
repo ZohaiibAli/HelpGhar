@@ -16,7 +16,7 @@ from routes.payment_route import router as payment_router
 from helper.seed_helper import seed_default_card
 from routes.review_routes import router as review_router
 from routes.dashboard_route import router as dashboard_router
-
+from routes.recommendation_routes import router as recommendation_router
 
 app = FastAPI(title="HelpGhar API", version="1.0.0")
 @app.on_event("startup")
@@ -43,6 +43,7 @@ app.include_router(booking_router)
 app.include_router(payment_router)
 app.include_router(review_router)
 app.include_router(dashboard_router)
+app.include_router(recommendation_router)
 
 
 @app.get("/")

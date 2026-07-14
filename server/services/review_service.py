@@ -7,6 +7,10 @@ from config.db import (
     worker_collection,
 )
 
+from services.customer_preference_service import (
+    customer_preference_service
+)
+
 from helper.id_helper import generate_review_id
 
 from ml.sentiment.analyzer import analyze_sentiment
@@ -78,5 +82,9 @@ def create_review(review, current_customer):
     review_ranking_service.update_worker_ranking(
         worker["workerId"]
     )
+
+    customer_preference_service.update_preferences(
+    customer["customerId"]
+)
 
     return review_document
