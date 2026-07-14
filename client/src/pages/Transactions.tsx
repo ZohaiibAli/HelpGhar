@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { customerItems } from "@/data/customerMenu";
-import { transactions } from "@/data/mock";
+// import { transactions } from "@/data/mock";
 import type { PaymentStatus } from "@/types";
+
 
 const filters: { id: "all" | PaymentStatus; label: string }[] = [
   { id: "all", label: "All" }, { id: "successful", label: "Successful" },
@@ -10,10 +11,56 @@ const filters: { id: "all" | PaymentStatus; label: string }[] = [
 ];
 
 export default function TransactionsPage() {
-  const [filter, setFilter] = useState<typeof filters[number]["id"]>("all");
-  const rows = transactions.filter(t => filter === "all" || t.status === filter);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+  const [filter, setFilter] =
+    useState<typeof filters[number]["id"]>("all");
 
+  const [transactions, setTransactions] = useState<any[]>([]);
+  
+
+  useEffect(() => {
+
+    fetchTransactions();
+
+  }, []);
+
+  const fetchTransactions = async () => {
+
+    try {
+
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${API_BASE_URL}/payments/my`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+
+        setTransactions(result.transactions);
+
+      }
+
+    }
+
+    catch (error) {
+
+      console.log(error);
+
+    }
+
+  };
+
+  const rows = transactions.filter(
+    t => filter === "all" || t.status === filter
+);
   return (
     <DashboardLayout
       title="Customer"
@@ -41,9 +88,9 @@ export default function TransactionsPage() {
               {rows.map(t => (
                 <tr key={t.id} className="border-t border-border">
                   <td className="px-4 py-4 font-semibold">{t.id}<p className="text-xs font-normal text-muted-foreground">Booking #{t.bookingId}</p></td>
-                  <td className="px-4 py-4 text-muted-foreground">{t.date}</td>
+                  <td className="px-4 py-4 text-muted-foreground">{new Date(t.date).toLocaleString()}</td>
                   <td className="px-4 py-4">{t.method}</td>
-                  <td className="px-4 py-4 font-bold">Rs. {t.amount.toLocaleString()}</td>
+                  <td className="px-4 py-4 font-bold">Rs. {t.total.toLocaleString()}</td>
                   <td className="px-4 py-4"><StatusPill s={t.status} /></td>
                 </tr>
               ))}
