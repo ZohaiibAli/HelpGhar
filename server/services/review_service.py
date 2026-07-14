@@ -14,6 +14,8 @@ from ml.sentiment.analyzer import analyze_sentiment
 
 from fastapi import HTTPException
 
+from services.reputation_service import update_worker_reputation
+
 
 def create_review(review, current_customer):
     """
@@ -71,5 +73,7 @@ def create_review(review, current_customer):
     }
 
     review_collection.insert_one(review_document)
+    
+    update_worker_reputation(worker["workerId"])
 
     return review_document
