@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { notifications } from "@/data/mock";
 import { customerItems } from "@/data/customerMenu";
 import { useEffect, useState } from "react";
+import RecommendedWorkers from "@/components/customers/RecommendedWorkers";
 
 const items = [
   { label: "Overview", to: "/dashboard/customer", icon: LayoutDashboard },
@@ -106,6 +107,7 @@ export default function CustomerDashboard() {
           <StatCard label="Favourite workers" value={stats.favoriteWorkers.toString()} hint="Saved" />
           <StatCard label="Reviews left" value={stats.reviewsLeft.toString()} hint="Avg 4.8 ★" />
         </div>
+        <RecommendedWorkers />
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
@@ -155,5 +157,6 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint: 
       <p className="mt-2 text-2xl font-black">{value}</p>
       <p className="mt-1 text-xs text-primary">{hint}</p>
     </div>
+    
   );
 }

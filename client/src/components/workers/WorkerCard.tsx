@@ -71,120 +71,153 @@ export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: numb
               <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
               {worker.rating.toFixed(1)}
             </div>
-            <p className="text-[10px] text-muted-foreground">({worker.reviewsCount})</p>
+
+            {worker.recommendationScore != null && (
+              <div className="mt-2">
+                <span className="rounded-full bg-emerald-600 px-2 py-1 text-xs font-bold text-white">
+                  🔥 {worker.recommendationScore}% Match
+                </span>
+              </div>
+            )}
+
+            <p className="text-[10px] text-muted-foreground">
+              ({worker.reviewsCount})
+            </p>
+          </div>
+          </div>
+
+
+
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{worker.city}</span>
+            <span className="inline-flex items-center gap-1"><Briefcase className="h-3 w-3" />{worker.experienceYears}y exp</span>
+            <span>{worker.gender} • {worker.age}y</span>
+            <span>Since {new Date(worker.memberSince).getFullYear()}</span>
+          </div>
+
+          {
+            worker.reviewSummary && (
+
+              <div className="mt-3">
+
+                <div className="flex justify-between text-xs">
+
+                  <span className="text-muted-foreground">
+
+                    Positive Reviews
+
+                  </span>
+
+                  <span className="font-semibold text-emerald-600">
+
+                    {worker.reviewSummary.positivePercentage}%
+
+                  </span>
+
+                </div>
+
+                <div className="mt-1 h-2 rounded-full bg-gray-200">
+
+                  <div
+
+                    className="h-2 rounded-full bg-emerald-500"
+
+                    style={{
+
+                      width: `${worker.reviewSummary.positivePercentage}%`
+
+                    }}
+
+                  />
+
+                </div>
+
+              </div>
+
+            )
+          }
+
+          <div className="mt-4 rounded-xl bg-muted/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Price</p>
+            <p className="text-sm font-bold text-foreground">
+              Rs. {worker.priceMin.toLocaleString()} – {worker.priceMax.toLocaleString()}
+              <span className="text-xs font-medium text-muted-foreground">{priceUnit}</span>
+            </p>
+          </div>
+
+          {
+            worker.marketplaceScore && (
+
+              <div className="mt-4 rounded-xl bg-emerald-50 p-3">
+
+                <p className="text-xs text-gray-500">
+
+                  Marketplace Score
+
+                </p>
+
+                <p className="text-xl font-bold text-emerald-600">
+
+                  {worker.marketplaceScore.toFixed(1)}
+
+                </p>
+
+              </div>
+
+            )}
+
+            {(worker.recommendationReasons?.length ?? 0) > 0 && (
+              <div className="mt-3">
+                <p className="text-xs font-semibold">
+                  Why Recommended
+                </p>
+
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(worker.recommendationReasons ?? []).map((reason) => (
+                    <span
+                      key={reason}
+                      className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700"
+                    >
+                      {reason}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          
+
+          <div className="mt-4 flex gap-2">
+            <Link
+              to={`/workers/${worker.id}`}
+              className="flex-1 rounded-xl border border-border bg-background py-2.5 text-center text-xs font-semibold transition hover:border-primary hover:text-primary"
+            >
+              View Profile
+            </Link>
+            <button
+              onClick={() =>
+                handleHireNowClick({
+                  user,
+                  token,
+                  navigate,
+                  workerId: worker.id,
+                  onWorkerTriesToHire: () => setShowWorkerAlert(true),
+                })
+              }
+              className="flex-1 rounded-xl bg-primary py-2.5 text-center text-xs font-bold text-primary-foreground shadow-soft transition hover:bg-primary-dark active:scale-95"
+            >
+              Hire Now
+            </button>
           </div>
         </div>
-
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{worker.city}</span>
-          <span className="inline-flex items-center gap-1"><Briefcase className="h-3 w-3" />{worker.experienceYears}y exp</span>
-          <span>{worker.gender} • {worker.age}y</span>
-          <span>Since {new Date(worker.memberSince).getFullYear()}</span>
-        </div>
-
-        {
-          worker.reviewSummary && (
-
-            <div className="mt-3">
-
-              <div className="flex justify-between text-xs">
-
-                <span className="text-muted-foreground">
-
-                  Positive Reviews
-
-                </span>
-
-                <span className="font-semibold text-emerald-600">
-
-                  {worker.reviewSummary.positivePercentage}%
-
-                </span>
-
-              </div>
-
-              <div className="mt-1 h-2 rounded-full bg-gray-200">
-
-                <div
-
-                  className="h-2 rounded-full bg-emerald-500"
-
-                  style={{
-
-                    width: `${worker.reviewSummary.positivePercentage}%`
-
-                  }}
-
-                />
-
-              </div>
-
-            </div>
-
-          )
-        }
-
-        <div className="mt-4 rounded-xl bg-muted/60 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Price</p>
-          <p className="text-sm font-bold text-foreground">
-            Rs. {worker.priceMin.toLocaleString()} – {worker.priceMax.toLocaleString()}
-            <span className="text-xs font-medium text-muted-foreground">{priceUnit}</span>
-          </p>
-        </div>
-
-        {
-          worker.marketplaceScore && (
-
-            <div className="mt-4 rounded-xl bg-emerald-50 p-3">
-
-              <p className="text-xs text-gray-500">
-
-                Marketplace Score
-
-              </p>
-
-              <p className="text-xl font-bold text-emerald-600">
-
-                {worker.marketplaceScore.toFixed(1)}
-
-              </p>
-
-            </div>
-
-          )
-        }
-
-        <div className="mt-4 flex gap-2">
-          <Link
-            to={`/workers/${worker.id}`}
-            className="flex-1 rounded-xl border border-border bg-background py-2.5 text-center text-xs font-semibold transition hover:border-primary hover:text-primary"
-          >
-            View Profile
-          </Link>
-          <button
-            onClick={() =>
-              handleHireNowClick({
-                user,
-                token,
-                navigate,
-                workerId: worker.id,
-                onWorkerTriesToHire: () => setShowWorkerAlert(true),
-              })
-            }
-            className="flex-1 rounded-xl bg-primary py-2.5 text-center text-xs font-bold text-primary-foreground shadow-soft transition hover:bg-primary-dark active:scale-95"
-          >
-            Hire Now
-          </button>
-        </div>
-      </div>
-      <HgAlert
-        open={showWorkerAlert}
-        onClose={() => setShowWorkerAlert(false)}
-        type="warning"
-        title="Wrong account type"
-        description="Please log in from a customer profile to hire a worker."
-        cancelLabel="Got it"
-      />
+        <HgAlert
+          open={showWorkerAlert}
+          onClose={() => setShowWorkerAlert(false)}
+          type="warning"
+          title="Wrong account type"
+          description="Please log in from a customer profile to hire a worker."
+          cancelLabel="Got it"
+        />
     </motion.article>
   );
 }

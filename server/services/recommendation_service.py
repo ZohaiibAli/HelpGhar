@@ -24,6 +24,8 @@ from ml.recommendation.feature_engineering import (
     feature_engineering
 )
 
+from pprint import pprint
+
 from ml.recommendation.similarity import (
     similarity_engine
 )
@@ -151,25 +153,20 @@ class RecommendationService:
     # -----------------------------------------
 
     def recommend_workers(
-
         self,
-
         customer_id,
-
         workers
-
     ):
 
         customer_vector = feature_engineering.customer_features(
-
             customer_id
-
         )
+
         preferences = customer_preference_collection.find_one(
-        {
-            "customerId": customer_id
-        }
-    )
+            {
+                "customerId": customer_id
+            }
+        )
 
         ranked = []
 
@@ -177,23 +174,32 @@ class RecommendationService:
 
             worker = worker.copy()
 
-            worker["recommendationScore"] = (
-            self.recommendation_score(
+            worker["recommendationScore"] = self.recommendation_score(
                 customer_vector,
                 worker,
                 preferences
             )
-        )
+
+            # ----------------------------
+            # Convert Mongo ObjectId
+            # ----------------------------
+
+            if "_id" in worker:
+
+                worker["id"] = str(worker["_id"])
+
+                del worker["_id"]
 
             ranked.append(worker)
 
         ranked.sort(
-
             key=lambda x: x["recommendationScore"],
-
             reverse=True
-
         )
+       
+
+        for worker in ranked:
+            pprint(worker)
 
         return ranked
 

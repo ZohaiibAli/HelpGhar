@@ -35,6 +35,10 @@ export type WorkerCategory =
   | "Plumbers"
   | "Cleaners";
 
+export interface RecommendationReason {
+  title: string;
+}
+
 export interface Worker {
   id: string;
   workerId?: string;   // <-- ADD THIS
@@ -67,6 +71,10 @@ export interface Worker {
 
   reputationLabel?: string;
 
+  recommendationScore?: number;
+
+  recommendationReasons?: string[];
+
   reviewSummary?: {
 
     positive: number;
@@ -89,9 +97,25 @@ export interface Worker {
 
     improvements: string[];
 
-  };
+    marketplaceScore?: number;
 
-}
+    reputationLabel?: string;
+
+    // recommendationScore?: number;
+
+    // recommendationReasons?: string[];
+
+    reviewSummary?: {
+      positive: number;
+      neutral: number;
+      negative: number;
+      positivePercentage: number;
+    }
+
+  }
+
+};
+
 
 export type BookingStatus =
   | "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
