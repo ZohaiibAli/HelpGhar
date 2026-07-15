@@ -5,11 +5,14 @@ import { categories } from "@/data/mock";
 import { useEffect, useState } from "react";
 import { WorkerCategory } from "@/types";
 import { useAuthStore } from "@/store/authStore";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 import {
   uploadAvatar,
   createGig,
   getWorkerDashboard,
+  startBooking,
+  completeBooking,
 } from "@/services/workerService";
 
 import { workerItems } from "@/data/workerMenu";
@@ -34,6 +37,15 @@ type DashboardStats = {
   totalEarnings: number;
 };
 
+type AlertState = {
+  open: boolean;
+  type: "error" | "warning" | "success" | "server";
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+};
+
 export default function WorkerDashboard() {
   const { user } = useAuthStore();
   const [modalOpen, setModalOpen] = useState(false);
@@ -44,6 +56,13 @@ export default function WorkerDashboard() {
   const [activeJobs, setActiveJobs] = useState<ActiveJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Per-booking action loading + shared alert dialog
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [alertState, setAlertState] = useState<AlertState>({
+    open: false, type: "error", title: "", description: "",
+  });
+  const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
 
   const [form, setForm] = useState({
     fullName: user?.fullName || "",
@@ -78,6 +97,74 @@ export default function WorkerDashboard() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  const confirmStart = (bookingId: string) => {
+    setAlertState({
+      open: true,
+      type: "warning",
+      title: "Start this job?",
+      description: "This will mark the booking as in progress and notify the admin.",
+      actionLabel: "Yes, start it",
+      onAction: () => doStart(bookingId),
+    });
+  };
+
+  const doStart = async (bookingId: string) => {
+    setActionLoading(bookingId);
+    try {
+      await startBooking(bookingId);
+      await loadDashboard();
+      setAlertState({
+        open: true,
+        type: "success",
+        title: "Job started",
+        description: "This booking is now in progress.",
+      });
+    } catch (err: any) {
+      setAlertState({
+        open: true,
+        type: "server",
+        title: "Could not start job",
+        description: err.message ?? "Something went wrong. Please try again.",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const confirmComplete = (bookingId: string) => {
+    setAlertState({
+      open: true,
+      type: "warning",
+      title: "Mark this job as completed?",
+      description: "Only do this once the service has actually been delivered.",
+      actionLabel: "Yes, mark completed",
+      onAction: () => doComplete(bookingId),
+    });
+  };
+
+  const doComplete = async (bookingId: string) => {
+    setActionLoading(bookingId);
+    try {
+      await completeBooking(bookingId);
+      await loadDashboard();
+      setAlertState({
+        open: true,
+        type: "success",
+        title: "Job completed",
+        description: "This booking has been marked as completed.",
+      });
+    } catch (err: any) {
+      setAlertState({
+        open: true,
+        type: "server",
+        title: "Could not mark as completed",
+        description: err.message ?? "Something went wrong. Please try again.",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   function validate() {
     const e: Record<string, string> = {};
@@ -211,6 +298,7 @@ export default function WorkerDashboard() {
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
                 <h2 className="text-base font-bold">Active jobs</h2>
+
                 <div className="mt-4 space-y-3">
                   {activeJobs.length === 0 && (
                     <p className="text-sm text-muted-foreground">No active jobs right now.</p>
@@ -225,9 +313,24 @@ export default function WorkerDashboard() {
                         <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-bold uppercase text-primary-dark">{b.status}</span>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <button className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark">Start</button>
-                        <button className="rounded-xl border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">Mark in progress</button>
-                        <button className="rounded-xl border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">Complete</button>
+                        {b.status === "confirmed" && (
+                          <button
+                            onClick={() => confirmStart(b.bookingId)}
+                            disabled={actionLoading === b.bookingId}
+                            className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
+                          >
+                            {actionLoading === b.bookingId ? "Starting..." : "Start"}
+                          </button>
+                        )}
+                        {b.status === "in_progress" && (
+                          <button
+                            onClick={() => confirmComplete(b.bookingId)}
+                            disabled={actionLoading === b.bookingId}
+                            className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
+                          >
+                            {actionLoading === b.bookingId ? "Completing..." : "Complete"}
+                          </button>
+                        )}
                         <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground"><Timer className="h-3 w-3" /> {b.durationHours}h job</span>
                       </div>
                     </div>
@@ -458,6 +561,17 @@ export default function WorkerDashboard() {
           </div>
         </div>
       )}
+
+      <HgAlert
+        open={alertState.open}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        description={alertState.description}
+        actionLabel={alertState.actionLabel}
+        onAction={alertState.onAction}
+        cancelLabel={alertState.actionLabel ? "No, go back" : "Got it"}
+      />
 
     </DashboardLayout>
   );

@@ -206,6 +206,26 @@ def worker_reschedule_booking(
         "message": "Booking rescheduled"
     }
 
+# on worker dashboard, worker clicks on start 
+@router.patch("/{booking_id}/start")
+def start_booking(booking_id: str, current_worker: dict = Depends(get_current_worker)):
+    booking = booking_collection.find_one({
+        "bookingId": booking_id,
+        "workerId": current_worker["workerId"]
+    })
+
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking["status"] != "confirmed":
+        raise HTTPException(status_code=400, detail="Only confirmed bookings can be started")
+
+    booking_collection.update_one(
+        {"bookingId": booking_id},
+        {"$set": {"status": "in_progress"}}
+    )
+
+    return {"success": True, "message": "Booking started"}
+
 @router.patch("/{booking_id}/complete")
 def complete_booking(booking_id: str, current_worker: dict = Depends(get_current_worker)):
     booking = booking_collection.find_one({
