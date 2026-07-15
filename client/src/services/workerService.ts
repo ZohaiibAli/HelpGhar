@@ -92,3 +92,13 @@ export async function getWorkerDashboard() {
     }[];
   };
 }
+
+export async function startBooking(bookingId: string) {
+  const { data } = await api.patch(`/bookings/${bookingId}/start`);
+  return data as { success: boolean; message: string };
+}
+
+export async function completeBooking(bookingId: string) {
+  const { data } = await api.patch(`/bookings/${bookingId}/complete`);
+  return data as { success: boolean; message: string };
+}

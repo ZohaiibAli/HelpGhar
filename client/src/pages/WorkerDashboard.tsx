@@ -10,6 +10,8 @@ import {
   uploadAvatar,
   createGig,
   getWorkerDashboard,
+  startBooking,
+  completeBooking,
 } from "@/services/workerService";
 
 import { workerItems } from "@/data/workerMenu";
@@ -45,6 +47,10 @@ export default function WorkerDashboard() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Per-booking action state (Start / Complete)
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     fullName: user?.fullName || "",
     category: "" as WorkerCategory,
@@ -78,6 +84,32 @@ export default function WorkerDashboard() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  async function handleStart(bookingId: string) {
+    setActionLoading(bookingId);
+    setActionError(null);
+    try {
+      await startBooking(bookingId);
+      await loadDashboard();
+    } catch (err: any) {
+      setActionError(err?.message ?? "Failed to start job");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleComplete(bookingId: string) {
+    setActionLoading(bookingId);
+    setActionError(null);
+    try {
+      await completeBooking(bookingId);
+      await loadDashboard();
+    } catch (err: any) {
+      setActionError(err?.message ?? "Failed to complete job");
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   function validate() {
     const e: Record<string, string> = {};
@@ -211,6 +243,11 @@ export default function WorkerDashboard() {
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
                 <h2 className="text-base font-bold">Active jobs</h2>
+
+                {actionError && (
+                  <p className="mt-2 text-xs font-semibold text-red-500">{actionError}</p>
+                )}
+
                 <div className="mt-4 space-y-3">
                   {activeJobs.length === 0 && (
                     <p className="text-sm text-muted-foreground">No active jobs right now.</p>
@@ -225,9 +262,24 @@ export default function WorkerDashboard() {
                         <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-bold uppercase text-primary-dark">{b.status}</span>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <button className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark">Start</button>
-                        <button className="rounded-xl border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">Mark in progress</button>
-                        <button className="rounded-xl border border-border px-3 py-1.5 text-xs font-bold hover:border-primary">Complete</button>
+                        {b.status === "confirmed" && (
+                          <button
+                            onClick={() => handleStart(b.bookingId)}
+                            disabled={actionLoading === b.bookingId}
+                            className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
+                          >
+                            {actionLoading === b.bookingId ? "Starting..." : "Start"}
+                          </button>
+                        )}
+                        {b.status === "in_progress" && (
+                          <button
+                            onClick={() => handleComplete(b.bookingId)}
+                            disabled={actionLoading === b.bookingId}
+                            className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
+                          >
+                            {actionLoading === b.bookingId ? "Completing..." : "Complete"}
+                          </button>
+                        )}
                         <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground"><Timer className="h-3 w-3" /> {b.durationHours}h job</span>
                       </div>
                     </div>
