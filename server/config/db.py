@@ -24,6 +24,7 @@ try:
     counter_collection = db["counters"]
     worker_details_collection = db["worker_details"]
     conversation_collection = db["conversations"]
+    review_collection = db["reviews"]
     
     
     print("MongoDB Connected Successfully")
