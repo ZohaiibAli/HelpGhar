@@ -75,6 +75,10 @@ export interface Worker {
 
   recommendationReasons?: string[];
 
+  contentScore?: number;
+
+  collaborativeScore?: number;
+
   reviewSummary?: {
 
     positive: number;

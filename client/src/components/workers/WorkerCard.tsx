@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { handleHireNowClick } from "@/lib/hireNow";
 import ReputationBadge from "@/components/ai/ReputationBadge";
+import RecommendationReason from "@/components/ai/RecommendationReason";
 
 export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: number }) {
   const navigate = useNavigate();
@@ -164,6 +165,16 @@ export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: numb
 
               </div>
 
+            )}
+
+            {worker.recommendationScore != null &&
+            worker.contentScore != null &&
+            worker.collaborativeScore != null && (
+              <RecommendationReason
+                score={worker.recommendationScore}
+                content={worker.contentScore}
+                collaborative={worker.collaborativeScore}
+              />
             )}
 
             {(worker.recommendationReasons?.length ?? 0) > 0 && (

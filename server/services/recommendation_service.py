@@ -30,6 +30,9 @@ from ml.recommendation.similarity import (
     similarity_engine
 )
 
+from ml.recommendation.collaborative import (
+    collaborative_filtering
+)
 
 class RecommendationService:
 
@@ -168,16 +171,41 @@ class RecommendationService:
             }
         )
 
+        collaborative_scores = (
+            collaborative_filtering.worker_scores(
+                customer_id
+            )
+        )
+
         ranked = []
 
         for worker in workers:
 
             worker = worker.copy()
 
-            worker["recommendationScore"] = self.recommendation_score(
+            content_score = self.recommendation_score(
                 customer_vector,
                 worker,
                 preferences
+            )
+
+            collab_score = collaborative_scores.get(
+                worker["workerId"],
+                0
+            ) * 100
+
+            worker["contentScore"] = round(content_score, 2)
+
+            worker["collaborativeScore"] = round(collab_score, 2)
+
+            worker["recommendationScore"] = round(
+
+                content_score * 0.60 +
+
+                collab_score * 0.40,
+
+                2
+
             )
 
             # ----------------------------
