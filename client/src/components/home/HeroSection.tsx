@@ -272,58 +272,6 @@ export function HeroSection() {
             ))}
           </div>
 
-          {/* Floating card: Worker profile */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-          >
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -left-8 top-8 z-20 w-64 rotate-[-3deg] overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-lift backdrop-blur-lg"
-            >
-              <div className="h-1 w-full bg-primary" />
-              <div className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="relative">
-                    <img
-                      src="https://i.pravatar.cc/96?img=22"
-                      className="h-12 w-12 rounded-xl object-cover ring-2 ring-primary/20"
-                      alt=""
-                    />
-                    <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-card bg-emerald-400" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-foreground">Bilal Ahmed</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      <MapPin className="mr-0.5 inline h-2.5 w-2.5" />
-                      Driver • Karachi
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
-                    Online
-                  </span>
-                </div>
-                <div className="mt-3 flex items-center justify-between rounded-xl bg-accent/40 px-3 py-2">
-                  <div className="flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    <span className="text-xs font-bold text-foreground">4.9</span>
-                    <span className="text-[10px] text-muted-foreground">(128)</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    5 yrs exp
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-primary" />
-                    Verified
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-
           {/* Floating card: Booking confirmation */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -345,23 +293,23 @@ export function HeroSection() {
                     Booking Confirmed
                   </p>
                 </div>
-                <p className="mt-2.5 text-sm font-bold text-foreground">House Cleaning</p>
+                <p className="mt-2.5 text-sm font-bold text-foreground">Plumbing Repair</p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   <Clock className="mr-0.5 inline h-3 w-3" />
-                  Tomorrow, 10:00 AM
+                  Today, 3:30 PM
                 </p>
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <img
-                      src="https://i.pravatar.cc/40?img=47"
+                      src="https://i.pravatar.cc/40?img=53"
                       className="h-6 w-6 rounded-full object-cover ring-1 ring-black/5"
                       alt=""
                     />
-                    <span className="text-[11px] font-medium text-foreground">Sana K.</span>
+                    <span className="text-[11px] font-medium text-foreground">Farhan R.</span>
                   </div>
                   <div className="flex items-center gap-0.5 text-xs font-semibold text-amber-500">
                     <Star className="h-3 w-3 fill-current" />
-                    4.9
+                    4.7
                   </div>
                 </div>
               </div>
