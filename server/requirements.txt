@@ -20,3 +20,4 @@ langchain-text-splitters
 nltk==3.9.1
 scikit-learn 
 numpy
+tzdata
