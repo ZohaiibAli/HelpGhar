@@ -19,42 +19,46 @@ export default function WorkerReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-useEffect(() => {
-  const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const token = localStorage.getItem("token"); 
+        const token = localStorage.getItem("token");
 
-      if (!token) {
-        setError("You are not logged in.");
+        if (!token) {
+          setError("You are not logged in.");
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch(
+          `${API_BASE_URL}/reviews/my-reviews`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await res.json();
+        if (data.success) {
+          setReviews(data.reviews);
+        } else {
+          setError("Failed to load reviews");
+        }
+      } catch (err) {
+        setError("Something went wrong while fetching reviews");
+      } finally {
         setLoading(false);
-        return;
       }
+    };
 
-      const res = await fetch("http://localhost:8000/reviews/my-reviews", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setReviews(data.reviews);
-      } else {
-        setError("Failed to load reviews");
-      }
-    } catch (err) {
-      setError("Something went wrong while fetching reviews");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchReviews();
-}, []);
+    fetchReviews();
+  }, []);
 
   const avgRating = reviews.length
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
