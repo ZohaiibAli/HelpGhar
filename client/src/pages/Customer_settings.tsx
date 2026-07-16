@@ -2,9 +2,40 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { HgAlert } from "@/components/ui/HgAlert";
 
 export default function CustomerSettingsPage() {
   const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [errorOpen, setErrorOpen] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setConfirmOpen(true);  // just open the confirm dialog, no window.confirm
+  };
+
+  const confirmDelete = async () => {
+    setConfirmOpen(false);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/customer/delete-account`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (result.success) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("customer");
+        navigate("/login");
+      } else {
+        setErrorOpen(true);
+      }
+    } catch (error) {
+      console.log(error);
+      setErrorOpen(true);
+    }
+  };
   return (
     <DashboardLayout
       title="Customer"
@@ -39,11 +70,37 @@ export default function CustomerSettingsPage() {
                 Change password
               </Button>
               <Button variant="outline" className="w-fit">Enable two-factor authentication</Button>
-              <Button variant="outline" className="w-fit text-destructive">Delete my account</Button>
+              <Button
+                variant="outline"
+                className="w-fit text-destructive"
+                onClick={handleDeleteAccount}
+              >
+                Delete my account
+              </Button>
             </div>
           </Card>
         </div>
       </div>
+      {/* Confirm delete dialog */}
+      <HgAlert
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        type="warning"
+        title="Delete your account?"
+        description="This action is permanent and cannot be undone. All your data will be removed."
+        actionLabel="Yes, delete my account"
+        onAction={confirmDelete}
+        cancelLabel="Cancel"
+      />
+
+      {/* Error dialog */}
+      <HgAlert
+        open={errorOpen}
+        onClose={() => setErrorOpen(false)}
+        type="server"
+        title="Something went wrong"
+        description="We couldn't delete your account. Please try again or contact support."
+      />
     </DashboardLayout>
   );
 }

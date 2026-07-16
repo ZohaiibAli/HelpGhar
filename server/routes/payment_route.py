@@ -4,6 +4,7 @@ from model.payment_model import PaymentCreate
 from helper.auth_helper import get_current_customer
 from helper.id_helper import generate_transaction_id
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -68,7 +69,7 @@ def make_payment(
     "platformFee": booking["platformFee"],
     "total": booking["total"],
 
-    "date": datetime.utcnow().isoformat(),
+    "date": datetime.now(ZoneInfo("Asia/Karachi")).isoformat(),
 
     "status": "successful",
 }

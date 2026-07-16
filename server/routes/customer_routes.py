@@ -281,3 +281,42 @@ def change_password(
         "message": "Password Updated Successfully"
 
     }
+
+@router.delete("/delete-account")
+def delete_account(
+    user=Depends(verify_token)
+):
+
+    if user["role"] != "customer":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Customer Only"
+        )
+
+    customer = customer_collection.find_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    if not customer:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+
+    customer_collection.delete_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    return {
+
+        "success": True,
+
+        "message": "Account deleted successfully"
+
+    }
