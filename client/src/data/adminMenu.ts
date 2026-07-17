@@ -15,6 +15,5 @@ export const adminItems = [
   { label: "Bookings", to: "/dashboard/admin/bookings", icon: Calendar },
   { label: "Complaints", to: "/dashboard/admin/complaints", icon: MessageSquareWarning },
   { label: "Reviews", to: "/dashboard/admin/reviews", icon: Star },
-  // { label: "Analytics", to: "/dashboard/admin/analytics", icon: BarChart3 },
   { label: "Settings", to: "/dashboard/admin/settings", icon: Settings },
 ];
