@@ -14,6 +14,8 @@ import {
   Star,
   MessageSquareWarning,
   Settings,
+  Wrench,
+  MessageCircle,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
@@ -29,13 +31,12 @@ import {
 import { customerItems } from "@/data/customerMenu";
 
 const NAV = [
-  { to: "/#home", label: "Home" },
-  { to: "/#services", label: "Services" },
-  { to: "/#reviews", label: "Reviews" },
-  { to: "/#chat", label: "Chat" },
+  { to: "/#home", label: "Home", icon: Home },
+  { to: "/#services", label: "Services", icon: Wrench },
+  { to: "/#reviews", label: "Reviews", icon: Star },
+  { to: "/#chat", label: "Chat", icon: MessageCircle },
 ];
 
-/** All customer dashboard route paths */
 const CUSTOMER_DASHBOARD_ROUTES = [
   "/dashboard/customer",
   "/my-bookings",
@@ -102,7 +103,7 @@ export function Navbar() {
           )}
         </Link>
 
-        {/* Desktop nav — only show landing nav when NOT on dashboard */}
+        {/* Desktop nav — only on landing page */}
         {!onDashboard && (
           <nav className="hidden items-center gap-1 md:flex">
             {NAV.map((n) => {
@@ -173,7 +174,7 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Hamburger — always visible on mobile */}
+        {/* Hamburger */}
         <button
           className="md:hidden grid h-10 w-10 place-items-center rounded-full border border-border"
           onClick={() => setOpen((o) => !o)}
@@ -188,9 +189,8 @@ export function Navbar() {
         <div className="border-t border-border bg-background md:hidden">
           <div className="space-y-1 px-4 py-3">
             {onDashboard ? (
-              /* ---------- ON DASHBOARD: Home + Customer nav ---------- */
+              /* ---------- ON DASHBOARD ---------- */
               <>
-                {/* Home button */}
                 <Link
                   to="/"
                   onClick={closeMobile}
@@ -202,7 +202,6 @@ export function Navbar() {
 
                 <div className="my-2 h-px bg-border" />
 
-                {/* Customer dashboard items */}
                 {customerItems.map((item) => {
                   const active = location.pathname === item.to;
                   const Icon = item.icon;
@@ -230,14 +229,14 @@ export function Navbar() {
                     handleLogout();
                     closeMobile();
                   }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent text-destructive"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
                 >
                   <LogOut className="h-5 w-5" />
                   Log out
                 </button>
               </>
             ) : (
-              /* ---------- ON LANDING: Dashboard + Landing nav ---------- */
+              /* ---------- ON LANDING ---------- */
               <>
                 {user && (
                   <Link
@@ -252,38 +251,34 @@ export function Navbar() {
 
                 <div className="my-2 h-px bg-border" />
 
-                {NAV.map((n) => (
-                  <Link
-                    key={n.to}
-                    to={n.to}
-                    onClick={closeMobile}
-                    className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
-                  >
-                    {n.label}
-                  </Link>
-                ))}
+                {NAV.map((n) => {
+                  const Icon = n.icon;
+                  return (
+                    <Link
+                      key={n.to}
+                      to={n.to}
+                      onClick={closeMobile}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent"
+                    >
+                      <Icon className="h-5 w-5 text-muted-foreground" />
+                      {n.label}
+                    </Link>
+                  );
+                })}
 
                 <div className="my-2 h-px bg-border" />
 
                 {user ? (
-                  <>
-                    <Link
-                      to={profileHref}
-                      onClick={closeMobile}
-                      className="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent"
-                    >
-                      Profile
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        closeMobile();
-                      }}
-                      className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-accent"
-                    >
-                      Log out
-                    </button>
-                  </>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      closeMobile();
+                    }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    Log out
+                  </button>
                 ) : (
                   <div className="flex gap-2 pt-1">
                     <Button asChild variant="outline" className="flex-1">
