@@ -226,8 +226,8 @@ class RecommendationService:
         )
        
 
-        for worker in ranked:
-            pprint(worker)
+        # for worker in ranked:
+        #     pprint(worker)
 
         return ranked
 

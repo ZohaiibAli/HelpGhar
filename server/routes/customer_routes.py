@@ -111,7 +111,6 @@ def login_customer(customer: CustomerLogin):
 @router.get("/profile")
 def get_profile(user=Depends(verify_token)):
 
-    #print("User received:", user)   # <-- ADD THIS
 
     if user["role"] != "customer":
 
