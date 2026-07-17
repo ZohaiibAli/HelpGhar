@@ -4,7 +4,6 @@ import {
   Calendar,
   MessageSquareWarning,
   Star,
-  BarChart3,
   Settings,
 } from "lucide-react";
 
