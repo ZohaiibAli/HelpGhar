@@ -4,7 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
-import { Camera, Upload } from "lucide-react";
+import { Camera } from "lucide-react";
 import { HgAlert } from "@/components/ui/HgAlert";
 
 interface WorkerProfile {
@@ -36,9 +36,6 @@ export default function WorkerProfilePage() {
   const [pricing, setPricing] = useState("");
   const [skills, setSkills] = useState("");
   const [email, setEmail] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [savingCredentials, setSavingCredentials] = useState(false);
 
   const [user, setUser] = useState<WorkerProfile | null>(null);
   const [saving, setSaving] = useState(false);
@@ -220,104 +217,6 @@ export default function WorkerProfilePage() {
 
   };
 
-  const handlePasswordUpdate = async () => {
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      navigate("/login/worker");
-      return;
-    }
-
-    if (!currentPassword || !newPassword) {
-
-      setAlertState({
-        open: true,
-        type: "error",
-        title: "Missing fields",
-        description: "Please enter both your current and new password.",
-      });
-
-      return;
-
-    }
-
-    setSavingCredentials(true);
-
-    try {
-
-      const response = await fetch(
-        `${API_BASE_URL}/worker/password`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            currentPassword,
-            newPassword,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (response.status === 401) {
-
-        setAlertState({
-          open: true,
-          type: "error",
-          title: "Incorrect password",
-          description: result.detail || "Current password is incorrect.",
-        });
-
-        return;
-
-      }
-
-      if (response.ok) {
-
-        setCurrentPassword("");
-        setNewPassword("");
-
-        setAlertState({
-          open: true,
-          type: "success",
-          title: "Password Updated",
-          description: result.message,
-        });
-
-      } else {
-
-        setAlertState({
-          open: true,
-          type: "error",
-          title: "Update Failed",
-          description: result.detail || result.message,
-        });
-
-      }
-
-    } catch (error) {
-
-      console.log(error);
-
-      setAlertState({
-        open: true,
-        type: "server",
-        title: "Server Error",
-        description: "Unable to update password.",
-      });
-
-    } finally {
-
-      setSavingCredentials(false);
-
-    }
-
-  };
-
   if (!user) {
     return (
       <DashboardLayout title="Worker" items={workerItems}>
@@ -448,43 +347,6 @@ export default function WorkerProfilePage() {
               />
             </Card>
 
-            <Card title="Change password">
-              <Grid>
-                <F
-                  label="Current password"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password"
-                />
-                <F
-                  label="New password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                />
-              </Grid>
-
-              <div className="flex justify-end">
-                <Button
-                  onClick={handlePasswordUpdate}
-                  disabled={savingCredentials}
-                  className="bg-primary hover:bg-primary-dark"
-                >
-                  {savingCredentials ? "Saving..." : "Change Password"}
-                </Button>
-              </div>
-            </Card>
-
-            <Card title="Documents">
-              <Grid>
-                <FileUpload label="CNIC front" />
-                <FileUpload label="CNIC back" />
-                <FileUpload label="Certificates (optional)" />
-              </Grid>
-            </Card>
-
             <div className="flex justify-end gap-3">
               <Button variant="outline">Cancel</Button>
               <Button
@@ -596,16 +458,5 @@ function TextAreaF({
         className="w-full rounded-xl border border-input bg-background px-3 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
       />
     </div>
-  );
-}
-
-function FileUpload({ label }: { label: string }) {
-  return (
-    <label className="flex h-28 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-input bg-muted/40 text-center transition hover:border-primary hover:bg-accent/30">
-      <Upload className="h-5 w-5 text-muted-foreground" />
-      <p className="mt-2 text-xs font-semibold">{label}</p>
-      <p className="text-[10px] text-muted-foreground">PNG or JPG, up to 5MB</p>
-      <input type="file" accept="image/*" className="hidden" />
-    </label>
   );
 }

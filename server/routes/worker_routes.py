@@ -455,3 +455,42 @@ def get_worker_details_public(worker_id: str):
         "skills": details.get("skills", ""),
         "certifications": details.get("certifications", "")
     }
+
+@router.delete("/delete-account")
+def delete_account(
+    user=Depends(verify_token)
+):
+
+    if user["role"] != "worker":
+
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
+    worker = worker_collection.find_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    if not worker:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Worker not found"
+        )
+
+    worker_collection.delete_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    return {
+
+        "success": True,
+
+        "message": "Account deleted successfully"
+
+    }
