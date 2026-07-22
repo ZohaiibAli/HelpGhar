@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { HgAlert } from "@/components/ui/HgAlert";
+import ChangePasswordSection from "@/components/customers/ChangePasswordSection";
 
 export default function CustomerSettingsPage() {
   const navigate = useNavigate();
@@ -43,40 +44,45 @@ export default function CustomerSettingsPage() {
     >
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-black md:text-4xl">Settings</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Manage notifications, language and security.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Manage security of your account.</p>
 
-        <div className="mt-8 space-y-6">
-          <Card title="Notifications">
-            <Toggle label="Email notifications" defaultChecked />
-            <Toggle label="SMS booking updates" defaultChecked />
-            <Toggle label="Promotional offers" />
-            <Toggle label="Push notifications" defaultChecked />
-          </Card>
-          <Card title="Preferences">
-            <Row label="Language">
-              <select className="h-10 rounded-lg border border-input bg-background px-3 text-sm"><option>English</option><option>اردو</option></select>
-            </Row>
-            <Row label="Default city">
-              <select className="h-10 rounded-lg border border-input bg-background px-3 text-sm"><option>Lahore</option><option>Karachi</option><option>Islamabad</option></select>
-            </Row>
-          </Card>
+        <div className="mt-8">
           <Card title="Security">
-            <div className="flex flex-col gap-3">
-              <Button
-                variant="outline"
-                className="w-fit"
-                onClick={() => navigate("/profile")}
-              >
-                Change password
-              </Button>
-              <Button variant="outline" className="w-fit">Enable two-factor authentication</Button>
-              <Button
-                variant="outline"
-                className="w-fit text-destructive"
-                onClick={handleDeleteAccount}
-              >
-                Delete my account
-              </Button>
+            <div className="space-y-6">
+
+              {/* Change Password */}
+
+              <div>
+                <h3 className="font-semibold">Change Password</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Update your account password to keep your account secure.
+                </p>
+
+                <ChangePasswordSection />
+              </div>
+
+              <hr />
+
+              {/* Delete Account */}
+
+              <div>
+                <h3 className="font-semibold text-destructive">
+                  Delete Account
+                </h3>
+
+                <p className="text-sm text-muted-foreground mb-4">
+                  Permanently delete your HelpGhar account.
+                </p>
+
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                >
+                  Delete My Account
+                </Button>
+
+              </div>
+
             </div>
           </Card>
         </div>
@@ -113,17 +119,17 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
     </div>
   );
 }
-function Toggle({ label, defaultChecked = false }: { label: string; defaultChecked?: boolean }) {
-  return (
-    <Row label={label}>
-      <label className="relative inline-flex h-6 w-11 cursor-pointer items-center">
-        <input type="checkbox" defaultChecked={defaultChecked} className="peer sr-only" />
-        <span className="h-6 w-11 rounded-full bg-muted transition peer-checked:bg-primary" />
-        <span className="absolute left-0.5 h-5 w-5 rounded-full bg-card shadow transition peer-checked:translate-x-5" />
-      </label>
-    </Row>
-  );
-}
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="flex items-center justify-between py-3 text-sm"><span>{label}</span>{children}</div>;
-}
+// function Toggle({ label, defaultChecked = false }: { label: string; defaultChecked?: boolean }) {
+//   return (
+//     <Row label={label}>
+//       <label className="relative inline-flex h-6 w-11 cursor-pointer items-center">
+//         <input type="checkbox" defaultChecked={defaultChecked} className="peer sr-only" />
+//         <span className="h-6 w-11 rounded-full bg-muted transition peer-checked:bg-primary" />
+//         <span className="absolute left-0.5 h-5 w-5 rounded-full bg-card shadow transition peer-checked:translate-x-5" />
+//       </label>
+//     </Row>
+//   );
+// }
+// function Row({ label, children }: { label: string; children: React.ReactNode }) {
+//   return <div className="flex items-center justify-between py-3 text-sm"><span>{label}</span>{children}</div>;
+// }
