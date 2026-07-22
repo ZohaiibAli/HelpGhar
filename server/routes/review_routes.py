@@ -9,6 +9,7 @@ from config.db import (
 )
 
 from helper.auth_helper import get_current_customer
+from helper.auth_helper import get_current_admin
 
 from helper.id_helper import generate_review_id
 
@@ -140,6 +141,23 @@ def get_worker_reviews(worker_id: str):
 
     for review in reviews:
         review["_id"] = str(review["_id"])
+
+    return {
+        "success": True,
+        "reviews": reviews
+    }
+
+@router.get("/admin")
+def get_all_reviews(
+    current_admin=Depends(get_current_admin)
+):
+    reviews = list(
+        review_collection.find().sort("createdAt", -1)
+    )
+
+    for review in reviews:
+        review["id"] = str(review["_id"])
+        del review["_id"]
 
     return {
         "success": True,

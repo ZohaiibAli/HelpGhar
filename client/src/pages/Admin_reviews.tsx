@@ -1,10 +1,37 @@
 import { Star } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
-import { reviews } from "@/data/mock";
+// import { reviews } from "@/data/mock";
+import { useEffect, useState } from "react";
+import { reviewService } from "@/services/reviewService";
+import type { Review } from "@/types";
 
 export default function AdminReviews() {
-  const avgRating = (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        const res = await reviewService.getReviews();
+        setReviews(res.data.reviews);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReviews();
+  }, []);
+
+  const avgRating =
+    reviews.length > 0
+      ? (
+        reviews.reduce((sum, r) => sum + r.rating, 0) /
+        reviews.length
+      ).toFixed(2)
+      : "0.00";
 
   return (
     <DashboardLayout title="Admin" items={adminItems}>
@@ -32,22 +59,50 @@ export default function AdminReviews() {
         <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
           <h2 className="text-base font-bold">All reviews</h2>
           <div className="mt-4 space-y-3">
-            {reviews.map((r) => (
-              <div key={r.id} className="rounded-2xl border border-border bg-background p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-xs font-bold">{r.customerName}</p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">{r.date}</p>
+            {loading ? (
+              <p className="text-sm text-muted-foreground">
+                Loading reviews...
+              </p>
+            ) : reviews.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No reviews found.
+              </p>
+            ) : (
+              reviews.map((r) => (
+                <div
+                  key={r.id}
+                  className="rounded-2xl border border-border bg-background p-4"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold">{r.customerName}</p>
+
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        {r.createdAt
+                          ? new Date(r.createdAt).toLocaleDateString()
+                          : "-"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-3.5 w-3.5 ${i < r.rating
+                              ? "fill-primary text-primary"
+                              : "text-muted-foreground/30"
+                            }`}
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? "fill-primary text-primary" : "text-muted-foreground/30"}`} />
-                    ))}
-                  </div>
+
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {r.comment}
+                  </p>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">{r.comment}</p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

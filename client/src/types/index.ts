@@ -168,7 +168,8 @@ export interface Review {
   customerAvatar?: string;
   rating: number;
   comment: string;
-  date: string;
+  date?: string;
+  createdAt?: string;
 }
 
 export interface Complaint {
