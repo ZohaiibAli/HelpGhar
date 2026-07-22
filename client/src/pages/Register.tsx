@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Upload, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import type { UserRole } from "@/types";
@@ -226,14 +226,6 @@ export default function RegisterPage() {
                   <textarea rows={4} className="hg-input !h-auto py-3" {...register("skills")} />
                 </F>
               </Section>
-
-              <Section title="Documents">
-                <Grid>
-                  <FileUpload label="CNIC front" />
-                  <FileUpload label="CNIC back" />
-                  <FileUpload label="Certificates (optional)" />
-                </Grid>
-              </Section>
             </>
           )}
 
@@ -283,15 +275,5 @@ function F({ label, error, children }: { label: string; error?: string; children
       {children}
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
-  );
-}
-function FileUpload({ label }: { label: string }) {
-  return (
-    <label className="flex h-28 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-input bg-muted/40 text-center transition hover:border-primary hover:bg-accent/30">
-      <Upload className="h-5 w-5 text-muted-foreground" />
-      <p className="mt-2 text-xs font-semibold">{label}</p>
-      <p className="text-[10px] text-muted-foreground">PNG or JPG, up to 5MB</p>
-      <input type="file" accept="image/*" className="hidden" />
-    </label>
   );
 }
