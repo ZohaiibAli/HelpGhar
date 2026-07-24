@@ -4,6 +4,7 @@ import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { api } from "@/services/api";
 
 // import { useGigStore } from "@/store/gigStore";
 
@@ -46,24 +47,16 @@ export default function CustomerReviewsPage() {
 
   const [list, setList] = useState<Review[]>([]);
   const [alertState, setAlertState] = useState<{
-  open: boolean;
-  type: "success" | "error";
-  title: string;
-  description: string;
-}>({ open: false, type: "success", title: "", description: "" });
+    open: boolean;
+    type: "success" | "error";
+    title: string;
+    description: string;
+  }>({ open: false, type: "success", title: "", description: "" });
 
-const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
+  const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const fetchReviews = async () => {
     try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_BASE}/reviews`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json();
+      const { data } = await api.get("/reviews");
 
       if (data.success) {
         setList(data.reviews);
@@ -75,15 +68,7 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
 
   const fetchWorkers = async () => {
     try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_BASE}/reviews/workers`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json();
+      const { data } = await api.get("/reviews/workers");
 
       if (data.success) {
         setWorkers(data.workers);
@@ -100,42 +85,31 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
     if (!comment.trim()) return;
 
     try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(`${API_BASE}/reviews`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          workerId,
-          rating,
-          comment,
-        }),
+      const { data } = await api.post("/reviews", {
+        workerId,
+        rating,
+        comment,
       });
-
-      const data = await res.json();
 
       if (data.success) {
         fetchReviews();
         setComment("");
         setRating(5);
-         setAlertState({          // ← add this
-    open: true,
-    type: "success",
-    title: "Thank you for your review!",
-    description: data.message || "Your feedback helps others find great workers.",
-  });
-} 
-       else setAlertState({          // ← replace alert()
-    open: true,
-    type: "error",
-    title: "Submission failed",
-    description: data.detail || data.message || "Something went wrong. Please try again.",
-  });
-}
-     catch (error) {
+        setAlertState({          // ← add this
+          open: true,
+          type: "success",
+          title: "Thank you for your review!",
+          description: data.message || "Your feedback helps others find great workers.",
+        });
+      }
+      else setAlertState({          // ← replace alert()
+        open: true,
+        type: "error",
+        title: "Submission failed",
+        description: data.detail || data.message || "Something went wrong. Please try again.",
+      });
+    }
+    catch (error) {
       console.error(error);
     }
   };
@@ -209,7 +183,7 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
           </div>
         </aside>
       </div>
-     <HgAlert
+      <HgAlert
         open={alertState.open}
         onClose={closeAlert}
         type={alertState.type}

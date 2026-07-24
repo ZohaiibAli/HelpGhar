@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { HgAlert } from "@/components/ui/HgAlert";
 import ChangePasswordSection from "@/components/customers/ChangePasswordSection";
+import { api } from "@/services/api";
 
 export default function CustomerSettingsPage() {
   const navigate = useNavigate();
@@ -19,16 +20,11 @@ export default function CustomerSettingsPage() {
   const confirmDelete = async () => {
     setConfirmOpen(false);
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/customer/delete-account`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = await response.json();
+      const { data: result } = await api.delete("/customer/delete-account");
       if (result.success) {
         localStorage.removeItem("token");
         localStorage.removeItem("customer");
-        navigate("/login");
+        navigate("/");
       } else {
         setErrorOpen(true);
       }

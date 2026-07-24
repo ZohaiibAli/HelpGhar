@@ -5,7 +5,7 @@ import { customerItems } from "@/data/customerMenu";
 import type { PaymentStatus } from "@/types";
 import { Download } from "lucide-react";
 import jsPDF from "jspdf";
-
+import { api } from "@/services/api";
 
 const filters: { id: "all" | PaymentStatus; label: string }[] = [
   { id: "all", label: "All" }, { id: "successful", label: "Successful" },
@@ -31,18 +31,7 @@ export default function TransactionsPage() {
 
     try {
 
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(
-        `${API_BASE_URL}/payments/my`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-
-      const result = await response.json();
+      const { data: result } = await api.get("/payments/my");
 
       if (result.success) {
 
@@ -68,18 +57,19 @@ export default function TransactionsPage() {
 
     try {
 
-      const token = localStorage.getItem("token");
+      // const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        `${API_BASE_URL}/payments/receipt/${transactionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      // const response = await fetch(
+      //   `${API_BASE_URL}/payments/receipt/${transactionId}`,
+      //   {
+      //     headers: {
+      //       Authorization: `Bearer ${token}`
+      //     }
+      //   }
+      // );
 
-      const result = await response.json();
+      // const result = await response.json();
+      const { data: result } = await api.get(`/payments/receipt/${transactionId}`);
 
       if (!result.success) return;
 

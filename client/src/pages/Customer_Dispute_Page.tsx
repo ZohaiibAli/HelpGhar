@@ -5,6 +5,7 @@ import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
 import type { Complaint } from "@/types";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { api } from "@/services/api";
 
 
 export default function DisputePage() {
@@ -35,71 +36,70 @@ export default function DisputePage() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const fetchWorkers = async () => {
-
     try {
 
-      const response = await fetch(
+      const { data } = await api.get("/customer/workers");
 
-        `${API_BASE_URL}/customer/workers`
-
-      );
-
-      const result = await response.json();
-
-      if (result.success) {
-
-        setWorkers(result.workers);
-
+      if (data.success) {
+        setWorkers(data.workers);
       }
 
-    }
-
-    catch (error) {
-
+    } catch (error) {
       console.log(error);
-
     }
+  };
+  // const fetchComplaints = async () => {
 
-  }
+  //   try {
+
+  //     const token = localStorage.getItem("token");
+
+  //     const response = await fetch(
+
+  //       `${API_BASE_URL}/customer/disputes`,
+
+  //       {
+
+  //         headers: {
+
+  //           Authorization: `Bearer ${token}`
+
+  //         }
+
+  //       }
+
+  //     );
+
+  //     const result = await response.json();
+
+  //     if (result.success) {
+
+  //       setList(result.complaints);
+
+  //     }
+
+  //   }
+
+  //   catch (error) {
+
+  //     console.log(error);
+
+  //   }
+
+  // };
 
   const fetchComplaints = async () => {
-
     try {
 
-      const token = localStorage.getItem("token");
+      const { data } = await api.get("/customer/disputes");
 
-      const response = await fetch(
-
-        `${API_BASE_URL}/customer/disputes`,
-
-        {
-
-          headers: {
-
-            Authorization: `Bearer ${token}`
-
-          }
-
-        }
-
-      );
-
-      const result = await response.json();
-
-      if (result.success) {
-
-        setList(result.complaints);
-
+      if (data.success) {
+        setList(data.complaints);
       }
 
-    }
-
-    catch (error) {
-
+    } catch (error) {
       console.log(error);
-
     }
-
   };
   useEffect(() => {
 
@@ -188,36 +188,11 @@ export default function DisputePage() {
 
                   try {
 
-                    const token = localStorage.getItem("token");
-
-                    const response = await fetch(
-                      `${import.meta.env.VITE_API_BASE_URL}/customer/dispute`,
-                      {
-
-                        method: "POST",
-
-                        headers: {
-
-                          "Content-Type": "application/json",
-
-                          Authorization: `Bearer ${token}`
-
-                        },
-
-                        body: JSON.stringify({
-
-                          workerId: form.workerId,
-
-                          subject: form.subject,
-
-                          description: form.description
-
-                        })
-
-                      }
-                    );
-
-                    const result = await response.json();
+                    const { data: result } = await api.post("/customer/dispute", {
+                      workerId: form.workerId,
+                      subject: form.subject,
+                      description: form.description,
+                    });
 
                     if (result.success) {
 
