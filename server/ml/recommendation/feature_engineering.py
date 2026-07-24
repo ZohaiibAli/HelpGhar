@@ -7,7 +7,6 @@ into ML feature vectors.
 
 from config.db import (
     booking_collection,
-    review_collection,
     worker_collection
 )
 
@@ -78,6 +77,12 @@ class FeatureEngineering:
     # ------------------------
     # Customer Feature Vector
     # ------------------------
+    #
+    # Builds an "ideal worker" vector from the customer's own
+    # completed-booking history. Every dimension below mirrors
+    # the corresponding dimension in worker_features() -- that
+    # alignment is what makes the cosine similarity between the
+    # two vectors meaningful.
 
     def customer_features(
         self,
@@ -93,27 +98,36 @@ class FeatureEngineering:
             )
         )
 
-        reviews = list(
-            review_collection.find(
-                {
-                    "customerId": customer_id
-                }
-            )
-        )
+        worker_ids = list({
+            booking["workerId"]
+            for booking in bookings
+        })
+
+        workers_by_id = {}
+
+        if worker_ids:
+            for worker in worker_collection.find(
+                {"workerId": {"$in": worker_ids}}
+            ):
+                workers_by_id[worker["workerId"]] = worker
 
         categories = {}
         cities = {}
 
-        total_budget = 0
+        totals = {
+            "experienceYears": 0,
+            "marketplaceScore": 0,
+            "rating": 0,
+            "reviewsCount": 0,
+            "priceMin": 0,
+            "priceMax": 0,
+        }
+
         workers_used = 0
 
         for booking in bookings:
 
-            worker = worker_collection.find_one(
-                {
-                    "workerId": booking["workerId"]
-                }
-            )
+            worker = workers_by_id.get(booking["workerId"])
 
             if not worker:
                 continue
@@ -124,7 +138,12 @@ class FeatureEngineering:
             categories[category] = categories.get(category, 0) + 1
             cities[city] = cities.get(city, 0) + 1
 
-            total_budget += worker.get("priceMax", 0)
+            totals["experienceYears"] += worker.get("experienceYears", 0)
+            totals["marketplaceScore"] += worker.get("marketplaceScore", 0)
+            totals["rating"] += worker.get("rating", 0)
+            totals["reviewsCount"] += worker.get("reviewsCount", 0)
+            totals["priceMin"] += worker.get("priceMin", 0)
+            totals["priceMax"] += worker.get("priceMax", 0)
 
             workers_used += 1
 
@@ -144,45 +163,37 @@ class FeatureEngineering:
                 key=cities.get
             )
 
-        average_budget = 0
-
-        if workers_used > 0:
-            average_budget = total_budget / workers_used
-
-        average_rating_given = 0
-
-        if reviews:
-            average_rating_given = (
-                sum(
-                    review["rating"]
-                    for review in reviews
-                )
-                / len(reviews)
-            )
+        averages = {
+            key: (value / workers_used if workers_used else 0)
+            for key, value in totals.items()
+        }
 
         return [
 
-        encode_category(favourite_category),
+            encode_category(favourite_category),
 
-        encode_city(favourite_city),
+            encode_city(favourite_city),
 
-        normalize(average_budget, 50000),
+            normalize(averages["experienceYears"], 30),
 
-        normalize(average_budget, 50000),
+            normalize(averages["marketplaceScore"], 100),
 
-        0,
+            normalize(averages["rating"], 5),
 
-        0,
+            normalize(averages["reviewsCount"], 200),
 
-        0,
+            normalize(averages["priceMin"], 50000),
 
-        0,
+            normalize(averages["priceMax"], 50000),
 
-        1,
+            # A customer always prefers an available, verified
+            # worker -- these two dimensions anchor the vector
+            # even for a brand new customer with no history yet.
+            1,
 
-        1
+            1
 
-    ]
+        ]
 
 
 feature_engineering = FeatureEngineering()
