@@ -7,7 +7,7 @@ into ML feature vectors.
 
 from config.db import (
     booking_collection,
-    worker_collection
+    gig_collection,
 )
 
 from .utils import (
@@ -103,13 +103,24 @@ class FeatureEngineering:
             for booking in bookings
         })
 
-        workers_by_id = {}
+        # experienceYears/marketplaceScore/rating/reviewsCount/price*/
+        # city all live on the gig document, not the worker document
+        # (worker_collection only has account/profile fields) -- see
+        # server/model/worker_model.py: GigCreate carries the
+        # structured listing data, WorkerRegister doesn't. Looking
+        # these up on worker_collection would silently return 0/""
+        # for every field here.
+        gigs_by_worker_and_category = {}
+        gigs_by_worker = {}
 
         if worker_ids:
-            for worker in worker_collection.find(
+            for gig in gig_collection.find(
                 {"workerId": {"$in": worker_ids}}
             ):
-                workers_by_id[worker["workerId"]] = worker
+                gigs_by_worker_and_category[
+                    (gig["workerId"], gig.get("category"))
+                ] = gig
+                gigs_by_worker.setdefault(gig["workerId"], gig)
 
         categories = {}
         cities = {}
@@ -127,23 +138,30 @@ class FeatureEngineering:
 
         for booking in bookings:
 
-            worker = workers_by_id.get(booking["workerId"])
+            worker_id = booking["workerId"]
 
-            if not worker:
+            gig = (
+                gigs_by_worker_and_category.get(
+                    (worker_id, booking.get("category"))
+                )
+                or gigs_by_worker.get(worker_id)
+            )
+
+            if not gig:
                 continue
 
-            category = worker.get("category", "")
-            city = worker.get("city", "")
+            category = gig.get("category", "")
+            city = gig.get("city", "")
 
             categories[category] = categories.get(category, 0) + 1
             cities[city] = cities.get(city, 0) + 1
 
-            totals["experienceYears"] += worker.get("experienceYears", 0)
-            totals["marketplaceScore"] += worker.get("marketplaceScore", 0)
-            totals["rating"] += worker.get("rating", 0)
-            totals["reviewsCount"] += worker.get("reviewsCount", 0)
-            totals["priceMin"] += worker.get("priceMin", 0)
-            totals["priceMax"] += worker.get("priceMax", 0)
+            totals["experienceYears"] += gig.get("experienceYears", 0)
+            totals["marketplaceScore"] += gig.get("marketplaceScore", 0)
+            totals["rating"] += gig.get("rating", 0)
+            totals["reviewsCount"] += gig.get("reviewsCount", 0)
+            totals["priceMin"] += gig.get("priceMin", 0)
+            totals["priceMax"] += gig.get("priceMax", 0)
 
             workers_used += 1
 

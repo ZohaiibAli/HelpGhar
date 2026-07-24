@@ -35,7 +35,6 @@ from bson import ObjectId
 from config.db import gig_collection
 
 from ai.filter_extractor import (
-    extract_filters,
     WorkerSearchFilters,
     CITY_ALIASES,
 )
@@ -54,52 +53,6 @@ class WorkerService:
     def __init__(self):
 
         self.collection = gig_collection
-
-    # ==========================================================
-    # PUBLIC SEARCH
-    # ==========================================================
-
-    def search(
-        self,
-        question: str,
-        limit: int = 5
-    ) -> List[Dict]:
-        """
-        Main search entry.
-
-        User Question
-                ↓
-        Extract Filters
-                ↓
-        Build Mongo Query
-                ↓
-        Mongo Search
-                ↓
-        Normalize Results
-
-        IMPORTANT: if no service category could be identified from the
-        question, we deliberately return an empty list instead of
-        falling back to an unfiltered query. Without this guard, any
-        message that vaguely resembles a worker-search intent (but
-        names no actual service) would return arbitrary top-ranked
-        gigs regardless of relevance - which is what previously caused
-        "any worker-related query returns all gigs".
-        """
-
-        filters = extract_filters(question)
-
-        logger.info(f"Filters : {filters}")
-
-        if not filters.category:
-
-            logger.info(
-                "No category resolved from question - skipping "
-                "unfiltered worker search."
-            )
-
-            return []
-
-        return self.search_raw(filters, limit=limit)
 
     # ==========================================================
     # RAW SEARCH

@@ -3,6 +3,8 @@ from fastapi.responses import JSONResponse
 from config.db import worker_collection, gig_collection,worker_details_collection
 from model.worker_model import WorkerRegister, WorkerLogin, GigCreate, WorkerUpdate, WorkerPasswordUpdate,WorkerDetailsUpdate
 from bson import ObjectId
+from bson.errors import InvalidId
+from pymongo.errors import DuplicateKeyError
 from helper.password_helper import hash_password, verify_password
 from helper.cloudinary_helper import upload_image
 from helper.jwt_helper import create_access_token
@@ -37,7 +39,17 @@ def register_worker(worker: WorkerRegister):
 
     worker_data["status"] = "Active"
 
-    result = worker_collection.insert_one(worker_data)
+    try:
+        result = worker_collection.insert_one(worker_data)
+    except DuplicateKeyError:
+        # The find_one check above can't catch two concurrent
+        # registrations for the same email -- the unique index on
+        # worker_collection.email (config/db.py) is what actually
+        # closes that race.
+        return {
+            "success": False,
+            "message": "Email already exists"
+        }
 
     worker_details_collection.insert_one({
         "workerId": str(result.inserted_id),
@@ -62,10 +74,13 @@ def worker_login(worker: WorkerLogin):
             "email": worker.email
         }
     )
+    # Same generic message whether the email doesn't exist or the
+    # password is wrong -- distinguishing the two lets an attacker
+    # enumerate registered emails by brute-forcing this endpoint.
     if existing_worker is None:
         return {
             "success": False,
-            "message": "Worker not found"
+            "message": "Invalid Email or Password"
         }
 
     if not verify_password(
@@ -74,7 +89,7 @@ def worker_login(worker: WorkerLogin):
     ):
         return {
             "success": False,
-            "message": "Incorrect password"
+            "message": "Invalid Email or Password"
         }
 
     token = create_access_token(
@@ -182,6 +197,24 @@ def update_worker_profile(
             "$set": worker.dict()
         }
 
+    )
+
+    # Gig listings snapshot fullName/category/gender at creation time
+    # and otherwise never see profile edits again -- without this, a
+    # worker who changes their name or switches category keeps
+    # showing the old values on every gig (and search/recommendation
+    # results, which read directly off the gig document) forever.
+    gig_collection.update_many(
+        {
+            "workerId": user["workerId"]
+        },
+        {
+            "$set": {
+                "fullName": worker.fullName,
+                "category": worker.category,
+                "gender": worker.gender,
+            }
+        }
     )
 
     return {
@@ -345,6 +378,85 @@ def create_gig(
         "id": str(result.inserted_id)
     }
 
+
+def _parse_gig_id(gig_id: str) -> ObjectId:
+    try:
+        return ObjectId(gig_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid gig id")
+
+
+@router.put("/gig/{gig_id}")
+def update_gig(
+    gig_id: str,
+    gig: GigCreate,
+    user=Depends(verify_token)
+):
+    if user["role"] != "worker":
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
+    existing = gig_collection.find_one(
+        {
+            "_id": _parse_gig_id(gig_id),
+            "workerId": user["workerId"]
+        }
+    )
+
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail="Gig not found"
+        )
+
+    update_data = gig.dict()
+    update_data["workerId"] = user["workerId"]
+    update_data["status"] = existing.get("status", "Active")
+
+    gig_collection.update_one(
+        {"_id": existing["_id"]},
+        {"$set": update_data}
+    )
+
+    return {
+        "success": True,
+        "message": "Gig updated successfully"
+    }
+
+
+@router.delete("/gig/{gig_id}")
+def delete_gig(
+    gig_id: str,
+    user=Depends(verify_token)
+):
+    if user["role"] != "worker":
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
+    result = gig_collection.update_one(
+        {
+            "_id": _parse_gig_id(gig_id),
+            "workerId": user["workerId"]
+        },
+        {"$set": {"status": "Removed"}}
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Gig not found"
+        )
+
+    return {
+        "success": True,
+        "message": "Gig removed"
+    }
+
+
 @router.get("/gigs")
 def get_gigs():
 
@@ -437,9 +549,17 @@ async def upload_avatar(
 @router.get("/details/public/{worker_id}")
 def get_worker_details_public(worker_id: str):
 
+    # worker_id here is the human-readable worker code (e.g.
+    # "HGW-007") that the frontend gets from the gig list. The
+    # "workerId" key in worker_details_collection instead holds the
+    # Mongo _id string (set at registration for the authenticated
+    # GET/PUT /worker/details routes) -- the code is stored separately
+    # under "workerCode". Querying "workerId" here could never match,
+    # which silently blanked out every worker's public About/Skills/
+    # Certifications section.
     details = worker_details_collection.find_one(
         {
-            "workerId": worker_id
+            "workerCode": worker_id
         }
     )
 

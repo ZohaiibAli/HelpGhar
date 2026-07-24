@@ -103,13 +103,19 @@ def extract_category(q: str) -> Optional[str]:
     """
     Returns the canonical category name (as stored in MongoDB) if any
     known synonym is found in the question, else None.
+
+    Uses word-boundary matching, not substring matching -- plain
+    `phrase in q` matched "cook" inside "cookies", "wire" inside
+    "wireless", and "guard" inside "safeguards", silently routing
+    unrelated questions ("do you use cookies?", "is there a wireless
+    payment option?") into a worker search for the wrong category.
     """
 
     for canonical, synonyms in CATEGORY_SYNONYMS.items():
 
         for phrase in synonyms:
 
-            if phrase in q:
+            if re.search(rf"\b{re.escape(phrase)}\b", q):
 
                 return canonical
 
@@ -119,14 +125,15 @@ def extract_category(q: str) -> Optional[str]:
 def extract_city(q: str) -> Optional[str]:
     """
     Returns the canonical city name if any known alias/abbreviation is
-    found in the question, else None.
+    found in the question, else None. Word-boundary matched for the
+    same reason as extract_category above.
     """
 
     for canonical, aliases in CITY_ALIASES.items():
 
         for alias in aliases:
 
-            if alias in q:
+            if re.search(rf"\b{re.escape(alias)}\b", q):
 
                 return canonical
 
@@ -198,30 +205,48 @@ def extract_filters(question: str) -> WorkerSearchFilters:
     # -------------------------------------------------------------
     # Roman Urdu / mixed-language ceiling phrasing.
     #
-    # Rather than enumerate every possible phrase ("andar", "tak",
-    # "budget", "kam", and dozens of spelling variants people
-    # actually type), use a broad fallback: if any recognised
-    # "ceiling" indicator word appears anywhere in the message and a
-    # number is present, treat that number as max_price. This is
-    # intentionally loose - within a worker-search question, a stated
-    # number next to any of these words is overwhelmingly likely to
-    # be the person's budget ceiling, not something else.
+    # If a recognised "ceiling" indicator word appears in the message
+    # AND a number appears close to it, treat that number as
+    # max_price. Two safeguards versus the earlier version:
+    #
+    # 1. "kam" ("less"/"work"), "km" (kilometer) and "tak" ("until")
+    #    were removed entirely -- they're common Roman Urdu/English
+    #    words with everyday meanings unrelated to price that
+    #    constantly sit near unrelated numbers ("kam se kam 5 saal ka
+    #    experience" = "at least 5 years experience", "5 km door" =
+    #    "5 km away", "2 baje tak" = "until 2 o'clock"). Every one of
+    #    those was previously misread as a Rs. 5 / Rs. 2 budget cap.
+    # 2. The number must appear within a small window of the
+    #    indicator word, not just be the first digit anywhere in the
+    #    whole message -- a message can easily contain an unrelated
+    #    number (experience, phone digits, a date) before its actual
+    #    budget indicator.
     # -------------------------------------------------------------
 
     if filters.max_price is None:
 
         CEILING_INDICATORS = [
-            "budget", "andar", "andr", "tak", "takk", "kam", "km",
+            "budget", "andar", "andr",
             "under", "below", "less than", "upto", "up to", "max",
-            "maximum", "se zyada nahi", "se kam", "bss", "bas", "sirf",
+            "maximum", "se zyada nahi", "bss", "bas", "sirf",
         ]
 
-        if any(word in q for word in CEILING_INDICATORS):
+        PROXIMITY_WINDOW = 20
 
-            number_match = re.search(r"\d+", q)
+        for indicator in CEILING_INDICATORS:
 
-            if number_match:
+            indicator_match = re.search(re.escape(indicator), q)
 
-                filters.max_price = int(number_match.group())
+            if not indicator_match:
+                continue
+
+            window_start = max(0, indicator_match.start() - PROXIMITY_WINDOW)
+            window_end = indicator_match.end() + PROXIMITY_WINDOW
+
+            nearby_number = re.search(r"\d+", q[window_start:window_end])
+
+            if nearby_number:
+                filters.max_price = int(nearby_number.group())
+                break
 
     return filters

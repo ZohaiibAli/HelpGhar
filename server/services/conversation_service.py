@@ -69,6 +69,14 @@ class ConversationService:
 
         )
 
+        # Trimming here (rather than leaving it to each caller in
+        # chat_service.py) guarantees every session gets capped
+        # regardless of which reply path was taken -- several paths
+        # (greeting, auth, "no category found", "no matches found")
+        # previously never called trim_messages at all, so a session
+        # that only ever hit those could grow unbounded.
+        self.trim_messages(session_id)
+
 
     # =====================================================
     # GET CONVERSATION

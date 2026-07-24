@@ -28,8 +28,17 @@ def make_payment(
 
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
-    if booking["status"] == "confirmed":
-        raise HTTPException(status_code=400, detail="Booking already paid")
+
+    # "pending" is the only status that hasn't been paid for yet and
+    # is still payable. The old check only rejected "confirmed" (i.e.
+    # already paid), which let a *cancelled* or *completed* booking be
+    # paid again -- inserting a duplicate payment record and silently
+    # resurrecting a booking the customer or worker had cancelled.
+    if booking["status"] != "pending":
+        raise HTTPException(
+            status_code=400,
+            detail=f"This booking cannot be paid for (status: {booking['status']})."
+        )
 
     card = payment_card_collection.find_one({"cardId": "CARD-DEFAULT"})
     if not card:
@@ -56,18 +65,18 @@ def make_payment(
     "bookingId": payment.bookingId,
 
     "customerId": current_customer["customerId"],
-    "customerName": booking["customerName"],
+    "customerName": booking.get("customerName", ""),
 
-    "workerName": booking["workerName"],
-    "workerId": booking["workerId"],
-    
-    "category": booking["category"],
+    "workerName": booking.get("workerName", ""),
+    "workerId": booking.get("workerId", ""),
+
+    "category": booking.get("category", ""),
 
     "method": METHOD_LABELS.get(payment.method, payment.method),
 
-    "amount": booking["amount"],
-    "platformFee": booking["platformFee"],
-    "total": booking["total"],
+    "amount": booking.get("amount", 0),
+    "platformFee": booking.get("platformFee", 0),
+    "total": booking.get("total", 0),
 
     "date": datetime.now(ZoneInfo("Asia/Karachi")).isoformat(),
 

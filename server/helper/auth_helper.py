@@ -76,9 +76,3 @@ def get_current_admin(payload: dict = Depends(verify_token)):
         )
 
     return admin
-    if payload.get("role") != "admin":
-        raise HTTPException(
-            status_code=403,
-            detail="Only admins can perform this action"
-        )
-    return payload

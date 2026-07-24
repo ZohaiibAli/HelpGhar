@@ -1,4 +1,4 @@
-from helper.cloudinary_helper import upload_image
+from helper.cloudinary_helper import upload_image, delete_image
 
 from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException
 
@@ -74,8 +74,21 @@ def update_website_settings(
         update_fields["website_name"] = website_name.strip()
 
     if logo is not None:
+
+        # website_theme_collection is a true singleton (_id ==
+        # SETTINGS_ID) with exactly one logo at a time, so it's safe
+        # to delete the old asset once the new one is in place --
+        # unlike a worker avatar, which could plausibly be reused
+        # across multiple gigs and isn't tracked as a singleton field
+        # anywhere, so it's deliberately left alone.
+        previous_settings = website_theme_collection.find_one({"_id": SETTINGS_ID}) or {}
+        old_logo_url = previous_settings.get("website_logo")
+
         logo_url = upload_image(logo)
         update_fields["website_logo"] = logo_url
+
+        if old_logo_url:
+            delete_image(old_logo_url)
 
     theme_fields_present = any(
         v is not None for v in [hue, saturation, lightness, corner_radius]

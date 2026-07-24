@@ -41,10 +41,14 @@ def customer_dashboard(current_customer=Depends(get_current_customer)):
         )
     )
 
-    total_spent = 0
-
-    for payment in payments:
-        total_spent += payment["total"]
+    # Refunded payments no longer represent real spend -- exclude
+    # them so a cancelled-after-paying booking doesn't keep inflating
+    # this total forever.
+    total_spent = sum(
+        payment.get("total", 0)
+        for payment in payments
+        if payment.get("status") == "successful"
+    )
 
     # Favourite workers (unique workers booked)
     worker_ids = booking_collection.distinct(

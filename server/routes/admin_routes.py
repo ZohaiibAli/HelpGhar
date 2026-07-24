@@ -1,9 +1,12 @@
+from bson import ObjectId
+from bson.errors import InvalidId
 from fastapi import APIRouter, HTTPException, Depends
 from config.db import (
     admin_collection,
     dispute_collection,
     customer_collection,
-    worker_collection
+    worker_collection,
+    gig_collection,
 )
 from model.admin_model import AdminLogin
 from pydantic import BaseModel
@@ -167,6 +170,7 @@ def get_customer_disputes_admin(user=Depends(verify_token)):
         result.append({
             "id": dispute["disputeId"],
             "customerId": dispute["customerId"],
+            "customerName": dispute.get("customerName", "Unknown Customer"),
             "workerId": dispute["workerId"],
             "workerName": dispute.get("workerName", "Unknown Worker"),
             "subject": dispute["subject"],
@@ -198,6 +202,7 @@ def get_worker_disputes_admin(user=Depends(verify_token)):
             "customerId": dispute["customerId"],
             "customerName": dispute.get("customerName", "Unknown Customer"),
             "workerId": dispute["workerId"],
+            "workerName": dispute.get("workerName", "Unknown Worker"),
             "subject": dispute["subject"],
             "description": dispute["description"],
             "status": dispute["status"].lower(),
@@ -280,6 +285,34 @@ def get_users(current_admin=Depends(get_current_admin)):
         "users": users
     }
 
+def _resolve_user_collection(role: str):
+    """
+    role was previously trusted as an arbitrary client-supplied
+    string (`worker_collection if role == "customer" else ...`), so
+    anything other than the literal string "customer" silently fell
+    through to worker_collection and operated on whatever document
+    happened to share that ObjectId there.
+    """
+
+    if role == "customer":
+        return customer_collection
+
+    if role == "worker":
+        return worker_collection
+
+    raise HTTPException(
+        status_code=400,
+        detail="role must be 'customer' or 'worker'"
+    )
+
+
+def _parse_object_id(id: str) -> ObjectId:
+    try:
+        return ObjectId(id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid user id")
+
+
 @router.patch("/users/{role}/{id}/status")
 def toggle_user_status(
     role: str,
@@ -287,9 +320,9 @@ def toggle_user_status(
     current_admin=Depends(get_current_admin)
 ):
 
-    collection = customer_collection if role == "customer" else worker_collection
+    collection = _resolve_user_collection(role)
 
-    user = collection.find_one({"_id": __import__("bson").ObjectId(id)})
+    user = collection.find_one({"_id": _parse_object_id(id)})
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -300,6 +333,17 @@ def toggle_user_status(
         {"_id": user["_id"]},
         {"$set": {"status": new_status}}
     )
+
+    # A suspended worker's existing gigs must stop being bookable --
+    # otherwise their listings stay live and customers can keep
+    # hiring someone the admin just suspended. Reactivating flips
+    # them back; gigs currently have no independent "worker turned
+    # this one off" state of their own, so this is safe to do in bulk.
+    if role == "worker":
+        gig_collection.update_many(
+            {"workerId": user.get("workerId")},
+            {"$set": {"status": "Active" if new_status == "active" else "Suspended"}}
+        )
 
     return {
         "success": True,
@@ -313,14 +357,24 @@ def delete_user(
     current_admin=Depends(get_current_admin)
 ):
 
-    collection = customer_collection if role == "customer" else worker_collection
+    collection = _resolve_user_collection(role)
 
-    result = collection.delete_one(
-        {"_id": __import__("bson").ObjectId(id)}
-    )
+    user = collection.find_one({"_id": _parse_object_id(id)})
 
-    if result.deleted_count == 0:
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    collection.delete_one({"_id": user["_id"]})
+
+    # Same reasoning as suspension above -- a deleted worker's gigs
+    # must not remain live/bookable. Soft-removed rather than
+    # deleted outright so existing bookings/reviews/receipts that
+    # reference this workerId keep working.
+    if role == "worker":
+        gig_collection.update_many(
+            {"workerId": user.get("workerId")},
+            {"$set": {"status": "Removed"}}
+        )
 
     return {
         "success": True,

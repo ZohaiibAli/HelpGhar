@@ -81,9 +81,23 @@ def normalize(text: str) -> str:
 
 
 def contains_keyword(text: str, keywords: set) -> bool:
+    """
+    Word-boundary match, not substring match. Plain `word in text`
+    matched "hi"/"hey" inside ordinary words like "this" and "they" --
+    GREETING alone was hijacking a large fraction of real questions
+    since it's checked first. For a multi-word phrase (e.g. "reset
+    password"), every word in the phrase must appear as its own
+    word somewhere in the text, but not necessarily adjacent -- so
+    "reset my password" still matches "reset password" instead of
+    requiring the exact contiguous phrase.
+    """
 
-    for word in keywords:
-        if word in text:
+    for phrase in keywords:
+        words = phrase.split()
+        if all(
+            re.search(rf"\b{re.escape(word)}\b", text)
+            for word in words
+        ):
             return True
     return False
 

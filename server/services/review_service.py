@@ -38,6 +38,24 @@ def create_review(review, current_customer):
             detail="You cannot review this worker."
         )
 
+    # The review UI is worker-scoped, not booking-scoped (a customer
+    # picks a worker they've completed a booking with, not a specific
+    # booking) -- so the natural uniqueness constraint is one review
+    # per customer/worker pair. Without this, a customer with a single
+    # completed booking could call this endpoint repeatedly and
+    # arbitrarily inflate or deflate a worker's rating/marketplaceScore,
+    # since each call triggers a full reputation recompute.
+    existing_review = review_collection.find_one({
+        "customerId": current_customer["customerId"],
+        "workerId": review.workerId,
+    })
+
+    if existing_review:
+        raise HTTPException(
+            status_code=400,
+            detail="You have already reviewed this worker."
+        )
+
     customer = customer_collection.find_one({
         "customerId": current_customer["customerId"]
     })

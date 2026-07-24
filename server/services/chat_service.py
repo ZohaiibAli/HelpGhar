@@ -140,8 +140,6 @@ Knowledge Base
                 answer
             )
 
-            conversation_service.trim_messages(session_id)
-
             return ChatResponse(
                 success=True,
                 intent="knowledge",
@@ -446,11 +444,6 @@ Current Search Context
                 role="assistant",
                 content=answer,
                 metadata={"workers": serialized_workers}
-            )
-
-            conversation_service.trim_messages(
-                session_id=session_id,
-                keep_last=20
             )
 
             return ChatResponse(

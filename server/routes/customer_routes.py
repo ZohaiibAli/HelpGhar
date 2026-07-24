@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from pymongo.errors import DuplicateKeyError
 from config.db import customer_collection
 from model.customer_model import (
     CustomerRegister,
@@ -32,7 +33,6 @@ def register_customer(customer: CustomerRegister):
             "message": "Email already exists"
         }
 
-    #customer_collection.insert_one(customer.dict())
     customer_data = customer.dict()
     customer_data["customerId"] = generate_customer_id()
 
@@ -40,7 +40,18 @@ def register_customer(customer: CustomerRegister):
 
     customer_data["password"] = hash_password(customer.password)
 
-    customer_collection.insert_one(customer_data)
+    try:
+        customer_collection.insert_one(customer_data)
+    except DuplicateKeyError:
+        # The find_one check above can't catch two concurrent
+        # registrations for the same email -- the unique index on
+        # customer_collection.email (config/db.py) is what actually
+        # closes that race, and this is what surfaces it as a clean
+        # response instead of an unhandled 500.
+        return {
+            "success": False,
+            "message": "Email already exists"
+        }
 
     return {
         "success": True,
@@ -57,10 +68,14 @@ def login_customer(customer: CustomerLogin):
         }
     )
 
+    # Same generic message whether the email doesn't exist or the
+    # password is wrong -- distinguishing the two (as this used to)
+    # lets an attacker enumerate registered emails by brute-forcing
+    # this endpoint. Matches what /admin/login already does.
     if not existing:
         return {
             "success": False,
-            "message": "Email not found"
+            "message": "Invalid Email or Password"
         }
 
     if not verify_password(
@@ -69,7 +84,7 @@ def login_customer(customer: CustomerLogin):
     ):
         return {
             "success": False,
-            "message": "Incorrect password"
+            "message": "Invalid Email or Password"
     }
 
     token = create_access_token({
