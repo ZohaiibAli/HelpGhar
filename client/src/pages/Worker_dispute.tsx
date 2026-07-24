@@ -5,6 +5,7 @@ import { workerItems } from "@/data/workerMenu";
 import { Button } from "@/components/ui/button";
 import type { Complaint } from "@/types";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { api } from "@/services/api";
 
 export default function DisputePage() {
   const [alertState, setAlertState] = useState<{
@@ -32,10 +33,10 @@ export default function DisputePage() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/worker/customers`);
-      const result = await response.json();
-      if (result.success) {
-        setCustomers(result.customers);
+      const { data } = await api.get("/worker/customers");
+
+      if (data.success) {
+        setCustomers(data.customers);
       }
     } catch (error) {
       console.log(error);
@@ -44,15 +45,10 @@ export default function DisputePage() {
 
   const fetchComplaints = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/worker/disputes`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const result = await response.json();
-      if (result.success) {
-        setList(result.complaints);
+      const { data } = await api.get("/worker/disputes");
+
+      if (data.success) {
+        setList(data.complaints);
       }
     } catch (error) {
       console.log(error);
@@ -111,23 +107,13 @@ export default function DisputePage() {
                   if (!form.subject || !form.customerId) return;
 
                   try {
-                    const token = localStorage.getItem("token");
-                    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/worker/dispute`, {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify({
+                    const { data: result } = await api.post("/worker/dispute", {
                         customerId: form.customerId,
                         subject: form.subject,
                         description: form.description,
-                      }),
-                    });
+                      });
 
-                    const result = await response.json();
-
-                    if (result.success) {
+                      if (result.success) {
                       setAlertState({
                         open: true,
                         type: "success",
