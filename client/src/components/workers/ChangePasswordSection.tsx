@@ -1,13 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { api } from "@/services/api";
 
 export default function ChangePasswordSection() {
-  const navigate = useNavigate();
-
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
@@ -62,68 +58,39 @@ export default function ChangePasswordSection() {
       return;
     }
 
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      navigate("/login/worker");
-      return;
-    }
-
     setChangingPassword(true);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/worker/password`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            currentPassword,
-            newPassword,
-          }),
-        }
-      );
+      const { data: result } = await api.put("/worker/password", {
+        currentPassword,
+        newPassword,
+      });
 
-      const result = await response.json();
+      setCurrentPassword("");
+      setNewPassword("");
 
-      if (response.status === 401) {
+      setAlertState({
+        open: true,
+        type: "success",
+        title: "Password Updated",
+        description: result.message,
+      });
+    } catch (error: any) {
+      if (error?.status === 400) {
         setAlertState({
           open: true,
           type: "error",
           title: "Incorrect Password",
-          description: result.detail || "Current password is incorrect.",
-        });
-        return;
-      }
-
-      if (response.ok) {
-        setCurrentPassword("");
-        setNewPassword("");
-
-        setAlertState({
-          open: true,
-          type: "success",
-          title: "Password Updated",
-          description: result.message,
+          description: error.message || "Current password is incorrect.",
         });
       } else {
         setAlertState({
           open: true,
-          type: "error",
-          title: "Password Change Failed",
-          description: result.detail || result.message,
+          type: "server",
+          title: "Server Error",
+          description: error?.message || "Unable to change password.",
         });
       }
-    } catch {
-      setAlertState({
-        open: true,
-        type: "server",
-        title: "Server Error",
-        description: "Unable to change password.",
-      });
     } finally {
       setChangingPassword(false);
     }

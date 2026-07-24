@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Camera } from "lucide-react";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { api } from "@/services/api";
 
 interface WorkerProfile {
   id: string;
@@ -60,28 +61,13 @@ export default function WorkerProfilePage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const authToken = localStorage.getItem("token");
-
       if (!token) {
         navigate("/login/worker");
         return;
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/worker/profile`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
-
-        if (!response.ok) {
-          console.log("Status:", response.status);
-          console.log("Response:", await response.text());
-          return;
-        }
-
-        const data = await response.json();
+        const { data } = await api.get("/worker/profile");
 
         setUser(data);
         setFullName(data.fullName);
@@ -104,117 +90,71 @@ export default function WorkerProfilePage() {
   }, []);
 
   const handleUpdate = async () => {
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      navigate("/login/worker");
-      return;
-    }
-
     setSaving(true);
 
     try {
+      const { data: result } = await api.put("/worker/profile", {
+        fullName,
+        email,
+        phone,
+        address,
+        cnic,
+        dob,
+        gender,
+        category,
+        experience,
+        pricing,
+        skills,
+      });
 
-      const response = await fetch(
-        `${API_BASE_URL}/worker/profile`,
+      setSession(
         {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            fullName,
-            email,
-            phone,
-            address,
-            cnic,
-            dob,
-            gender,
-            category,
-            experience,
-            pricing,
-            skills,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (response.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login/worker");
-        return;
-      }
-
-      if (response.ok) {
-
-        setSession(
-          {
-            id: user!.id,
-            workerId: user!.workerId,
-            status: user!.status,
-            fullName,
-            email,
-            phone,
-            address,
-            role: "worker",
-            createdAt: new Date().toISOString(),
-          },
-          token
-        );
-
-        setUser({
-          ...user!,
+          id: user!.id,
+          workerId: user!.workerId,
+          status: user!.status,
           fullName,
           email,
           phone,
           address,
-          cnic,
-          dob,
-          gender,
-          category,
-          experience,
-          pricing,
-          skills,
-        });
+          role: "worker",
+          createdAt: new Date().toISOString(),
+        },
+        token!
+      );
 
-        setAlertState({
-          open: true,
-          type: "success",
-          title: "Profile Updated",
-          description: result.message,
-        });
+      setUser({
+        ...user!,
+        fullName,
+        email,
+        phone,
+        address,
+        cnic,
+        dob,
+        gender,
+        category,
+        experience,
+        pricing,
+        skills,
+      });
 
-      } else {
-
-        setAlertState({
-          open: true,
-          type: "error",
-          title: "Update Failed",
-          description: result.detail || result.message,
-        });
-
-      }
-
-    } catch (error) {
-
+      setAlertState({
+        open: true,
+        type: "success",
+        title: "Profile Updated",
+        description: result.message,
+      });
+    } catch (error: any) {
       console.log(error);
 
       setAlertState({
         open: true,
-        type: "server",
-        title: "Server Error",
-        description: "Unable to update profile.",
+        type: "error",
+        title: "Update Failed",
+        description: error?.message || "Unable to update profile.",
       });
-
     } finally {
-
       setSaving(false);
-
     }
-
   };
 
   if (!user) {

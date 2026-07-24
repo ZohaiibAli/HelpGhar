@@ -2,6 +2,7 @@ import { Star } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { useEffect, useState } from "react";
+import { api } from "@/services/api";
 
 interface Review {
   _id: string;
@@ -27,31 +28,15 @@ export default function WorkerReviewsPage() {
         setLoading(true);
         setError(null);
 
-        const token = localStorage.getItem("token");
+        const { data } = await api.get("/reviews/my-reviews");
 
-        if (!token) {
-          setError("You are not logged in.");
-          setLoading(false);
-          return;
-        }
-
-        const res = await fetch(
-          `${API_BASE_URL}/reviews/my-reviews`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = await res.json();
         if (data.success) {
           setReviews(data.reviews);
         } else {
           setError("Failed to load reviews");
         }
-      } catch (err) {
-        setError("Something went wrong while fetching reviews");
+      } catch (err: any) {
+        setError(err?.message ?? "Something went wrong while fetching reviews");
       } finally {
         setLoading(false);
       }

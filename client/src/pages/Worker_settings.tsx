@@ -5,10 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { HgAlert } from "@/components/ui/HgAlert";
 import ChangePasswordSection from "@/components/workers/ChangePasswordSection";
+import { api } from "@/services/api";
 
 export default function WorkerSettingsPage() {
   const navigate = useNavigate();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
 
@@ -19,12 +20,7 @@ export default function WorkerSettingsPage() {
   const confirmDelete = async () => {
     setConfirmOpen(false);
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/worker/delete-account`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = await response.json();
+      const { data: result } = await api.delete("/worker/delete-account");
       if (result.success) {
         localStorage.removeItem("token");
         localStorage.removeItem("worker");

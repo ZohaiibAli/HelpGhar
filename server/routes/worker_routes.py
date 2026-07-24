@@ -283,7 +283,7 @@ def update_worker_password(
     ):
 
         raise HTTPException(
-            status_code=401,
+            status_code=400,
             detail="Current password is incorrect"
         )
 

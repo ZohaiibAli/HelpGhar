@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { Button } from "@/components/ui/button";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { api } from "@/services/api";
 
 interface WorkerDetails {
   about: string;
@@ -40,109 +41,51 @@ export default function WorkerDetailsDescriptionPage() {
     }));
 
   useEffect(() => {
-    const fetchDetails = async () => {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        navigate("/login/worker");
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/worker/details`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (response.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login/worker");
-          return;
-        }
-
-        if (!response.ok) {
-          console.log("Status:", response.status);
-          console.log("Response:", await response.text());
-          setLoaded(true);
-          return;
-        }
-
-        const data = await response.json();
-
-        setAbout(data.about ?? "");
-        setSkills(data.skills ?? "");
-        setCertifications(data.certifications ?? "");
-        setLoaded(true);
-      } catch (error) {
-        console.error(error);
-        setLoaded(true);
-      }
-    };
-
     fetchDetails();
   }, []);
 
-  const handleSave = async () => {
-    const token = localStorage.getItem("token");
+  const fetchDetails = async () => {
+        try {
+          const { data } = await api.get("/worker/details");
 
-    if (!token) {
-      navigate("/login/worker");
-      return;
-    }
+          setAbout(data.about ?? "");
+          setSkills(data.skills ?? "");
+          setCertifications(data.certifications ?? "");
+          setLoaded(true);
+        } catch (error) {
+          console.error(error);
+          setLoaded(true);
+        }
+      };
 
-    setSaving(true);
+    const handleSave = async () => {
+      setSaving(true);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/worker/details`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      try {
+        const { data: result } = await api.put("/worker/details", {
           about,
           skills,
           certifications,
-        }),
-      });
+        });
 
-      const result = await response.json();
-
-      if (response.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login/worker");
-        return;
-      }
-
-      if (response.ok) {
         setAlertState({
           open: true,
           type: "success",
           title: "Details Updated",
           description: result.message,
         });
-      } else {
+      } catch (error: any) {
+        console.log(error);
         setAlertState({
           open: true,
           type: "error",
           title: "Update Failed",
-          description: result.detail || result.message,
+          description: error?.message || "Unable to update details.",
         });
+      } finally {
+        setSaving(false);
       }
-    } catch (error) {
-      console.log(error);
-      setAlertState({
-        open: true,
-        type: "server",
-        title: "Server Error",
-        description: "Unable to update details.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
+    };
 
   if (!loaded) {
     return (
