@@ -5,6 +5,7 @@ import { notifications } from "@/data/mock";
 import { customerItems } from "@/data/customerMenu";
 import { useEffect, useState } from "react";
 import RecommendedWorkers from "@/components/customers/RecommendedWorkers";
+import { api } from "@/services/api";
 
 const items = [
   { label: "Overview", to: "/dashboard/customer", icon: LayoutDashboard },
@@ -48,17 +49,7 @@ export default function CustomerDashboard() {
   }, []);
   const fetchDashboard = async () => {
     try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${API_BASE_URL}/dashboard/customer`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      console.log("Status:", response.status);
-
-      const data = await response.json();
+      const { data } = await api.get("/dashboard/customer");
       console.log(data);
 
       if (data.success) {
@@ -70,18 +61,19 @@ export default function CustomerDashboard() {
   };
   const fetchBookings = async () => {
     try {
-      const token = localStorage.getItem("token");
+      // const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        `${API_BASE_URL}/bookings/my`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // const response = await fetch(
+      //   `${API_BASE_URL}/bookings/my`,
+      //   {
+      //     headers: {
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //   }
+      // );
 
-      const data = await response.json();
+      // const data = await response.json();
+      const { data } = await api.get("/bookings/my");
 
       if (data.success) {
         setBookings(data.bookings);

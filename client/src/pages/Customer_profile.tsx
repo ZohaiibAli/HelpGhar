@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Button } from "@/components/ui/button";
 import { Camera } from "lucide-react";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { api } from "@/services/api";
 
 interface CustomerProfile {
   id: string;
@@ -29,7 +30,7 @@ export default function ProfilePage() {
   // const [newPassword, setNewPassword] = useState("");
   // const [changingPassword, setChangingPassword] = useState(false);
 
-  
+
 
   const [alertState, setAlertState] = useState<{
     open: boolean;
@@ -59,72 +60,93 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
 
-      const authToken = localStorage.getItem("token");
+      // const authToken = localStorage.getItem("token");
 
+      // console.log(token);
+
+      // if (!token) {
+
+      //   navigate("/login/customer");
+
+      //   return;
+
+      // }
+
+      // try {
+
+      //   const response = await fetch(
+      //     `${API_BASE_URL}/customer/profile`,
+      //     {
+
+      //       method: "GET",
+
+      //       headers: {
+
+      //         Authorization: `Bearer ${authToken}`,
+
+      //       }
+
+      //     }
+      //   );
+
+      //   if (!response.ok) {
+
+      //     // localStorage.removeItem("token");
+
+      //     // navigate("/customer-login");
+
+      //     // console.log(await response.text());
+      //     if (!response.ok) {
+
+      //       console.log("Status:", response.status);
+      //       console.log("Response:", await response.text());
+
+      //       return;
+
+      //     }
+
+      //     return;
+
+      //   }
+
+      //   const data = await response.json();
+
+      //   setUser(data);
+      //   setFullName(data.fullName);
+
+      //   setPhone(data.phone);
+
+      //   setAddress(data.address);
+      //   setEmail(data.email);
+
+      // }
+
+      // catch (error) {
+
+      //   console.error(error);
+      // }
       console.log(token);
 
       if (!token) {
-
         navigate("/login/customer");
-
         return;
-
       }
 
       try {
 
-        const response = await fetch(
-          `${API_BASE_URL}/customer/profile`,
-          {
-
-            method: "GET",
-
-            headers: {
-
-              Authorization: `Bearer ${authToken}`,
-
-            }
-
-          }
-        );
-
-        if (!response.ok) {
-
-          // localStorage.removeItem("token");
-
-          // navigate("/customer-login");
-
-          // console.log(await response.text());
-          if (!response.ok) {
-
-            console.log("Status:", response.status);
-            console.log("Response:", await response.text());
-
-            return;
-
-          }
-
-          return;
-
-        }
-
-        const data = await response.json();
+        const { data } = await api.get("/customer/profile");
 
         setUser(data);
         setFullName(data.fullName);
-
         setPhone(data.phone);
-
         setAddress(data.address);
         setEmail(data.email);
 
-      }
-
-      catch (error) {
+      } catch (error) {
 
         console.error(error);
-      }
 
+      }
     };
 
     fetchProfile();
@@ -143,35 +165,33 @@ export default function ProfilePage() {
 
     try {
 
-      const response = await fetch(
-        `${API_BASE_URL}/customer/profile`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            fullName,
-            email,
-            phone,
-            address,
-          }),
-        }
-      );
+      // const response = await fetch(
+      //   `${API_BASE_URL}/customer/profile`,
+      //   {
+      //     method: "PUT",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //     body: JSON.stringify({
+      //       fullName,
+      //       email,
+      //       phone,
+      //       address,
+      //     }),
+      //   }
+      // );
 
-      const result = await response.json();
-      if (response.status === 401) {
+      // const result = await response.json();
+      const { data: result } = await api.put("/customer/profile", {
+        fullName,
+        email,
+        phone,
+        address,
+      });
+      
 
-        localStorage.removeItem("token");
-
-        navigate("/customer-login");
-
-        return;
-
-      }
-
-      if (response.ok) {
+     if (result.success) {
 
         setSession(
           {
@@ -332,7 +352,7 @@ export default function ProfilePage() {
                 />
               </Grid>
             </Card>
-            
+
             <div className="flex justify-end gap-3">
               <Button variant="outline">Cancel</Button>
               <Button

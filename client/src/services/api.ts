@@ -1,4 +1,5 @@
 import axios from "axios";
+import { logoutUser } from "@/store/authStore";
 
 export const api = axios.create({
   baseURL:
@@ -17,13 +18,30 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (res) => res,
+  (response) => response,
+
   (error) => {
+
+    if (error?.response?.status === 401) {
+
+      logoutUser();
+
+      window.location.href = "/";
+
+      return Promise.reject(error);
+    }
+
     const message =
       error?.response?.data?.detail ??
       error?.response?.data?.message ??
       error?.message ??
       "Something went wrong. Please try again.";
-    return Promise.reject({ message, status: error?.response?.status, raw: error });
-  },
+
+    return Promise.reject({
+      message,
+      status: error?.response?.status,
+      raw: error,
+    });
+
+  }
 );
