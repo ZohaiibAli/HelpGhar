@@ -1,4 +1,5 @@
 from qdrant_client.models import Distance
+from qdrant_client.models import PayloadSchemaType
 from qdrant_client.models import VectorParams
 from qdrant_client.models import PointStruct
 import uuid
@@ -12,6 +13,25 @@ from config.qdrant import (
 )
 
 
+def _ensure_filename_index():
+    """
+    rag/ingest.py filters/deletes points by payload.filename to keep
+    re-ingestion idempotent -- Qdrant requires a keyword index on a
+    field before it can be used in a filter, so this must exist before
+    ingest() runs. Safe to call repeatedly: Qdrant no-ops if the index
+    is already there.
+    """
+
+    try:
+        client.create_payload_index(
+            collection_name=QDRANT_COLLECTION,
+            field_name="filename",
+            field_schema=PayloadSchemaType.KEYWORD,
+        )
+    except Exception as e:
+        print(f"  (filename index already present or failed: {e})")
+
+
 def create_collection():
 
     collections = client.get_collections().collections
@@ -20,6 +40,7 @@ def create_collection():
 
     if QDRANT_COLLECTION in existing:
         print("Collection already exists.")
+        _ensure_filename_index()
         return
 
     client.create_collection(
@@ -29,6 +50,8 @@ def create_collection():
             distance=Distance.COSINE,
         ),
     )
+
+    _ensure_filename_index()
 
     print("Collection created successfully.")
 

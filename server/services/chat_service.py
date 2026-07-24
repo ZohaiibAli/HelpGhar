@@ -89,13 +89,21 @@ class ChatService:
                 limit=limit
             )
 
+            logger.info(
+                "Retrieved %d chunk(s) for question=%r, scores=%s",
+                len(documents),
+                question,
+                [round(document.get("score", 0), 3) for document in documents]
+            )
+
             context = "\n\n".join(
                 document.get("text", "")
                 for document in documents
             )
 
-            # If Qdrant has nothing relevant at all, don't let Gemini
-            # improvise - give a clear, professional fallback instead.
+            # If nothing cleared the relevance threshold in rag/retriever.py,
+            # don't let Gemini improvise - give a clear, professional
+            # fallback instead.
             if not context.strip():
 
                 answer = (
@@ -140,11 +148,11 @@ Knowledge Base
                 message=answer,
                 workers_found=0,
                 workers=[],
-                sources=[
+                sources=list(dict.fromkeys(
                     document.get("filename")
                     for document in documents
                     if document.get("filename")
-                ]
+                ))
             )
 
         except GeminiQuotaExceededError as e:
