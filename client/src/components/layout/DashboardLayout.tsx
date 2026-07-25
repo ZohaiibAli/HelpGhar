@@ -39,9 +39,15 @@ export function DashboardLayout({
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
 
-      <div className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8">
-        {/* ===== SIDEBAR — hidden on mobile, visible on lg+ ===== */}
-        <aside className="hidden lg:sticky lg:top-24 lg:self-start lg:block">
+      <div className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 py-8 sm:px-6 md:grid-cols-[240px_minmax(0,1fr)] lg:px-8">
+        {/* ===== SIDEBAR — hidden on mobile, visible on md+ =====
+            Must match Navbar's md:hidden hamburger breakpoint exactly.
+            This used to be lg: while the hamburger disappeared at md:,
+            leaving a dead zone at tablet widths (768-1023px) where
+            neither the hamburger nor the sidebar was reachable --
+            My Bookings/Transactions/Reviews/Disputes/Settings had no
+            way to be navigated to at all in that range. */}
+        <aside className="hidden md:sticky md:top-24 md:self-start md:block">
           <div className="rounded-2xl border border-border bg-card p-3 shadow-soft">
             <p className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               {title}

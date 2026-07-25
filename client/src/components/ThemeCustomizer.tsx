@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { applyTheme, DEFAULT_THEME, saveTheme, WebsiteTheme } from "@/lib/theme";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const getFileAuthHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem("token")}`,

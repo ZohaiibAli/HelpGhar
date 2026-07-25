@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { applyTheme, DEFAULT_THEME, saveTheme, WebsiteTheme } from "@/lib/theme";
 import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const getAuthHeaders = () => ({
   "Content-Type": "application/json",

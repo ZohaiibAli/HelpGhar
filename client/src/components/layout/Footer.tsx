@@ -11,7 +11,7 @@ export function Footer() {
 
 return (
   <footer className="mt-24 border-t border-border bg-card">
-    <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4 lg:px-8">
+    <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:px-8">
       <div>
         <div className="flex items-center gap-2">
           {!loading && websiteLogo && (
@@ -42,7 +42,7 @@ return (
 
       {/* <FooterCol title="Company" links={[["About Us", "/"], ["How it Works", "/"], ["Careers", "/"], ["Press", "/"]]} /> */}
       <FooterCol title="For Users" links={[["Browse Services", "/services"], ["My Bookings", "/my-bookings"], ["Transactions", "/transactions"], ["Help Center", "/"]]} />
-      <FooterCol title="Legal" links={[["Privacy Policy", "/"], ["Terms & Conditions", "/"], ["Refund Policy", "/"], ["Contact", "/"]]} className="md:ml-10" />
+      <FooterCol title="Legal" links={[["Privacy Policy", "/"], ["Terms & Conditions", "/"], ["Refund Policy", "/"], ["Contact", "/"]]} />
     </div>
     <div className="border-t border-border">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
@@ -56,8 +56,7 @@ return (
 
 function FooterCol({ title, links, className }: { title: string; links: [string, string][]; className?: string }) {
   return (
-    <div>
-      <div className={className}></div>
+    <div className={className}>
       <h4 className="text-sm font-bold">{title}</h4>
       <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
         {links.map(([label, to]) => (

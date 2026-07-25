@@ -111,7 +111,8 @@ def worker_login(worker: WorkerLogin):
             "fullName": existing_worker["fullName"],
             "email": existing_worker["email"],
             "category": existing_worker["category"],
-             "status": existing_worker["status"]
+            "status": existing_worker["status"],
+            "role": "worker"
         }
     }
 

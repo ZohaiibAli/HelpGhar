@@ -94,10 +94,18 @@ export default function CustomerDashboard() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Active bookings" value={stats.activeBookings.toString()} hint="2 confirmed" />
+          <StatCard
+            label="Active bookings"
+            value={stats.activeBookings.toString()}
+            hint={stats.activeBookings > 0 ? "In progress" : "All caught up"}
+          />
           <StatCard label="Total spent" value={`Rs. ${stats.totalSpent}`} hint="Last 30 days" />
           <StatCard label="Favourite workers" value={stats.favoriteWorkers.toString()} hint="Saved" />
-          <StatCard label="Reviews left" value={stats.reviewsLeft.toString()} hint="Avg 4.8 ★" />
+          <StatCard
+            label="Reviews left"
+            value={stats.reviewsLeft.toString()}
+            hint={stats.reviewsLeft > 0 ? "Thanks for sharing" : "Share your experience"}
+          />
         </div>
         <RecommendedWorkers />
 
