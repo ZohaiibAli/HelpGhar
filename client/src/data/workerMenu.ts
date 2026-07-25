@@ -6,6 +6,8 @@ import {
   NotebookTextIcon,
   Square,
   SquarePen,
+  Calendar,
+  MessageSquareWarning,
 } from "lucide-react";
 
 export const workerItems = [
@@ -17,12 +19,12 @@ export const workerItems = [
   {
     label: "My Bookings",
     to: "/worker/bookings",
-    icon: LayoutDashboard,
+    icon: Calendar,
   },
   {
     label: "Dispute",
     to: "/worker/dispute",
-    icon: Star,
+    icon: MessageSquareWarning,
   },
   {
     label: "Reviews",
