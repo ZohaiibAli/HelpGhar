@@ -3,7 +3,7 @@ import os
 from config.qdrant import client
 from config.qdrant import QDRANT_COLLECTION
 
-from rag.embeddings import embedding_model
+from rag.embeddings import generate_embedding
 
 # Below this cosine similarity, a chunk is treated as "not actually
 # relevant" instead of being force-fed to Gemini as context. Previously
@@ -12,12 +12,13 @@ from rag.embeddings import embedding_model
 # chat_service.generate_rag_response was effectively dead code (it only
 # fired when the collection was completely empty).
 #
-# Calibrated against the live helpghar_docs collection: on-topic
-# queries (English and Roman Urdu) scored 0.79-0.91, off-topic queries
-# (weather, jokes, sports, code, gibberish) scored 0.70-0.82. There is
-# real overlap in that band -- multilingual-e5-small compresses cosine
-# scores into a narrow high range, so this is a conservative floor that
-# catches clearly-irrelevant matches, not a precise classifier. The
+# Calibrated against the live helpghar_docs collection when it was
+# indexed with multilingual-e5-small (on-topic queries scored
+# 0.79-0.91, off-topic 0.70-0.82). Now that embeddings come from
+# Gemini (see rag/embeddings.py) the score distribution may sit in a
+# different range -- re-check real query scores after the switch and
+# adjust RAG_SCORE_THRESHOLD if on-topic queries start getting
+# filtered out or off-topic ones start slipping through. The
 # "answer ONLY from context, say so if unavailable" prompt instruction
 # (see services/prompt_service.py) is the real backstop against
 # hallucination on borderline retrievals.
@@ -28,11 +29,11 @@ DEFAULT_SCORE_THRESHOLD = float(
 
 def retrieve(query, limit=5, score_threshold=DEFAULT_SCORE_THRESHOLD):
 
-    # E5 multilingual models expect a "query: " prefix on search
-    # queries (documents were indexed with "passage: ", see
-    # rag/ingest.py). Must match what was used at ingestion time or
-    # similarity scores become unreliable.
-    vector = embedding_model.encode(f"query: {query}").tolist()
+    # RETRIEVAL_QUERY tells Gemini this text is a search query, not a
+    # document -- must match the RETRIEVAL_DOCUMENT task_type used at
+    # ingestion time (see rag/ingest.py) or similarity scores become
+    # unreliable.
+    vector = generate_embedding(query, task_type="RETRIEVAL_QUERY")
 
     response = client.query_points(
         collection_name=QDRANT_COLLECTION,

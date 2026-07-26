@@ -8,9 +8,11 @@ from qdrant_client.models import (
     PointStruct,
 )
 
+from ai.llm import GeminiQuotaExceededError
+
 from rag.chunker import split_text
 from rag.document_loader import load_documents
-from rag.embeddings import embedding_model
+from rag.embeddings import generate_embedding
 from rag.vector_store import create_collection
 
 from config.qdrant import client
@@ -22,6 +24,24 @@ MAX_RETRIES = 3
 # Chunks shorter than this are near-empty fragments (stray headings,
 # leftover whitespace after splitting) -- not worth embedding or storing.
 MIN_CHUNK_LENGTH = 20
+
+
+def embed_with_retry(chunk, attempt=1):
+    """
+    Wraps generate_embedding() with the same retry/backoff shape as
+    upsert_with_retry() below, since document ingestion can make many
+    embedding calls back-to-back and Gemini's free tier can return a
+    transient 429 (GeminiQuotaExceededError) under bursty load.
+    """
+
+    try:
+        return generate_embedding(chunk, task_type="RETRIEVAL_DOCUMENT")
+    except GeminiQuotaExceededError as e:
+        if attempt >= MAX_RETRIES:
+            raise
+        print(f"  Embedding rate-limited ({e}), retrying ({attempt}/{MAX_RETRIES})...")
+        time.sleep(2 * attempt)
+        return embed_with_retry(chunk, attempt=attempt + 1)
 
 
 def upsert_with_retry(points, attempt=1):
@@ -99,12 +119,11 @@ def ingest():
 
         for index, chunk in enumerate(chunks):
 
-            # E5 multilingual models expect a "passage: " prefix on
-            # indexed documents (and "query: " on search queries, see
-            # rag/retriever.py) - this asymmetric prefixing is part of
-            # how the model was trained and meaningfully affects
-            # retrieval quality if skipped.
-            vector = embedding_model.encode(f"passage: {chunk}").tolist()
+            # RETRIEVAL_DOCUMENT tells Gemini this text is being
+            # indexed, not searched-for -- must match the
+            # RETRIEVAL_QUERY task_type used at query time (see
+            # rag/retriever.py).
+            vector = embed_with_retry(chunk)
 
             points.append(
                 PointStruct(

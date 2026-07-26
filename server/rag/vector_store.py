@@ -4,7 +4,7 @@ from qdrant_client.models import VectorParams
 from qdrant_client.models import PointStruct
 import uuid
 
-from rag.embeddings import embedding_model
+from rag.embeddings import generate_embedding
 
 from config.qdrant import (
     client,
@@ -64,7 +64,7 @@ def insert_test_vector():
 
     text = "HelpGhar provides verified electricians."
 
-    vector = embedding_model.encode(f"passage: {text}").tolist()
+    vector = generate_embedding(text, task_type="RETRIEVAL_DOCUMENT")
 
     client.upsert(
         collection_name=QDRANT_COLLECTION,
@@ -89,7 +89,7 @@ def search_test():
 
     query = "electrician"
 
-    vector = embedding_model.encode(f"query: {query}").tolist()
+    vector = generate_embedding(query, task_type="RETRIEVAL_QUERY")
 
     result = client.query_points(
         collection_name=QDRANT_COLLECTION,
