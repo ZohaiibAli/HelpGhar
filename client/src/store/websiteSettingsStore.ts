@@ -1,8 +1,10 @@
 import { create } from "zustand";
+import { applyTheme, saveTheme, DEFAULT_THEME, type WebsiteTheme } from "@/lib/theme";
 
 interface WebsiteSettingsState {
   websiteName: string;
   websiteLogo: string | null;
+  theme: WebsiteTheme;
   loading: boolean;
 
   fetchSettings: () => Promise<void>;
@@ -15,6 +17,7 @@ export const useWebsiteSettingsStore = create<WebsiteSettingsState>(
   (set) => ({
     websiteName: "HelpGhar",
     websiteLogo: null,
+    theme: DEFAULT_THEME,
     loading: true,
 
     fetchSettings: async () => {
@@ -26,11 +29,21 @@ export const useWebsiteSettingsStore = create<WebsiteSettingsState>(
         const data = await res.json();
 
         if (data.success) {
+          const theme: WebsiteTheme = data.settings.theme || DEFAULT_THEME;
+
+          // Server is the source of truth for the theme shown to every
+          // visitor; sync it onto this device too so a subsequent reload
+          // paints correctly even before this fetch resolves.
+          applyTheme(theme);
+          saveTheme(theme);
+
           set({
             websiteName:
               data.settings.website_name || "HelpGhar",
 
             websiteLogo: data.settings.website_logo || null,
+
+            theme,
 
             loading: false,
           });
