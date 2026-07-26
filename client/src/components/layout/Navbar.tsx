@@ -29,6 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { customerItems } from "@/data/customerMenu";
+import { adminItems } from "@/data/adminMenu";
+import { workerItems } from "@/data/workerMenu";
 
 const NAV = [
   { to: "/#home", label: "Home", icon: Home },
@@ -50,6 +52,7 @@ const CUSTOMER_DASHBOARD_ROUTES = [
 function isOnDashboard(pathname: string): boolean {
   return (
     pathname.startsWith("/dashboard/") ||
+    pathname.startsWith("/worker/") ||
     CUSTOMER_DASHBOARD_ROUTES.includes(pathname)
   );
 }
@@ -62,6 +65,13 @@ export function Navbar() {
   const navigate = useNavigate();
 
   const onDashboard = isOnDashboard(pathname);
+
+  const dashboardItems =
+    user?.role === "admin"
+      ? adminItems
+      : user?.role === "worker"
+        ? workerItems
+        : customerItems;
 
   const dashHref =
     user?.role === "admin"
@@ -202,8 +212,8 @@ export function Navbar() {
 
                 <div className="my-2 h-px bg-border" />
 
-                {customerItems.map((item) => {
-                  const active = location.pathname === item.to;
+                {dashboardItems.map((item) => {
+                  const active = pathname === item.to;
                   const Icon = item.icon;
                   return (
                     <Link
