@@ -10,11 +10,9 @@ python-jose[cryptography]
 cloudinary
 
 qdrant-client
-sentence-transformers 
-langchain 
-langchain-community 
-langchain-google-genai 
-google-generativeai 
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.12.1+cpu
+sentence-transformers
 langchain-text-splitters
 
 nltk==3.9.1
