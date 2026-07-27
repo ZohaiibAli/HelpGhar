@@ -1,4 +1,6 @@
 from bson import ObjectId
+from fastapi import UploadFile, File
+from helper.cloudinary_helper import upload_image, delete_image
 from bson.errors import InvalidId
 from fastapi import APIRouter, HTTPException, Depends
 from config.db import (
@@ -99,7 +101,8 @@ def get_admin_profile(current_admin=Depends(get_current_admin)):
         "fullName": current_admin.get("fullName", current_admin.get("name", "")),
         "email": current_admin["email"],
         "phone": current_admin.get("phone", ""),
-        "address": current_admin.get("address", "")
+        "address": current_admin.get("address", ""),
+        "profileImage": current_admin.get("profileImage", "")
     }
 
 @router.put("/profile")
@@ -125,7 +128,43 @@ def update_admin_profile(
         "success": True,
         "message": "Profile updated successfully"
     }
+@router.put("/profile-image")
+async def update_profile_image(
+    file: UploadFile = File(...),
+    current_admin=Depends(get_current_admin)
+):
+    admin = admin_collection.find_one(
+        {
+            "_id": current_admin["_id"]
+        }
+    )
 
+    old_image = admin.get("profileImage")
+
+    image_url = upload_image(
+        file,
+        folder="HelpGhar/admins"
+    )
+
+    admin_collection.update_one(
+        {
+            "_id": current_admin["_id"]
+        },
+        {
+            "$set": {
+                "profileImage": image_url
+            }
+        }
+    )
+
+    if old_image:
+        delete_image(old_image)
+
+    return {
+        "success": True,
+        "message": "Profile picture updated successfully.",
+        "profileImage": image_url
+    }
 @router.put("/change-password")
 def change_password(
     data: ChangePassword,
