@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  MapPin,
-  Search,
   ShieldCheck,
   Star,
   Users,
@@ -54,7 +52,6 @@ const TRUST_POINTS = [
 
 export function HeroSection() {
   const [wordIndex, setWordIndex] = useState(0);
-  const [searchFocused, setSearchFocused] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -129,8 +126,8 @@ export function HeroSection() {
           {/* Subheading */}
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
             Tell us the job — a leaking pipe, a school run, a deep clean before guests arrive.{" "}
-            <span className="font-medium text-foreground">CNIC-verified pros</span> near you can
-            usually be at your door the same day.
+            <span className="font-medium text-foreground">CNIC-verified pros across Karachi</span>{" "}
+            can usually be at your door the same day.
           </p>
 
           {/* Category pills */}
@@ -152,38 +149,18 @@ export function HeroSection() {
             ))}
           </div>
 
-          {/* Search bar */}
+          {/* Primary CTA */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
-            className={`mt-8 grid gap-2 rounded-2xl border bg-card/90 p-2 shadow-card backdrop-blur-md transition-all duration-300 sm:grid-cols-[1fr_1fr_auto] ${searchFocused
-              ? "border-primary/40 shadow-lift ring-4 ring-primary/5"
-              : "border-border/60"
-              }`}
+            className="mt-8"
           >
-            <div className="flex items-center gap-2.5 rounded-xl px-3 transition-colors focus-within:bg-accent/30">
-              <Search className="h-4 w-4 shrink-0 text-muted-foreground/70" />
-              <input
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                placeholder="What service do you need?"
-                className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
-              />
-            </div>
-            <div className="flex items-center gap-2.5 rounded-xl px-3 transition-colors focus-within:bg-accent/30">
-              <MapPin className="h-4 w-4 shrink-0 text-muted-foreground/70" />
-              <input
-                placeholder="Your city"
-                defaultValue="Lahore"
-                className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
-              />
-            </div>
             <Link
               to="/services"
-              className="group/btn inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-7 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:bg-primary-dark hover:shadow-lg active:scale-[0.97]"
+              className="group/btn inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-primary px-8 text-base font-semibold text-primary-foreground shadow-soft transition-all hover:bg-primary-dark hover:shadow-lg active:scale-[0.97]"
             >
-              Find Worker
+              Find a Worker in Karachi
               <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
             </Link>
           </motion.div>

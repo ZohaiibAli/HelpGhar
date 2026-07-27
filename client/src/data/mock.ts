@@ -137,7 +137,7 @@ export const notifications: NotificationItem[] = [
 ];
 
 export const testimonials = [
-  { name: "Sara Malik", role: "Customer, Lahore", quote: "HelpGhar made finding a trusted maid effortless. Verified profiles gave us total peace of mind.", avatar: avatars[2] },
+  { name: "Sara Malik", role: "Customer, Karachi", quote: "HelpGhar made finding a trusted maid effortless. Verified profiles gave us total peace of mind.", avatar: avatars[2] },
   { name: "Bilal Ahmed", role: "Driver, Karachi", quote: "I get steady work and on-time payments. The platform truly respects workers.", avatar: avatars[1] },
-  { name: "Zara Hussain", role: "Customer, Islamabad", quote: "Booked an electrician in 5 minutes. Fixed the issue and the price was exactly as quoted.", avatar: avatars[7] },
+  { name: "Zara Hussain", role: "Customer, Karachi", quote: "Booked an electrician in 5 minutes. Fixed the issue and the price was exactly as quoted.", avatar: avatars[7] },
 ];

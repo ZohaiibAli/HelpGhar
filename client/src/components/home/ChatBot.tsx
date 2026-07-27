@@ -40,7 +40,6 @@ export function ChatbotTeaserSection() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [typing, setTyping] = useState(false);
-  const [inputValue, setInputValue] = useState("");
 
   useEffect(() => {
     setTyping(true);
@@ -109,35 +108,23 @@ export function ChatbotTeaserSection() {
             ))}
           </div>
 
-          {/* Mini input bar that redirects on submit */}
-          <motion.form
+          {/* Primary CTA */}
+          <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.3, duration: 0.5 }}
-            onSubmit={(e) => {
-              e.preventDefault();
-              goToChat(inputValue || undefined);
-            }}
-            className="mt-8 flex items-center gap-2 rounded-2xl border border-border/60 bg-card/90 p-2 shadow-card backdrop-blur-md transition-all duration-300 focus-within:border-primary/40 focus-within:shadow-lift focus-within:ring-4 focus-within:ring-primary/5"
+            className="mt-8"
           >
-            <div className="flex flex-1 items-center gap-2.5 rounded-xl px-3">
-              <Bot className="h-4 w-4 shrink-0 text-muted-foreground/70" />
-              <input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask anything about our services…"
-                className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
-              />
-            </div>
             <button
-              type="submit"
-              className="group/btn inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:bg-primary-dark hover:shadow-lg active:scale-[0.97]"
+              type="button"
+              onClick={() => goToChat()}
+              className="group/btn inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-primary px-8 text-base font-semibold text-primary-foreground shadow-soft transition-all hover:bg-primary-dark hover:shadow-lg active:scale-[0.97]"
             >
-              Chat now
+              Chat with the AI Concierge
               <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
             </button>
-          </motion.form>
+          </motion.div>
 
           <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5">
             <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
