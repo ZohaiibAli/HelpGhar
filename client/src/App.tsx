@@ -1,6 +1,7 @@
 import AppRouter from "./Router";
 import { useEffect } from "react";
 import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
+import AuthWatcher from "@/components/AuthWatcher";
 
 export default function App() {
   const fetchSettings =
@@ -9,5 +10,11 @@ export default function App() {
   useEffect(() => {
     fetchSettings();
   }, []);
-  return <AppRouter />;
+
+  return (
+    <>
+      <AuthWatcher />
+      <AppRouter />
+    </>
+  );
 }

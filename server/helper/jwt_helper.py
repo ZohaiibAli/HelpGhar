@@ -7,9 +7,10 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_HOURS = int(
+ACCESS_TOKEN_EXPIRE_HOURS = float(
     os.getenv("ACCESS_TOKEN_EXPIRE_HOURS")
 )
+print("ACCESS_TOKEN_EXPIRE_HOURS =", ACCESS_TOKEN_EXPIRE_HOURS)
 
 
 def create_access_token(data: dict):
