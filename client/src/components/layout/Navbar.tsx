@@ -114,7 +114,6 @@ export function Navbar() {
         </Link>
 
         {/* Desktop nav — only on landing page */}
-        {!onDashboard && (
           <nav className="hidden items-center gap-1 md:flex">
             {NAV.map((n) => {
               const active =
@@ -134,7 +133,6 @@ export function Navbar() {
               );
             })}
           </nav>
-        )}
 
         {/* Desktop right side */}
         <div className="hidden items-center gap-2 md:flex">
