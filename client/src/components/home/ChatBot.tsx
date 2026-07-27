@@ -61,20 +61,8 @@ export function ChatbotTeaserSection() {
   }
 
   return (
-    <section id="chat" className="relative overflow-hidden bg-hero-gradient">
-      {/* Dot grid, consistent with hero */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 0)",
-          backgroundSize: "28px 28px",
-        }}
-      />
-      <div className="pointer-events-none absolute -left-32 top-0 h-[420px] w-[420px] rounded-full bg-primary/10 blur-[100px]" />
-      <div className="pointer-events-none absolute -right-24 bottom-0 h-[380px] w-[380px] rounded-full bg-primary/15 blur-[90px]" />
-
-      <div className="relative z-10 mx-auto grid max-w-7xl gap-14 px-4 py-20 sm:px-6 md:py-28 lg:grid-cols-2 lg:gap-10 lg:px-8">
+    <section id="chat" className="relative overflow-hidden border-y border-border/70 bg-card/60">
+      <div className="relative z-10 mx-auto grid max-w-7xl gap-14 px-4 py-20 sm:px-6 md:py-24 lg:grid-cols-2 lg:gap-10 lg:px-8">
         {/* ─── LEFT: copy + CTA ─── */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -88,10 +76,10 @@ export function ChatbotTeaserSection() {
             AI Concierge
           </span>
 
-          <h2 className="mt-6 text-3xl font-black leading-[1.1] tracking-tight md:text-[2.75rem]">
+          <h2 className="font-display mt-6 text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.75rem]">
             Don't search.
             <br />
-            <span className="text-primary">Just ask.</span>
+            <span className="italic text-primary">Just ask.</span>
           </h2>
 
           <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground md:text-lg">

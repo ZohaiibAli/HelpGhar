@@ -21,7 +21,7 @@ export function PopularWorkers() {
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">
             Top picks
           </p>
-          <h2 className="mt-1 text-3xl font-black md:text-4xl">
+          <h2 className="font-display mt-1 text-3xl font-semibold tracking-tight md:text-4xl">
             Popular verified workers
           </h2>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">

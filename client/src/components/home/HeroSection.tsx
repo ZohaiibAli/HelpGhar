@@ -75,10 +75,9 @@ export function HeroSection() {
         }}
       />
 
-      {/* Gradient blobs */}
+      {/* Gradient blob — single, off-axis, earns its place at the top of page */}
       <div className="pointer-events-none absolute -right-32 -top-32 h-[500px] w-[500px] rounded-full bg-primary/15 blur-[100px]" />
-      <div className="pointer-events-none absolute -bottom-40 -left-32 h-[400px] w-[400px] rounded-full bg-primary/10 blur-[80px]" />
-      <div className="pointer-events-none absolute left-1/2 top-1/3 h-[300px] w-[300px] -translate-x-1/2 rounded-full bg-primary/5 blur-[60px]" />
+      <div className="pointer-events-none absolute -bottom-40 -left-32 h-[360px] w-[360px] rounded-full bg-primary/[0.07] blur-[80px]" />
 
       <div className="relative z-10 mx-auto grid max-w-7xl gap-14 px-4 py-16 sm:px-6 md:py-24 lg:grid-cols-2 lg:px-8 lg:gap-10">
         {/* ─── LEFT COLUMN ─── */}
@@ -104,13 +103,12 @@ export function HeroSection() {
           </motion.span>
 
           {/* Heading */}
-          <h1 className="mt-6 text-4xl font-black leading-[1.08] tracking-tight md:text-[3.5rem] md:leading-[1.08]">
-            Find trusted
-            <br />
-            <span className="relative inline-block h-[1.15em] overflow-hidden align-bottom">
+          <h1 className="font-display mt-6 text-[2.75rem] font-semibold leading-[1.05] tracking-[-0.01em] md:text-[3.75rem] md:leading-[1.03]">
+            Need
+            <span className="relative mx-2 inline-block h-[1.1em] overflow-hidden align-bottom">
               {/* Glow underline */}
               <span className="pointer-events-none absolute -inset-x-2 bottom-0 h-3 rounded-full bg-primary/20 blur-md" />
-              <span className="relative text-primary">
+              <span className="relative italic text-primary">
                 <AnimatePresence mode="wait">
                   <motion.span
                     key={CYCLE_WORDS[wordIndex]}
@@ -125,15 +123,14 @@ export function HeroSection() {
                 </AnimatePresence>
               </span>
             </span>
-            <br />
-            at your doorstep.
+            tonight, not next week?
           </h1>
 
           {/* Subheading */}
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
-            From house help and drivers to electricians and tutors — book{" "}
-            <span className="font-medium text-foreground">verified, vetted professionals</span>{" "}
-            in your city within minutes.
+            Tell us the job — a leaking pipe, a school run, a deep clean before guests arrive.{" "}
+            <span className="font-medium text-foreground">CNIC-verified pros</span> near you can
+            usually be at your door the same day.
           </p>
 
           {/* Category pills */}

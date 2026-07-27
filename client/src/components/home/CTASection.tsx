@@ -12,9 +12,11 @@ export function CTASection() {
             <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">
               <ShieldCheck className="h-3.5 w-3.5" /> Earn with HelpGhar
             </span>
-            <h2 className="mt-4 text-3xl font-black leading-tight md:text-5xl">Become a Verified Worker</h2>
+            <h2 className="font-display mt-4 text-3xl font-semibold leading-tight md:text-5xl">
+              Good with your hands? Get paid for it.
+            </h2>
             <p className="mt-3 max-w-md text-sm text-primary-foreground/85 md:text-base">
-              Join thousands of professionals earning steady income with flexible schedules and on-time payouts.
+              Set your own hours, get matched with jobs near you, and get paid every week — no chasing clients for cash.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
@@ -31,7 +33,7 @@ export function CTASection() {
               </Link>
             </div>
           </div>
-          <div className="grid gap-4">
+          <div className="flex flex-col divide-y divide-white/15 rounded-2xl bg-white/[0.07] sm:divide-y-0">
             <Perk icon={Wallet} title="On-time payouts" desc="Get paid every week, no waiting." />
             <Perk icon={Calendar} title="Flexible schedule" desc="Choose when and where you work." />
             <Perk icon={ShieldCheck} title="Verified profile" desc="Boost trust and unlock more jobs." />
@@ -44,8 +46,8 @@ export function CTASection() {
 
 function Perk({ icon: Icon, title, desc }: { icon: typeof Wallet; title: string; desc: string }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl bg-white/10 p-4 backdrop-blur">
-      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/15"><Icon className="h-5 w-5" /></div>
+    <div className="flex items-center gap-4 p-4">
+      <Icon className="h-5 w-5 shrink-0 text-primary-foreground/70" strokeWidth={1.75} />
       <div className="min-w-0"><p className="font-bold">{title}</p><p className="text-sm text-primary-foreground/80">{desc}</p></div>
     </div>
   );
