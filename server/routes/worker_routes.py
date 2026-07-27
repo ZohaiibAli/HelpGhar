@@ -6,7 +6,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo.errors import DuplicateKeyError
 from helper.password_helper import hash_password, verify_password
-from helper.cloudinary_helper import upload_image
+from helper.cloudinary_helper import upload_image, delete_image
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
@@ -154,6 +154,7 @@ def get_worker_profile(user=Depends(verify_token)):
         "pricing": worker["pricing"],
         "skills": worker["skills"],
         "status": worker["status"],
+        "profileImage": worker.get("profileImage"),   # ← add this line
     }
 
 @router.put("/profile")
@@ -575,6 +576,56 @@ def get_worker_details_public(worker_id: str):
         "about": details.get("about", ""),
         "skills": details.get("skills", ""),
         "certifications": details.get("certifications", "")
+    }
+
+@router.put("/profile-image")
+async def update_worker_profile_image(
+    file: UploadFile = File(...),
+    user=Depends(verify_token)
+):
+    if user["role"] != "worker":
+        raise HTTPException(
+            status_code=403,
+            detail="Worker Only"
+        )
+
+    worker = worker_collection.find_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    if not worker:
+        raise HTTPException(
+            status_code=404,
+            detail="Worker not found"
+        )
+
+    old_image = worker.get("profileImage")
+
+    image_url = upload_image(
+        file,
+        folder="HelpGhar/ProfilePictures"
+    )
+
+    if old_image:
+        delete_image(old_image)
+
+    worker_collection.update_one(
+        {
+            "_id": ObjectId(user["id"])
+        },
+        {
+            "$set": {
+                "profileImage": image_url
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "Profile picture updated successfully.",
+        "profileImage": image_url
     }
 
 @router.delete("/delete-account")
