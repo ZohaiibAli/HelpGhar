@@ -632,9 +632,7 @@ async def update_worker_profile_image(
 def delete_account(
     user=Depends(verify_token)
 ):
-
     if user["role"] != "worker":
-
         raise HTTPException(
             status_code=403,
             detail="Worker Only"
@@ -647,11 +645,26 @@ def delete_account(
     )
 
     if not worker:
-
         raise HTTPException(
             status_code=404,
             detail="Worker not found"
         )
+
+    # Remove all gigs published by this worker so they stop
+    # appearing in listings / being bookable once the account
+    # is gone. Soft-delete (status = "Removed") to match the
+    # existing delete_gig behavior, rather than hard-deleting
+    # gig documents (keeps history if you ever need it).
+    gig_collection.update_many(
+        {
+            "workerId": user["workerId"]
+        },
+        {
+            "$set": {
+                "status": "Removed"
+            }
+        }
+    )
 
     worker_collection.delete_one(
         {
@@ -660,9 +673,6 @@ def delete_account(
     )
 
     return {
-
         "success": True,
-
         "message": "Account deleted successfully"
-
     }
