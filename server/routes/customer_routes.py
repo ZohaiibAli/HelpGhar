@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
 from pymongo.errors import DuplicateKeyError
 from config.db import customer_collection
 from model.customer_model import (
@@ -13,6 +13,7 @@ from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
 from bson import ObjectId
 from helper.id_helper import generate_customer_id
+from helper.cloudinary_helper import upload_image, delete_image
 
 router = APIRouter(prefix="/customer", tags=["Customer"])
 
@@ -157,7 +158,8 @@ def get_profile(user=Depends(verify_token)):
     "fullName": customer["fullName"],
     "email": customer["email"],
     "phone": customer["phone"],
-    "address": customer["address"]
+    "address": customer["address"],
+    "profileImage": customer.get("profileImage")
 
 }
 
@@ -295,7 +297,56 @@ def change_password(
         "message": "Password Updated Successfully"
 
     }
+@router.put("/profile-image")
+async def update_profile_image(
+    file: UploadFile = File(...),
+    user=Depends(verify_token)
+):
 
+    if user["role"] != "customer":
+        raise HTTPException(
+            status_code=403,
+            detail="Customer Only"
+        )
+
+    customer = customer_collection.find_one(
+        {
+            "_id": ObjectId(user["id"])
+        }
+    )
+
+    if not customer:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+
+    old_image = customer.get("profileImage")
+
+    image_url = upload_image(
+        file,
+        folder="HelpGhar/ProfilePictures"
+    )
+
+    if old_image:
+        delete_image(old_image)
+
+    customer_collection.update_one(
+        {
+            "_id": ObjectId(user["id"])
+        },
+        {
+            "$set": {
+                "profileImage": image_url
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "Profile picture updated successfully.",
+        "profileImage": image_url
+    }
 @router.delete("/delete-account")
 def delete_account(
     user=Depends(verify_token)
