@@ -462,15 +462,23 @@ def delete_gig(
 @router.get("/gigs")
 def get_gigs():
 
-    gigs = []
+    gigs = list(gig_collection.find({"status": "Active"}))
 
-    for gig in gig_collection.find({"status": "Active"}):
+    # One bulk lookup instead of a find_one() per gig -- with a handful
+    # of gigs the per-gig round trip was invisible, but at hundreds+ it
+    # turned every /worker/gigs call into hundreds of sequential remote
+    # queries (tens of seconds), well past the frontend's request
+    # timeout, so the page silently rendered zero workers.
+    worker_ids = {gig["workerId"] for gig in gigs if "workerId" in gig}
 
-        worker = worker_collection.find_one(
-            {
-                "workerId": gig["workerId"]
-            }
-        )
+    workers_by_id = {
+        worker["workerId"]: worker
+        for worker in worker_collection.find({"workerId": {"$in": list(worker_ids)}})
+    }
+
+    for gig in gigs:
+
+        worker = workers_by_id.get(gig.get("workerId"))
 
         if worker:
 
@@ -509,8 +517,6 @@ def get_gigs():
         gig["id"] = str(gig["_id"])
 
         del gig["_id"]
-
-        gigs.append(gig)
 
     return {
 
