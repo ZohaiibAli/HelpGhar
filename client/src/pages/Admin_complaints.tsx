@@ -3,6 +3,7 @@ import { CheckCircle2, Trash2, X } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 import { Button } from "@/components/ui/button";
+import { authHeaders, handleAuthFailure } from "@/lib/session";
 import type { Complaint } from "@/types";
 
 const statusStyles: Record<Complaint["status"], string> = {
@@ -84,10 +85,10 @@ export default function AdminComplaints() {
 
   const fetchCustomerDisputes = async () => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/admin/disputes/customer`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(),
       });
+      if (handleAuthFailure(response)) return;
       const result = await response.json();
       if (result.success) {
         setCustomerComplaints(result.complaints);
@@ -99,10 +100,10 @@ export default function AdminComplaints() {
 
   const fetchWorkerDisputes = async () => {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/admin/disputes/worker`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(),
       });
+      if (handleAuthFailure(response)) return;
       const result = await response.json();
       if (result.success) {
         setWorkerComplaints(result.complaints);
@@ -125,11 +126,11 @@ export default function AdminComplaints() {
 
   async function resolve(id: string, source: "customer" | "worker") {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/admin/dispute/${id}/resolve`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(),
       });
+      if (handleAuthFailure(response)) return;
       const result = await response.json();
       if (result.success) {
         const updater = (list: Complaint[]) =>
@@ -145,11 +146,11 @@ export default function AdminComplaints() {
 
   async function remove(id: string, source: "customer" | "worker") {
     try {
-      const token = localStorage.getItem("token");
       const response = await fetch(`${API_BASE_URL}/admin/dispute/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(),
       });
+      if (handleAuthFailure(response)) return;
       const result = await response.json();
       if (result.success) {
         if (source === "customer") setCustomerComplaints((list) => list.filter((c) => c.id !== id));

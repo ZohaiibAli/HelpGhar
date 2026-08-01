@@ -1,41 +1,33 @@
 import { useEffect } from "react";
-import { jwtDecode } from "jwt-decode";
+import { TOKEN_KEY, getToken, logoutIfExpired } from "@/lib/session";
 
-interface JwtPayload {
-    exp: number;
-    role: "admin" | "worker" | "customer";
-}
-
+/**
+ * App-wide cleanup for a session that died while nobody was looking.
+ *
+ * Deliberately does NOT redirect: this is mounted on public pages (landing,
+ * services, register, forgot-password) too, and those need no session. It just
+ * makes sure a dead token isn't left in storage waiting to be handed to the
+ * first protected page the user navigates to.
+ *
+ * The proactive, redirecting watcher lives in ProtectedRoute
+ * (see hooks/useSessionExpiry).
+ */
 export default function AuthWatcher() {
 
     useEffect(() => {
 
-        const interval = setInterval(() => {
+        logoutIfExpired({ redirect: false });
 
-            const token = localStorage.getItem("token");
+        const handleStorage = (event: StorageEvent) => {
 
-            if (!token) return;
+            if (event.key !== null && event.key !== TOKEN_KEY) return;
 
-            try {
+            if (getToken()) logoutIfExpired({ redirect: false });
+        };
 
-                const decoded = jwtDecode<JwtPayload>(token);
+        window.addEventListener("storage", handleStorage);
 
-                if (decoded.exp * 1000 < Date.now()) {
-                    const role = decoded.role;
-
-                    localStorage.clear();
-
-                    window.location.href = `/login/${role}`;
-                }
-
-            } catch {
-                localStorage.clear();
-                window.location.href = "/login";
-            }
-
-        }, 1000);
-
-        return () => clearInterval(interval);
+        return () => window.removeEventListener("storage", handleStorage);
 
     }, []);
 

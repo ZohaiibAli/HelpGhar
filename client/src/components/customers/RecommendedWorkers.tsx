@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { WorkerCard } from "@/components/workers/WorkerCard";
+import { authHeaders, handleAuthFailure } from "@/lib/session";
 import type { Worker } from "@/types";
 
 
@@ -24,23 +25,21 @@ export default function RecommendedWorkers() {
 
     try {
 
-      const token = localStorage.getItem("token");
-
       const res = await fetch(
 
         `${API_BASE}/recommendations/my-workers`,
 
         {
 
-          headers: {
-
-            Authorization: `Bearer ${token}`
-
-          }
+          headers: authHeaders()
 
         }
 
       );
+
+      // A silently-swallowed background fetch is exactly how a dead session
+      // stays invisible -- bail out and let the session module log out.
+      if (handleAuthFailure(res)) return;
 
       const data = await res.json();
 

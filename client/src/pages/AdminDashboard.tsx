@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useGigStore } from "@/store/gigStore";
 import { Button } from "@/components/ui/button";
 import { adminItems } from "@/data/adminMenu";
+import { authHeaders, handleAuthFailure } from "@/lib/session";
 import type { Complaint } from "@/types";
 
 export default function AdminDashboard() {
@@ -15,16 +16,16 @@ export default function AdminDashboard() {
 
   const fetchComplaints = async () => {
     try {
-      const token = localStorage.getItem("token");
-
       const [customerRes, workerRes] = await Promise.all([
         fetch(`${API_BASE_URL}/admin/disputes/customer`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: authHeaders(),
         }),
         fetch(`${API_BASE_URL}/admin/disputes/worker`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: authHeaders(),
         }),
       ]);
+
+      if (handleAuthFailure(customerRes) || handleAuthFailure(workerRes)) return;
 
       const customerResult = await customerRes.json();
       const workerResult = await workerRes.json();

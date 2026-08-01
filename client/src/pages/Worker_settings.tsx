@@ -1,14 +1,13 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { HgAlert } from "@/components/ui/HgAlert";
 import ChangePasswordSection from "@/components/workers/ChangePasswordSection";
 import { api } from "@/services/api";
+import { logout } from "@/lib/session";
 
 export default function WorkerSettingsPage() {
-  const navigate = useNavigate();
   
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
@@ -22,9 +21,10 @@ export default function WorkerSettingsPage() {
     try {
       const { data: result } = await api.delete("/worker/delete-account");
       if (result.success) {
-        localStorage.removeItem("token");
         localStorage.removeItem("worker");
-        navigate("/login");
+        // Full teardown -- clearing the session in place would race the
+        // dashboard guard's own redirect.
+        logout("manual", { loginPath: "/login/worker" });
       } else {
         setErrorOpen(true);
       }

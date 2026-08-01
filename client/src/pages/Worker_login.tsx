@@ -43,8 +43,6 @@ export default function WorkerLoginForm() {
 
     try {
 
-      const token = localStorage.getItem("token");
-
       const response = await fetch(`${API_BASE_URL}/worker/login`, {
         method: "POST",
         headers: {
@@ -59,8 +57,6 @@ export default function WorkerLoginForm() {
       const result = await response.json();
 
       if (result.success) {
-
-        localStorage.setItem("token", result.token);
 
         setSession(
           {

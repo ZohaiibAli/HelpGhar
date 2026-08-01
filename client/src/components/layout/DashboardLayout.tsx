@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { Navbar } from "./Navbar";
 import { useAuthStore } from "@/store/authStore";
+import { hasValidSession, loginPathForSession } from "@/lib/session";
 
 export interface DashSidebarItem {
   label: string;
@@ -25,13 +26,17 @@ export function DashboardLayout({
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
-  useEffect(() => {
-    if (!user) {
-      navigate("/login/customer");
-    }
-  }, [user, navigate]);
+  // Expiry counts as "not logged in" here too, and a worker/admin gets sent to
+  // their own login rather than the customer one.
+  const signedIn = !!user && hasValidSession();
 
-  if (!user) {
+  useEffect(() => {
+    if (!signedIn) {
+      navigate(loginPathForSession(), { replace: true });
+    }
+  }, [signedIn, navigate]);
+
+  if (!signedIn) {
     return null;
   }
 

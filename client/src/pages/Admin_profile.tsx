@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Camera, Pencil, X, Eye } from "lucide-react";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { api } from "@/services/api";
+import { authHeaders, getToken, handleAuthFailure } from "@/lib/session";
 import { useRef } from "react";
 
 
@@ -99,8 +100,7 @@ export default function ProfilePage() {
       return;
     }
 
-    const authToken = localStorage.getItem("token");
-    if (!authToken) {
+    if (!getToken()) {
       navigate("/login/admin");
       return;
     }
@@ -114,7 +114,7 @@ export default function ProfilePage() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
+            ...authHeaders(),
           },
           body: JSON.stringify({
             currentPassword,
@@ -123,13 +123,9 @@ export default function ProfilePage() {
         }
       );
 
-      const result = await response.json();
+      if (handleAuthFailure(response)) return;
 
-      if (response.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login/admin");
-        return;
-      }
+      const result = await response.json();
 
       if (result.success) {
         setCurrentPassword("");
@@ -162,9 +158,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const authToken = localStorage.getItem("token");
-
-      if (!authToken) {
+      if (!getToken()) {
         navigate("/login/admin");
         return;
       }
@@ -172,10 +166,10 @@ export default function ProfilePage() {
       try {
         const response = await fetch(`${API_BASE_URL}/admin/profile`, {
           method: "GET",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
+          headers: authHeaders(),
         });
+
+        if (handleAuthFailure(response)) return;
 
         if (!response.ok) {
           console.log("Status:", response.status);
@@ -279,7 +273,7 @@ export default function ProfilePage() {
   };
 
   const handleUpdate = async () => {
-    const authToken = localStorage.getItem("token");
+    const authToken = getToken();
 
     if (!authToken) {
       navigate("/login/admin");
@@ -293,7 +287,7 @@ export default function ProfilePage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
+          ...authHeaders(),
         },
         body: JSON.stringify({
           fullName,
@@ -303,13 +297,9 @@ export default function ProfilePage() {
         }),
       });
 
-      const result = await response.json();
+      if (handleAuthFailure(response)) return;
 
-      if (response.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/login/admin");
-        return;
-      }
+      const result = await response.json();
 
       if (response.ok) {
         setSession(
