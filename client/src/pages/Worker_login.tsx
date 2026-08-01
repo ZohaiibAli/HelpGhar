@@ -126,7 +126,7 @@ export default function WorkerLoginForm() {
           <label className="flex items-center gap-2 text-muted-foreground">
             <input type="checkbox" {...register("remember")} className="h-4 w-4 rounded border-input" /> Remember me
           </label>
-          <Link to="/forgot-password" className="font-semibold text-amber-600 hover:underline">Forgot password?</Link>
+          <Link to="/worker-forgot-password"className="font-semibold text-amber-600 hover:underline">Forgot password?</Link>
         </div>
         <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl bg-amber-500 text-base font-bold text-white hover:bg-amber-600">
           {isSubmitting ? "Signing in…" : "Sign in as Worker"}

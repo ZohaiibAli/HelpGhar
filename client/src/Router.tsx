@@ -9,7 +9,8 @@ import BookingPage from "@/pages/BookingPage";
 import PaymentPage from "@/pages/PaymentPage";
 import LoginPage from "@/pages/Login";
 import RegisterPage from "@/pages/Register";
-import ForgotPasswordPage from "@/pages/ForgotPassword";
+import ForgotPasswordPage from "@/pages/CustomerForgotPassword";
+import ResetPasswordPage from "./pages/CustomerResetPassword";
 import ProfilePage from "@/pages/Customer_profile";
 import WorkerProfilePage from "@/pages/Worker_profile";
 import SettingsPage from "@/pages/Customer_settings";
@@ -27,11 +28,16 @@ import AdminComplaints from "@/pages/Admin_complaints";
 import AdminReviews from "@/pages/Admin_reviews";
 import AdminSettings from "@/pages/Admin_settings";
 import AdminProfile from "@/pages/Admin_profile";
+import AdminForgotPasswordPage from "./pages/AdminForgotPassword";
+import AdminResetPasswordPage from "./pages/AdminResetPassword";
 import NotFound from "@/pages/NotFound";
 import WorkerSettingsPage from "./pages/Worker_settings";
 import WorkerReviewsPage from "./pages/Worker_review";
 import WorkerBookings from "./pages/Worker_bookings";
 import WorkerDetailsDescriptionPage from "./pages/worker_details_description";
+import WorkerForgotPasswordPage from "@/pages/WorkerForgotPassword";
+import WorkerResetPasswordPage from "@/pages/WorkerResetPassword";
+
 import { ChatPage } from "./pages/Main_ChatBot";
 
 function ProfileRouter() {
@@ -73,6 +79,10 @@ export default function AppRouter() {
         <Route path="/login/:role" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route
+          path="/reset-password"
+          element={<ResetPasswordPage />}
+        />
         {/* <Route path="/profile" element={<ProfileRouter />} /> */}
         <Route
           path="/profile"
@@ -201,6 +211,14 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+         <Route
+          path="/admin-forgot-password"
+          element={<AdminForgotPasswordPage />}
+        />
+        <Route
+          path="/admin-reset-password"
+          element={<AdminResetPasswordPage />}
+        />
         <Route
           path="/worker/reviews"
           element={
@@ -234,6 +252,14 @@ export default function AppRouter() {
               <WorkerSettingsPage />
             </ProtectedRoute>
           }
+        />
+        <Route
+          path="/worker-forgot-password"
+          element={<WorkerForgotPasswordPage />}
+        />
+        <Route
+          path="/worker-reset-password"
+          element={<WorkerResetPasswordPage />}
         />
         <Route
           path="/worker/dispute"

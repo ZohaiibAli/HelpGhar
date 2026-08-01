@@ -1,7 +1,16 @@
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import JSONResponse
 from config.db import worker_collection, gig_collection,worker_details_collection
-from model.worker_model import WorkerRegister, WorkerLogin, GigCreate, WorkerUpdate, WorkerPasswordUpdate,WorkerDetailsUpdate
+from model.worker_model import (
+    WorkerRegister,
+    WorkerLogin,
+    GigCreate,
+    WorkerUpdate,
+    WorkerPasswordUpdate,
+    WorkerDetailsUpdate,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+)
 from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo.errors import DuplicateKeyError
@@ -12,6 +21,16 @@ from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
 from helper.id_helper import generate_worker_id
 from config.db import review_collection
+
+from helper.email_helper import send_reset_email
+import secrets
+from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
+
+
+load_dotenv()
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 router = APIRouter(prefix="/worker", tags=["Worker"])
 
@@ -114,6 +133,108 @@ def worker_login(worker: WorkerLogin):
             "status": existing_worker["status"],
             "role": "worker"
         }
+    }
+
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+
+    worker = worker_collection.find_one(
+        {
+            "email": request.email
+        }
+    )
+
+    # Always return the same response
+    if not worker:
+        return {
+            "success": True,
+            "message": "If this email exists, a reset link has been sent."
+        }
+
+    token = secrets.token_urlsafe(32)
+
+    expiry = datetime.utcnow() + timedelta(minutes=15)
+
+    worker_collection.update_one(
+        {
+            "_id": worker["_id"]
+        },
+        {
+            "$set": {
+                "resetToken": token,
+                "resetTokenExpiry": expiry
+            }
+        }
+    )
+
+    reset_link = f"{FRONTEND_URL}/worker-reset-password?token={token}"
+
+    await send_reset_email(
+        request.email,
+        reset_link
+    )
+
+    return {
+        "success": True,
+        "message": "If this email exists, a reset link has been sent."
+    }
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest):
+
+    worker = worker_collection.find_one(
+        {
+            "resetToken": request.token
+        }
+    )
+
+    if not worker:
+        return {
+            "success": False,
+            "message": "Invalid or expired reset link."
+        }
+
+    expiry = worker.get("resetTokenExpiry")
+
+    if not expiry or datetime.utcnow() > expiry:
+
+        worker_collection.update_one(
+            {
+                "_id": worker["_id"]
+            },
+            {
+                "$unset": {
+                    "resetToken": "",
+                    "resetTokenExpiry": ""
+                }
+            }
+        )
+
+        return {
+            "success": False,
+            "message": "Reset link has expired."
+        }
+
+    hashed_password = hash_password(request.password)
+
+    worker_collection.update_one(
+        {
+            "_id": worker["_id"]
+        },
+        {
+            "$set": {
+                "password": hashed_password
+            },
+            "$unset": {
+                "resetToken": "",
+                "resetTokenExpiry": ""
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "Password reset successfully."
     }
 
 @router.get("/profile")
