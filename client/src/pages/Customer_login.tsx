@@ -61,7 +61,6 @@ export default function CustomerLoginForm() {
 
       if (result.success) {
         setSession(result.user, result.token);
-        localStorage.setItem("token", result.token);
 
         const redirectTo = searchParams.get("redirect");
         navigate(redirectTo || "/dashboard/customer");

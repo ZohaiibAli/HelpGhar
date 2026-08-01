@@ -58,7 +58,6 @@ export default function AdminLoginForm() {
             if (result.success) {
 
                 setSession(result.admin, result.token);
-                localStorage.setItem("token", result.token);
                 console.log(result.admin);
 
                 navigate("/dashboard/admin");

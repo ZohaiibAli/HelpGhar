@@ -5,17 +5,18 @@ import { adminItems } from "@/data/adminMenu";
 import { Button } from "@/components/ui/button";
 import { applyTheme, DEFAULT_THEME, saveTheme, WebsiteTheme } from "@/lib/theme";
 import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
+import { authHeaders, handleAuthFailure } from "@/lib/session";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const getAuthHeaders = () => ({
   "Content-Type": "application/json",
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
+  ...authHeaders(),
   "x-api-key": import.meta.env.VITE_API_KEY_ADMIN || "",
 });
 
 const getFileAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
+  ...authHeaders(),
   "x-api-key": import.meta.env.VITE_API_KEY_ADMIN || "",
 });
 
@@ -49,6 +50,7 @@ const [isSaving, setIsSaving] = useState(false);
         const res = await fetch(`${API_BASE}/admin/get-website-settings`, {
           headers: getFileAuthHeaders(),
         });
+        if (handleAuthFailure(res)) return;
         const data = await res.json();
         if (data.success && data.settings) {
           if (data.settings.theme) {
@@ -125,6 +127,7 @@ const [isSaving, setIsSaving] = useState(false);
         headers: getFileAuthHeaders(),
         body: formData,
       });
+      if (handleAuthFailure(res)) return;
       const data = await res.json();
 
       if (data.success) {
@@ -167,6 +170,8 @@ async function handleSave() {
       headers: getFileAuthHeaders(),
       body: formData,
     });
+
+    if (handleAuthFailure(res)) return;
 
     const data = await res.json();
 

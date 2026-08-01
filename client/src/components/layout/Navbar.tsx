@@ -18,6 +18,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { logout as endSession, loginPathForSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
 import {
@@ -59,7 +60,7 @@ function isOnDashboard(pathname: string): boolean {
 
 export function Navbar() {
   const { websiteLogo, websiteName, loading } = useWebsiteSettingsStore();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const [open, setOpen] = useState(false);
   const { pathname, hash } = useLocation();
   const navigate = useNavigate();
@@ -87,11 +88,11 @@ export function Navbar() {
         : "/profile";
 
   const handleLogout = () => {
-    const role = user?.role;
-    logout();
-    if (role === "worker") navigate("/login/worker");
-    else if (role === "admin") navigate("/login/admin");
-    else navigate("/login/customer");
+    // Login page is resolved before the token is cleared; "manual" leaves no
+    // notice behind, so a deliberate sign-out arrives without an explanation.
+    const loginPath = loginPathForSession();
+    endSession("manual", { redirect: false });
+    navigate(loginPath);
   };
 
   const closeMobile = () => setOpen(false);

@@ -50,6 +50,9 @@ export async function getWorkerDashboard() {
       avgRating: number;
       reviewsCount: number;
       totalEarnings: number;
+      activeGigs: number;
+      available: boolean;
+      pendingJobs: number;
     };
     activeJobs: {
       bookingId: string;

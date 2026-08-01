@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Home, Wrench, Zap, Sparkles, ShieldCheck, User } from "lucide-react";
+import { Home, Wrench, Zap, Sparkles, ShieldCheck, User, Info } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { LOGOUT_MESSAGES, takeLogoutReason } from "@/lib/session";
 import CustomerLoginForm from "@/pages/Customer_login";
 import WorkerLoginForm from "@/pages/Worker_login";
 import AdminLoginForm from "@/pages/Admin_login";
@@ -65,6 +66,18 @@ const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
 export default function LoginPage() {
   const { role } = useParams<{ role?: string }>();
   const navigate = useNavigate();
+
+  // Why the user is looking at this form. Parked by lib/session.ts before the
+  // redirect, because a toast fired at logout time dies with the React tree.
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const reason = takeLogoutReason();
+
+    if (reason && LOGOUT_MESSAGES[reason]) {
+      setNotice(LOGOUT_MESSAGES[reason]);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isValidRole(role)) {
@@ -176,6 +189,14 @@ export default function LoginPage() {
             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: config.accent }} />
             {config.eyebrow}
           </span>
+
+          {/* Why the user landed back here (expired / no longer authorised) */}
+          {notice && (
+            <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{notice}</p>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="mb-8">

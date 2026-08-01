@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from typing import Literal
 
 class AdminLogin(BaseModel):
     email: EmailStr
@@ -20,3 +21,5 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     password: str
+class WorkerVerification(BaseModel):
+    action: Literal["approve", "reject"]
