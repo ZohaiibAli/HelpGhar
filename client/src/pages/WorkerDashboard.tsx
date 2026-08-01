@@ -35,6 +35,9 @@ type DashboardStats = {
   avgRating: number;
   reviewsCount: number;
   totalEarnings: number;
+  activeGigs: number;
+  available: boolean;
+  pendingJobs: number;
 };
 
 type AlertState = {
@@ -263,7 +266,21 @@ export default function WorkerDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary-soft px-3 py-1.5 text-xs font-bold text-primary-dark">Available now</span>
+            {/* Availability comes from the worker's live gigs -- this badge
+                used to read "Available now" even with no active gig at all. */}
+            <span
+              className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                stats?.available
+                  ? "bg-primary-soft text-primary-dark"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {stats?.available
+                ? "Available now"
+                : stats?.activeGigs
+                  ? "Not accepting jobs"
+                  : "No active gig"}
+            </span>
             <button
               onClick={() => setModalOpen(true)}
               className="rounded-full bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark transition-colors"

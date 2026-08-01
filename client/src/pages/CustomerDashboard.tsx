@@ -1,21 +1,12 @@
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Calendar, CreditCard, Star, MessageSquareWarning, User, Settings, Bell, ArrowRight } from "lucide-react";
+import { Bell, ArrowRight, Loader2, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { notifications } from "@/data/mock";
 import { customerItems } from "@/data/customerMenu";
 import { useEffect, useState } from "react";
 import RecommendedWorkers from "@/components/customers/RecommendedWorkers";
 import { api } from "@/services/api";
+import type { NotificationItem } from "@/types";
 
-const items = [
-  { label: "Overview", to: "/dashboard/customer", icon: LayoutDashboard },
-  { label: "My Bookings", to: "/my-bookings", icon: Calendar },
-  { label: "Transactions", to: "/transactions", icon: CreditCard },
-  { label: "Reviews", to: "/reviews", icon: Star },
-  { label: "Disputes", to: "/disputes", icon: MessageSquareWarning },
-  { label: "Profile", to: "/profile", icon: User },
-  { label: "Settings", to: "/settings", icon: Settings },
-];
 interface Booking {
   _id: string;
   bookingId: string;
@@ -26,9 +17,22 @@ interface Booking {
   timeSlot: string;
   status: string;
 }
-export default function CustomerDashboard() {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+const noticeIcons = {
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  error: AlertTriangle,
+  info: Info,
+} as const;
+
+const noticeColors = {
+  success: "text-primary",
+  warning: "text-yellow-600",
+  error: "text-destructive",
+  info: "text-muted-foreground",
+} as const;
+
+export default function CustomerDashboard() {
   const [stats, setStats] = useState({
 
     activeBookings: 0,
@@ -41,38 +45,36 @@ export default function CustomerDashboard() {
 
   });
 
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
   const [bookings, setBookings] = useState<Booking[]>([]);
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    fetchDashboard();
-    fetchBookings();
+    Promise.all([fetchDashboard(), fetchBookings()]).finally(() =>
+      setLoading(false)
+    );
   }, []);
+
   const fetchDashboard = async () => {
     try {
       const { data } = await api.get("/dashboard/customer");
-      console.log(data);
 
       if (data.success) {
         setStats(data.stats);
+        // Real account activity. This panel used to render a shared
+        // mock list, so every customer saw the same three fictional
+        // notifications about workers they had never booked.
+        setNotifications(data.notifications ?? []);
       }
     } catch (error) {
       console.error("Dashboard fetch failed:", error);
     }
   };
+
   const fetchBookings = async () => {
     try {
-      // const token = localStorage.getItem("token");
-
-      // const response = await fetch(
-      //   `${API_BASE_URL}/bookings/my`,
-      //   {
-      //     headers: {
-      //       Authorization: `Bearer ${token}`,
-      //     },
-      //   }
-      // );
-
-      // const data = await response.json();
       const { data } = await api.get("/bookings/my");
 
       if (data.success) {
@@ -82,6 +84,9 @@ export default function CustomerDashboard() {
       console.error("Bookings fetch failed:", error);
     }
   };
+
+  const recentBookings = bookings.slice(0, 3);
+
   return (
     <DashboardLayout
       title="Customer"
@@ -99,8 +104,16 @@ export default function CustomerDashboard() {
             value={stats.activeBookings.toString()}
             hint={stats.activeBookings > 0 ? "In progress" : "All caught up"}
           />
-          <StatCard label="Total spent" value={`Rs. ${stats.totalSpent}`} hint="Last 30 days" />
-          <StatCard label="Favourite workers" value={stats.favoriteWorkers.toString()} hint="Saved" />
+          <StatCard
+            label="Total spent"
+            value={`Rs. ${stats.totalSpent.toLocaleString()}`}
+            hint="All time, refunds excluded"
+          />
+          <StatCard
+            label="Workers hired"
+            value={stats.favoriteWorkers.toString()}
+            hint={stats.favoriteWorkers > 0 ? "Unique workers booked" : "None yet"}
+          />
           <StatCard
             label="Reviews left"
             value={stats.reviewsLeft.toString()}
@@ -116,14 +129,35 @@ export default function CustomerDashboard() {
               <Link to="/my-bookings" className="text-xs font-semibold text-primary hover:underline">View all →</Link>
             </div>
             <div className="mt-4 space-y-3">
-              {bookings.slice(0, 3).map(b => (
+              {loading && (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              )}
+
+              {!loading && recentBookings.length === 0 && (
+                <div className="py-8 text-center">
+                  <p className="text-sm text-muted-foreground">You haven't booked anyone yet.</p>
+                  <Link to="/services" className="mt-2 inline-block text-xs font-semibold text-primary hover:underline">
+                    Browse workers →
+                  </Link>
+                </div>
+              )}
+
+              {recentBookings.map(b => (
                 <div key={b.bookingId} className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3">
-                  <img src={b.workerAvatar} alt="" className="h-10 w-10 rounded-xl object-cover" />
+                  {b.workerAvatar ? (
+                    <img src={b.workerAvatar} alt="" className="h-10 w-10 rounded-xl object-cover" />
+                  ) : (
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-sm font-bold text-primary-dark">
+                      {b.workerName?.trim().charAt(0).toUpperCase() || "?"}
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{b.workerName}</p>
                     <p className="truncate text-xs text-muted-foreground">{b.category} • {b.date} • {b.timeSlot}</p>
                   </div>
-                  <span className="rounded-full bg-primary-soft px-2 py-1 text-[10px] font-bold uppercase text-primary-dark">{b.status}</span>
+                  <span className="rounded-full bg-primary-soft px-2 py-1 text-[10px] font-bold uppercase text-primary-dark">{b.status.replace("_", " ")}</span>
                 </div>
               ))}
             </div>
@@ -132,15 +166,33 @@ export default function CustomerDashboard() {
           <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
             <h2 className="text-base font-bold">Notifications</h2>
             <div className="mt-4 space-y-3">
-              {notifications.map(n => (
-                <div key={n.id} className="flex gap-3 rounded-xl border border-border bg-background p-3">
-                  <Bell className="h-4 w-4 shrink-0 text-primary" />
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-bold">{n.title}</p>
-                    <p className="text-xs text-muted-foreground">{n.message}</p>
-                  </div>
+              {loading && (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 </div>
-              ))}
+              )}
+
+              {!loading && notifications.length === 0 && (
+                <p className="py-6 text-center text-xs text-muted-foreground">
+                  Nothing new yet. Bookings, payments and reviews show up here.
+                </p>
+              )}
+
+              {notifications.map(n => {
+                const Icon = noticeIcons[n.type] ?? Bell;
+                return (
+                  <div key={n.id} className="flex gap-3 rounded-xl border border-border bg-background p-3">
+                    <Icon className={`h-4 w-4 shrink-0 ${noticeColors[n.type] ?? "text-primary"}`} />
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-bold">{n.title}</p>
+                      <p className="text-xs text-muted-foreground">{n.message}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        {new Date(n.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <Link to="/services" className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">Find a worker <ArrowRight className="h-3 w-3" /></Link>
           </div>
@@ -157,6 +209,6 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint: 
       <p className="mt-2 text-2xl font-black">{value}</p>
       <p className="mt-1 text-xs text-primary">{hint}</p>
     </div>
-    
+
   );
 }

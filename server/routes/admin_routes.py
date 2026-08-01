@@ -10,8 +10,9 @@ from config.db import (
     worker_collection,
     gig_collection,
 )
-from model.admin_model import AdminLogin
+from model.admin_model import AdminLogin, WorkerVerification
 from pydantic import BaseModel
+from datetime import datetime
 from helper.password_helper import hash_password
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
@@ -418,5 +419,53 @@ def delete_user(
     return {
         "success": True,
         "message": "User deleted"
+    }
+
+
+@router.patch("/workers/{worker_id}/verification")
+def set_worker_verification(
+    worker_id: str,
+    payload: WorkerVerification,
+    current_admin=Depends(get_current_admin)
+):
+    """
+    Approve or reject a worker's CNIC verification. Backs the admin
+    overview's verification queue, whose Approve/Reject buttons were
+    previously wired to nothing at all.
+    """
+
+    worker = worker_collection.find_one({"workerId": worker_id})
+
+    if not worker:
+        raise HTTPException(status_code=404, detail="Worker not found")
+
+    approved = payload.action == "approve"
+
+    worker_collection.update_one(
+        {"workerId": worker_id},
+        {
+            "$set": {
+                "cnicVerified": approved,
+                "verificationStatus": "approved" if approved else "rejected",
+                "verifiedAt": datetime.utcnow().isoformat(),
+                "verifiedBy": str(current_admin["_id"]),
+            }
+        }
+    )
+
+    # The public Services listing reads the badge off the gig, so the
+    # decision has to reach the gigs too or the two disagree.
+    gig_collection.update_many(
+        {"workerId": worker_id},
+        {"$set": {"cnicVerified": approved}}
+    )
+
+    return {
+        "success": True,
+        "message": (
+            "Worker verified" if approved else "Worker verification rejected"
+        ),
+        "workerId": worker_id,
+        "verificationStatus": "approved" if approved else "rejected",
     }
 
