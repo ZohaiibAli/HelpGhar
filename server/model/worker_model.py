@@ -62,3 +62,11 @@ class WorkerDetailsUpdate(BaseModel):
     about: str
     skills: str
     certifications: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str

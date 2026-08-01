@@ -17,3 +17,5 @@ nltk==3.9.1
 scikit-learn 
 numpy
 tzdata
+
+fastapi-mail==1.6.5

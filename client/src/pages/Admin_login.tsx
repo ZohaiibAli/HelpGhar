@@ -112,7 +112,7 @@ export default function AdminLoginForm() {
           <label className="flex items-center gap-2 text-muted-foreground">
             <input type="checkbox" {...register("remember")} className="h-4 w-4 rounded border-input" /> Remember me
           </label>
-          <Link to="/forgot-password" className="font-semibold text-slate-600 hover:underline">Forgot password?</Link>
+          <Link to="/admin-forgot-password" className="font-semibold text-slate-600 hover:underline">Forgot password?</Link>
         </div>
         <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl bg-slate-900 text-base font-bold text-white hover:bg-slate-700">
           {isSubmitting ? "Verifying…" : "Sign in as Admin"}
