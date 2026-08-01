@@ -198,7 +198,7 @@ export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: numb
 
           
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-auto flex gap-2 pt-4">
             <Link
               to={`/workers/${worker.id}`}
               className="flex-1 rounded-xl border border-border bg-background py-2.5 text-center text-xs font-semibold transition hover:border-primary hover:text-primary"
