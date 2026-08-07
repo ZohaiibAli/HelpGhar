@@ -53,27 +53,30 @@ export function Testimonials() {
   const [featured, ...rest] = reviews;
 
   return (
-    <section id="reviews" className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-      <div className="max-w-lg">
-        <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-          What customers say
-        </p>
-        <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
-          Real jobs, real people.
-        </h2>
+    <section id="reviews" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
+            Recent reviews
+          </h2>
+          <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
+            Left by customers after a completed booking. Every worker's full
+            review history is on their profile.
+          </p>
+        </div>
       </div>
 
-      <div className="mt-12 grid gap-6 lg:grid-cols-5">
+      <div className="mt-8 grid gap-4 lg:grid-cols-5">
         {/* Featured quote — larger type, no card chrome */}
         <motion.figure
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border bg-card p-8 shadow-lift lg:col-span-3 lg:p-10"
+          className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-6 lg:col-span-3 lg:p-8"
         >
-          <Quote className="h-10 w-10 text-primary/25" strokeWidth={1.5} />
-          <blockquote className="font-display mt-5 text-xl font-medium leading-snug text-foreground md:text-2xl">
+          <Quote className="h-8 w-8 text-primary/25" strokeWidth={1.5} />
+          <blockquote className="font-display mt-4 text-lg font-medium leading-snug text-foreground md:text-xl">
             "{featured.comment}"
           </blockquote>
           <figcaption className="mt-8 flex items-center gap-3">
@@ -100,7 +103,7 @@ export function Testimonials() {
         </motion.figure>
 
         {/* Two smaller, quieter cards stacked beside it */}
-        <div className="flex flex-col gap-6 lg:col-span-2">
+        <div className="flex flex-col gap-4 lg:col-span-2">
           {rest.map((review, index) => (
             <motion.figure
               key={review.reviewId}
@@ -112,7 +115,7 @@ export function Testimonials() {
                 delay: 0.12 + index * 0.1,
                 ease: [0.22, 1, 0.36, 1],
               }}
-              className="flex-1 rounded-2xl border border-border bg-card/70 p-6 shadow-soft"
+              className="flex-1 rounded-2xl border border-border bg-card p-5"
             >
               <blockquote className="text-sm leading-relaxed text-foreground">
                 "{review.comment}"

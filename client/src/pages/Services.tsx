@@ -20,9 +20,9 @@ export default function ServicesPage() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [query, setQuery] = useState("");
-  // Seeded from the URL so the landing page's category tiles can link
-  // straight into a filtered list, and so a filtered view is shareable.
+  // Both seeded from the URL so the landing page's search box and category
+  // links land on a filtered list, and so a filtered view is shareable.
+  const [query, setQuery] = useState(() => searchParams.get("q") || "");
   const [activeCat, setActiveCat] = useState<string>(
     () => searchParams.get("category") || "All"
   );
@@ -39,6 +39,7 @@ export default function ServicesPage() {
   // different category on the landing page while already on this route).
   useEffect(() => {
     setActiveCat(searchParams.get("category") || "All");
+    setQuery(searchParams.get("q") || "");
   }, [searchParams]);
 
   const selectCategory = (category: string) => {
@@ -78,8 +79,13 @@ export default function ServicesPage() {
     <MainLayout>
       <section className="border-b border-border bg-hero-gradient">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-black md:text-4xl">Find your perfect worker</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Filter by category, rating, price and availability.</p>
+          <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
+            {activeCat === "All" ? "All workers" : activeCat}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Filter by category, rating, price and availability. Prices are set
+            by the workers themselves.
+          </p>
           <div className="mt-6 flex items-center gap-3 rounded-2xl border border-border bg-card p-2 shadow-soft">
             <Search className="ml-2 h-4 w-4 text-muted-foreground" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, service or city"

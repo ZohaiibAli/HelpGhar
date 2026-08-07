@@ -206,11 +206,10 @@ export default function WorkerDashboard() {
         priceMin: Number(form.priceMin),
         priceMax: Number(form.priceMax),
         priceUnit: form.priceUnit,
-        rating: 0,
-        reviewsCount: 0,
         available: true,
-        cnicVerified: false,
-        badges: [],
+        // rating, reviewsCount, cnicVerified and badges are not sent: the
+        // server owns them (reviews set the rating, an admin sets the CNIC
+        // badge) and no longer accepts them on a gig submission.
         bio: "",
         skills: [],
         certificates: [],

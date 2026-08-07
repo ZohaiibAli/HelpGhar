@@ -12,14 +12,18 @@ export default function LandingPage() {
   useHashScroll();
 
   return (
+    // Order follows what a visitor needs, not a marketing funnel: search
+    // first, then the actual people, then the categories to browse, then the
+    // mechanics and the proof. The worker-recruitment pitch comes last,
+    // because almost everyone landing here is looking to hire.
     <MainLayout>
       <HeroSection />
-      <CategorySection />
       <PopularWorkers />
+      <CategorySection />
       <HowItWorks />
       <Testimonials />
-      <CTASection />
       <ChatbotTeaserSection />
+      <CTASection />
     </MainLayout>
   );
 }

@@ -1,57 +1,63 @@
-import { motion } from "framer-motion";
+/**
+ * What actually happens, described in the platform's own terms.
+ *
+ * The old version was a five-rung ladder of one-word steps — Register,
+ * Choose, Book, Get it done, Review — with a claim that "most bookings go
+ * from search to confirmed worker in under two minutes", which nothing
+ * measures. Each step now names the real mechanic behind it: the price is
+ * computed from the worker's listing, the worker has to accept, payment is
+ * held against the booking, and a cancellation refunds it.
+ */
 
-const steps = [
-  { title: "Register", desc: "Sign up as a customer in under a minute." },
-  { title: "Choose", desc: "Browse categories and verified workers." },
-  { title: "Book", desc: "Pick the date, time and confirm instantly." },
-  { title: "Get it done", desc: "Worker arrives and delivers the job." },
-  { title: "Review", desc: "Rate the experience to help others." },
+const STEPS = [
+  {
+    title: "Find someone",
+    body: "Filter by service, price and rating. Every profile shows the worker's own rates, experience and past reviews.",
+  },
+  {
+    title: "Message before you commit",
+    body: "Ask about timings, what's included, or a price for a bigger job. The conversation stays on your account.",
+  },
+  {
+    title: "Send the booking",
+    body: "Pick a date and a two-hour slot. The total is worked out from the worker's listed rate plus a 5% platform fee — nobody quotes you a different number later.",
+  },
+  {
+    title: "Worker confirms",
+    body: "They accept or decline. A slot that's already taken can't be double-booked, and either side can cancel a pending or confirmed job.",
+  },
+  {
+    title: "Pay and review",
+    body: "Pay through the platform so there's a record. Cancel and the payment is refunded. After it's done, your review goes on their public profile.",
+  },
 ];
 
 export function HowItWorks() {
   return (
-    <section className="bg-card/60 py-24">
+    <section className="border-y border-border bg-card/40 py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-md">
-            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-              How it works
-            </p>
-            <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
-              Booking to done in five steps.
-            </h2>
-          </div>
-          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-            No call centre, no back-and-forth. Most bookings go from search to
-            confirmed worker in under two minutes.
-          </p>
-        </div>
+        <h2 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
+          How hiring works here
+        </h2>
+        <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
+          Five steps, no call centre in between.
+        </p>
 
-        <div className="mt-14 flex flex-col divide-y divide-border/70 border-t border-border/70 md:flex-row md:divide-x md:divide-y-0 md:border-t-0">
-          {steps.map((s, i) => (
-            <motion.div
-              key={s.title}
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="group relative flex-1 py-6 md:py-2 md:px-6 first:md:pl-0 last:md:pr-0"
-            >
-              <motion.span
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.08 + 0.1, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute left-0 top-0 hidden h-px w-full origin-left bg-primary/40 md:block"
-              />
-              <span className="font-display text-4xl font-semibold text-primary/25 transition-colors group-hover:text-primary/50">
-                {String(i + 1).padStart(2, "0")}
+        <ol className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+          {STEPS.map((step, index) => (
+            <li key={step.title} className="flex gap-4">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-background text-sm font-semibold text-primary">
+                {index + 1}
               </span>
-              <h3 className="mt-3 text-base font-bold">{s.title}</h3>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{s.desc}</p>
-            </motion.div>
+              <div className="min-w-0">
+                <h3 className="font-semibold">{step.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {step.body}
+                </p>
+              </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );

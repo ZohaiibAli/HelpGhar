@@ -211,7 +211,7 @@ export default function AdminDashboard() {
 
                 {queue.length === 0 ? (
                   <p className="py-10 text-center text-xs text-muted-foreground">
-                    No workers awaiting verification. 🎉
+                    No workers awaiting verification.
                   </p>
                 ) : (
                   <div className="mt-4 overflow-x-auto">
@@ -266,7 +266,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="mt-4 space-y-3">
                   {complaints.length === 0 && (
-                    <p className="py-6 text-center text-xs text-muted-foreground">No open complaints. 🎉</p>
+                    <p className="py-6 text-center text-xs text-muted-foreground">No open complaints.</p>
                   )}
                   {complaints.slice(0, 4).map((c) => (
                     <div key={c.id} className="rounded-2xl border border-border bg-background p-4">

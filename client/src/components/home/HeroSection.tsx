@@ -1,66 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { api } from "@/services/api";
-import { useGigStore } from "@/store/gigStore";
+import { Link, useNavigate } from "react-router-dom";
 import {
+  CalendarCheck,
+  MapPin,
+  MessageSquare,
+  Search,
   ShieldCheck,
   Star,
-  Users,
-  Sparkles,
-  Zap,
-  Wrench,
-  Car,
-  GraduationCap,
-  ArrowRight,
-  CheckCircle2,
-  Clock,
-  TrendingUp,
+  Wallet,
 } from "lucide-react";
-
-const CYCLE_WORDS = ["Electricians", "Plumbers", "House Help", "Drivers", "Tutors"];
+import { api } from "@/services/api";
+import { categories } from "@/data/mock";
+import { useGigStore } from "@/store/gigStore";
 
 /**
- * The tiles carried invented figures -- "1,200+ pros" with a "4.9" rating
- * for Cleaning, "800+ pros" for Drivers and so on -- for a marketplace that
- * has nothing like those numbers. Each tile now names the real system
- * category it stands for, and its count and rating are computed from the
- * live gig listings below.
+ * The homepage's job is to let someone say what they need and get them to
+ * people who do it, so the search box leads.
+ *
+ * What sits beside it went through two wrong versions. First a five-tile
+ * bento mosaic with two floating fake cards -- a "Booking Confirmed" receipt
+ * for a job nobody made and a "Trending" chip -- decorative, and inventing
+ * activity. Then nothing at all, which was honest but left the page thin and
+ * told a first-time visitor nothing about who is actually on here. It now
+ * shows real workers, pulled from the same listings /services renders, which
+ * is both the substance the page was missing and the most persuasive thing
+ * the marketplace has.
  */
-const CATEGORIES = [
-  {
-    label: "Cleaning",
-    icon: Sparkles,
-    slug: "cleaning",
-    category: "Cleaners",
-    accent: true,
-    className: "row-span-2",
-    trending: true,
-  },
-  { label: "Drivers", icon: Car, slug: "driver", category: "Drivers" },
-  { label: "Tutors", icon: GraduationCap, slug: "tutor", category: "Home Teachers" },
-  { label: "Electricians", icon: Zap, slug: "electrician", category: "Electricians" },
-  { label: "Plumbing", icon: Wrench, slug: "plumbing", category: "Plumbers" },
-];
-
-const PILLS = [
-  { label: "Cleaning", icon: Sparkles, category: "Cleaners" },
-  { label: "Driver", icon: Car, category: "Drivers" },
-  { label: "Tutor", icon: GraduationCap, category: "Home Teachers" },
-  { label: "Electrician", icon: Zap, category: "Electricians" },
-  { label: "Plumbing", icon: Wrench, category: "Plumbers" },
-];
-
-/** Deep link into the results list, pre-filtered to one category. */
-const categoryLink = (category: string) =>
-  `/services?category=${encodeURIComponent(category)}`;
-
-const TRUST_POINTS = [
-  "Background checked",
-  "CNIC verified",
-  "Rated & reviewed",
-  "Instant booking",
-];
 
 interface PublicStats {
   workers: number;
@@ -72,19 +37,27 @@ interface PublicStats {
   reviewsCount: number;
 }
 
+const QUICK_PICKS = ["Cleaners", "House Servants", "Electricians", "Drivers", "Cooks"];
+
+// Four things this platform genuinely does. No "background checked" or
+// "instant booking" -- there are no background checks beyond the CNIC
+// review, and a booking waits for the worker to accept it.
+const HOW_IT_PROTECTS = [
+  { icon: MessageSquare, text: "Message a worker before you book anything" },
+  { icon: Wallet, text: "Workers set their own rates — no hidden markup" },
+  { icon: CalendarCheck, text: "Cancel a pending or confirmed job for a full refund" },
+  { icon: ShieldCheck, text: "CNIC badge only after an admin approves the account" },
+];
+
 export function HeroSection() {
-  const [wordIndex, setWordIndex] = useState(0);
+  const navigate = useNavigate();
+
   const [stats, setStats] = useState<PublicStats | null>(null);
+  const [category, setCategory] = useState("");
+  const [query, setQuery] = useState("");
 
   const gigs = useGigStore((state) => state.gigs);
   const fetchGigs = useGigStore((state) => state.fetchGigs);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setWordIndex((i) => (i + 1) % CYCLE_WORDS.length);
-    }, 2200);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     fetchGigs();
@@ -99,8 +72,7 @@ export function HeroSection() {
         if (!cancelled) setStats(response.data.stats);
       })
       .catch(() => {
-        // The hero still renders; it just shows no figures rather than
-        // falling back to invented ones.
+        // The page stays fully usable without the counts.
       });
 
     return () => {
@@ -108,477 +80,235 @@ export function HeroSection() {
     };
   }, []);
 
-  // Real per-category supply and quality, derived from the same active gig
-  // listings the Services page shows.
-  const categoryStats = useMemo(() => {
-    const byCategory = new Map<string, { count: number; ratingSum: number; rated: number }>();
-
-    for (const gig of gigs) {
-      const entry = byCategory.get(gig.category) ?? {
-        count: 0,
-        ratingSum: 0,
-        rated: 0,
-      };
-
-      entry.count += 1;
-
-      if (gig.rating > 0) {
-        entry.ratingSum += gig.rating;
-        entry.rated += 1;
-      }
-
-      byCategory.set(gig.category, entry);
-    }
-
-    return byCategory;
-  }, [gigs]);
-
-  // Up to five real worker photos for the trust stack. The stack previously
-  // showed stock portraits from i.pravatar.cc -- photographs of people with
-  // no connection to this platform, presented as its users.
-  const faces = useMemo(
-    () => gigs.filter((gig) => gig.avatar).slice(0, 5),
+  // Read from the listings rather than written into the copy, so this stops
+  // saying "Karachi" by itself the day someone signs up elsewhere.
+  const cities = useMemo(
+    () => Array.from(new Set(gigs.map((gig) => gig.city).filter(Boolean))),
     [gigs]
   );
 
-  // The floating "Booking Confirmed" card is an illustration of the product,
-  // but it used to put a stock photograph and an invented rating behind an
-  // invented name. It now showcases a worker who is genuinely listed.
-  const showcase = faces[0] ?? gigs[0] ?? null;
+  const coverage =
+    cities.length === 0
+      ? null
+      : cities.length === 1
+        ? cities[0]
+        : `${cities.length} cities`;
+
+  // Best-reviewed workers who are free right now: the three most useful
+  // people to show someone who just arrived.
+  const showcase = useMemo(
+    () =>
+      [...gigs]
+        .filter((gig) => gig.available && gig.avatar)
+        .sort(
+          (a, b) =>
+            b.rating - a.rating || b.reviewsCount - a.reviewsCount
+        )
+        .slice(0, 3),
+    [gigs]
+  );
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    const params = new URLSearchParams();
+
+    if (category) params.set("category", category);
+    if (query.trim()) params.set("q", query.trim());
+
+    navigate(`/services?${params.toString()}`);
+  };
 
   return (
-    <section id="home" className="relative overflow-hidden bg-hero-gradient">
-      {/* Dot grid */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 0)",
-          backgroundSize: "28px 28px",
-        }}
-      />
-
-      {/* Gradient blob — single, off-axis, earns its place at the top of page */}
-      <div className="pointer-events-none absolute -right-32 -top-32 h-[500px] w-[500px] rounded-full bg-primary/15 blur-[100px]" />
-      <div className="pointer-events-none absolute -bottom-40 -left-32 h-[360px] w-[360px] rounded-full bg-primary/[0.07] blur-[80px]" />
-
-      <div className="relative z-10 mx-auto grid max-w-7xl gap-14 px-4 py-16 sm:px-6 md:py-24 lg:grid-cols-2 lg:px-8 lg:gap-10">
-        {/* ─── LEFT COLUMN ─── */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col justify-center"
-        >
-          {/* Badge */}
-          <motion.span
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-xs font-semibold text-primary backdrop-blur-sm"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-            </span>
-            <ShieldCheck className="h-3.5 w-3.5" />
-            CNIC Verified Workers
-          </motion.span>
-
-          {/* Heading */}
-          <h1 className="font-display mt-6 text-[2.75rem] font-semibold leading-[1.05] tracking-[-0.01em] md:text-[3.75rem] md:leading-[1.03]">
-            Need
-            <span className="relative mx-2 inline-block h-[1.1em] overflow-hidden align-bottom">
-              {/* Glow underline */}
-              <span className="pointer-events-none absolute -inset-x-2 bottom-0 h-3 rounded-full bg-primary/20 blur-md" />
-              <span className="relative italic text-primary">
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={CYCLE_WORDS[wordIndex]}
-                    initial={{ y: "110%", opacity: 0, filter: "blur(4px)" }}
-                    animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-                    exit={{ y: "-110%", opacity: 0, filter: "blur(4px)" }}
-                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                    className="inline-block"
-                  >
-                    {CYCLE_WORDS[wordIndex]}
-                  </motion.span>
-                </AnimatePresence>
-              </span>
-            </span>
-            tonight, not next week?
-          </h1>
-
-          {/* Subheading */}
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
-            Tell us the job — a leaking pipe, a school run, a deep clean before guests arrive.{" "}
-            <span className="font-medium text-foreground">CNIC-verified pros across Karachi</span>{" "}
-            can usually be at your door the same day.
-          </p>
-
-          {/* Category pills */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            {/* These were <div>s with hover styling and no link -- they
-                looked like filter chips and did nothing when tapped. */}
-            {PILLS.map(({ label, icon: Icon, category }, i) => (
-              <motion.div
-                key={category}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + i * 0.06 }}
-              >
-                <Link
-                  to={categoryLink(category)}
-                  className="group inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/80 px-3.5 py-1.5 text-xs font-medium text-foreground/80 backdrop-blur-sm transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary-dark hover:shadow-sm"
-                >
-                  <Icon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
-                  {label}
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Primary CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="mt-8"
-          >
-            <Link
-              to="/services"
-              className="group/btn inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-primary px-8 text-base font-semibold text-primary-foreground shadow-soft transition-all hover:bg-primary-dark hover:shadow-lg active:scale-[0.97]"
-            >
-              Find a Worker in Karachi
-              <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
-            </Link>
-          </motion.div>
-
-          {/* Trust section */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
-            className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center"
-          >
-            {/* Avatar stack — real workers currently listed on the platform */}
-            {faces.length > 0 && (
-              <>
-                <div className="flex items-center gap-3">
-                  <div className="flex -space-x-3">
-                    {faces.map((worker, i) => (
-                      <motion.img
-                        key={worker.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.8 + i * 0.07 }}
-                        src={worker.avatar}
-                        alt={worker.fullName}
-                        className="h-9 w-9 rounded-full border-2 border-card object-cover ring-1 ring-black/5"
-                      />
-                    ))}
-                    {!!stats && stats.workers > faces.length && (
-                      <motion.span
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 1.1 }}
-                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-card bg-primary text-[9px] font-bold text-primary-foreground shadow-sm"
-                      >
-                        +{stats.workers - faces.length}
-                      </motion.span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="hidden h-10 w-px bg-border/60 sm:block" />
-              </>
+    <section id="home" className="border-b border-border bg-card/40">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 md:py-16 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14">
+          {/* ─────────── Left: say what you need ─────────── */}
+          <div>
+            {coverage && (
+              <p className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+                <MapPin className="h-3 w-3" />
+                Currently serving {coverage}
+              </p>
             )}
 
-            {/* Stats — each one omitted until there is something real behind it */}
-            <div className="flex flex-wrap items-center gap-4">
-              {!!stats?.reviewsCount && (
-                <Stat
-                  icon={Star}
-                  value={stats.avgRating.toFixed(1)}
-                  label="avg rating"
-                  filled
-                />
-              )}
-              {!!stats?.workers && (
-                <Stat
-                  icon={ShieldCheck}
-                  value={`${stats.verifiedPercentage}%`}
-                  label="verified"
-                />
-              )}
-              {!!stats?.customers && (
-                <Stat
-                  icon={Users}
-                  value={stats.customers.toLocaleString()}
-                  label={stats.customers === 1 ? "customer" : "customers"}
-                />
-              )}
+            <h1 className="font-display mt-5 text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl">
+              Home help you can actually check first.
+            </h1>
+
+            {/* Careful with the verification claim: the badge only appears
+                once an admin approves that worker's CNIC, and most listings
+                haven't been through it yet. */}
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-foreground">
+              Maids, drivers, cooks, electricians and tutors across Karachi.
+              Read their reviews, see the rate they set themselves, and message
+              them before you book anything.
+            </p>
+
+            <form
+              onSubmit={submit}
+              className="mt-7 rounded-2xl border border-border bg-background p-2 shadow-card sm:flex sm:items-center sm:gap-2"
+            >
+              <label className="sr-only" htmlFor="hero-category">
+                Service
+              </label>
+              <select
+                id="hero-category"
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className="h-12 w-full shrink-0 rounded-xl border-0 bg-transparent px-3 text-sm font-medium outline-none sm:w-44 sm:rounded-none sm:border-r sm:border-border"
+              >
+                <option value="">All services</option>
+                {categories.map((item) => (
+                  <option key={item.name} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+
+              <label className="sr-only" htmlFor="hero-query">
+                Search by name, skill or area
+              </label>
+              <input
+                id="hero-query"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Name, skill or area — e.g. Gulshan"
+                className="h-12 w-full flex-1 rounded-xl border-0 bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground/70"
+              />
+
+              <button
+                type="submit"
+                className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary-dark sm:mt-0 sm:w-auto"
+              >
+                <Search className="h-4 w-4" />
+                Search
+              </button>
+            </form>
+
+            <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+              <span className="text-muted-foreground">Common searches:</span>
+              {QUICK_PICKS.map((name) => (
+                <Link
+                  key={name}
+                  to={`/services?category=${encodeURIComponent(name)}`}
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  {name}
+                </Link>
+              ))}
             </div>
-          </motion.div>
 
-          {/* Trust points */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.9 }}
-            className="mt-5 flex flex-wrap gap-x-4 gap-y-1"
-          >
-            {TRUST_POINTS.map((point) => (
-              <span
-                key={point}
-                className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/70"
-              >
-                <CheckCircle2 className="h-3 w-3 text-primary/60" />
-                {point}
-              </span>
-            ))}
-          </motion.div>
-        </motion.div>
-
-        {/* ─── RIGHT COLUMN ─── */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="relative hidden lg:block"
-        >
-          <div className="ml-10 mr-6 grid h-[460px] grid-cols-2 grid-rows-3 gap-3">
-            {CATEGORIES.map((cat, i) => (
-              <motion.div
-                key={cat.slug}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + i * 0.08 }}
-                className={cat.className}
-              >
-                <BentoTile
-                  {...cat}
-                  count={categoryStats.get(cat.category)?.count ?? 0}
-                  rating={(() => {
-                    const entry = categoryStats.get(cat.category);
-                    return entry && entry.rated > 0
-                      ? (entry.ratingSum / entry.rated).toFixed(1)
-                      : null;
-                  })()}
-                />
-              </motion.div>
-            ))}
+            <ul className="mt-8 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              {HOW_IT_PROTECTS.map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-start gap-2.5 text-sm">
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span className="text-muted-foreground">{text}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* Floating card: Booking confirmation */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1, duration: 0.6 }}
-          >
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
-              className="absolute -right-2 -bottom-4 z-20 w-60 rotate-[2deg] overflow-hidden rounded-2xl border border-border/60 bg-card/90 shadow-lift backdrop-blur-lg"
-            >
-              <div className="h-1 w-full bg-emerald-500" />
-              <div className="p-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-950">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  </div>
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                    Booking Confirmed
-                  </p>
-                </div>
-                <p className="mt-2.5 text-sm font-bold text-foreground">
-                  {showcase?.category ?? "Home Services"}
-                </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  <Clock className="mr-0.5 inline h-3 w-3" />
-                  Today, 3:30 PM
-                </p>
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    {showcase?.avatar ? (
-                      <img
-                        src={showcase.avatar}
-                        className="h-6 w-6 rounded-full object-cover ring-1 ring-black/5"
-                        alt=""
-                      />
-                    ) : (
-                      <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/15 text-[9px] font-bold text-primary">
-                        {showcase?.fullName?.charAt(0).toUpperCase() ?? "H"}
-                      </span>
-                    )}
-                    <span className="text-[11px] font-medium text-foreground">
-                      {showcase?.fullName ?? "Verified pro"}
-                    </span>
-                  </div>
-                  {!!showcase?.rating && (
-                    <div className="flex items-center gap-0.5 text-xs font-semibold text-amber-500">
-                      <Star className="h-3 w-3 fill-current" />
-                      {showcase.rating.toFixed(1)}
-                    </div>
-                  )}
-                </div>
+          {/* ─────────── Right: who is actually on here ─────────── */}
+          {showcase.length > 0 && (
+            <div className="rounded-2xl border border-border bg-background p-5 shadow-card">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-sm font-semibold">Available right now</h2>
+                <Link
+                  to="/services"
+                  className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
+                >
+                  See all
+                </Link>
               </div>
-            </motion.div>
-          </motion.div>
 
-          {/* Floating mini card: Trending */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.2, duration: 0.5 }}
-          >
-            <motion.div
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-              className="absolute bottom-28 left-0 z-20 flex items-center gap-2 rounded-xl border border-border/60 bg-card/90 px-3 py-2 shadow-card backdrop-blur-lg"
-            >
-              <TrendingUp className="h-3.5 w-3.5 text-primary" />
-              <span className="text-[11px] font-semibold text-foreground">+340 bookings today</span>
-            </motion.div>
-          </motion.div>
-        </motion.div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Highest rated workers with an open calendar today.
+              </p>
+
+              <ul className="mt-4 space-y-2">
+                {showcase.map((worker) => (
+                  <li key={worker.id}>
+                    <Link
+                      to={`/workers/${worker.id}`}
+                      className="flex items-center gap-3 rounded-xl border border-transparent p-2.5 transition hover:border-border hover:bg-accent/40"
+                    >
+                      <img
+                        src={worker.avatar}
+                        alt={worker.fullName}
+                        loading="lazy"
+                        className="h-12 w-12 shrink-0 rounded-full object-cover"
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">
+                          {worker.fullName}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {worker.category} · {worker.experienceYears} yrs
+                        </p>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        {worker.reviewsCount > 0 && (
+                          <p className="flex items-center justify-end gap-1 text-xs font-semibold">
+                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                            {worker.rating.toFixed(1)}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Rs. {worker.priceMin.toLocaleString()}+
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Real supply figures, each dropped when there is nothing
+                  real to put behind it. */}
+              {!!stats?.workers && (
+                <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
+                  <Figure
+                    value={stats.workers.toLocaleString()}
+                    label={`worker${stats.workers === 1 ? "" : "s"} listed`}
+                  />
+
+                  {stats.completedBookings > 0 && (
+                    <Figure
+                      value={stats.completedBookings.toLocaleString()}
+                      label={`job${stats.completedBookings === 1 ? "" : "s"} completed`}
+                    />
+                  )}
+
+                  {stats.reviewsCount > 0 && (
+                    <Figure
+                      value={stats.avgRating.toFixed(1)}
+                      label={`avg of ${stats.reviewsCount.toLocaleString()} reviews`}
+                    />
+                  )}
+
+                  {stats.verifiedWorkers > 0 && (
+                    <Figure
+                      value={stats.verifiedWorkers.toLocaleString()}
+                      label="CNIC verified"
+                    />
+                  )}
+                </dl>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
 }
 
-/* ─── Small Components ─── */
-
-function Stat({
-  icon: Icon,
-  value,
-  label,
-  filled = false,
-}: {
-  icon: typeof Star;
-  value: string;
-  label: string;
-  filled?: boolean;
-}) {
+function Figure({ value, label }: { value: string; label: string }) {
   return (
-    <span className="inline-flex items-center gap-2">
-      <span
-        className={`flex h-7 w-7 items-center justify-center rounded-lg ${filled
-          ? "bg-amber-50 dark:bg-amber-950/50"
-          : "bg-primary/5"
-          }`}
-      >
-        <Icon
-          className={`h-3.5 w-3.5 ${filled ? "fill-amber-400 text-amber-400" : "text-primary"
-            }`}
-        />
-      </span>
-      <span className="flex flex-col leading-none">
-        <span className="text-xs font-bold text-foreground">{value}</span>
-        <span className="text-[10px] text-muted-foreground">{label}</span>
-      </span>
-    </span>
-  );
-}
-
-function BentoTile({
-  icon: Icon,
-  label,
-  category,
-  count,
-  rating,
-  accent = false,
-  trending = false,
-}: {
-  icon: typeof Star;
-  label: string;
-  category: string;
-  /** Active listings in this category right now. */
-  count: number;
-  /** Average rating, or null when nobody in the category has been rated. */
-  rating: string | null;
-  slug?: string;
-  className?: string;
-  accent?: boolean;
-  trending?: boolean;
-}) {
-  return (
-    // Was a bare <div>: it lifted on hover like a card you could open, but
-    // there was nothing behind the click.
-    <Link
-      to={categoryLink(category)}
-      className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${accent
-          ? "border-primary/20 bg-primary shadow-soft"
-          : "border-border/60 bg-card/80 shadow-card backdrop-blur-sm hover:border-primary/30"
-        }`}
-    >
-      {/* Background decorative icon */}
-      <Icon
-        className={`pointer-events-none absolute transition-transform duration-500 group-hover:scale-110 ${accent
-          ? "-bottom-6 -right-6 h-32 w-32 text-white/[0.07]"
-          : "-bottom-4 -right-4 h-24 w-24 text-primary/[0.06]"
-          }`}
-        strokeWidth={1.2}
-      />
-
-      {/* Top row */}
-      <div className="relative z-10 flex items-start justify-between">
-        <span
-          className={`flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${accent
-            ? "bg-white/20 shadow-sm shadow-black/10"
-            : "bg-primary/5 text-primary-dark"
-            }`}
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-        {trending && (
-          <span className="flex items-center gap-0.5 rounded-md bg-white/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/90">
-            <TrendingUp className="h-2.5 w-2.5" />
-            Hot
-          </span>
-        )}
-      </div>
-
-      {/* Bottom row */}
-      <div className="relative z-10 mt-auto">
-        <p
-          className={`text-sm font-bold ${accent ? "text-primary-foreground" : "text-foreground"
-            }`}
-        >
-          {label}
-        </p>
-        <div className="mt-1 flex items-center gap-2">
-          <p
-            className={`text-xs ${accent ? "text-primary-foreground/60" : "text-muted-foreground"
-              }`}
-          >
-            {count > 0
-              ? `${count} ${count === 1 ? "pro" : "pros"}`
-              : "Coming soon"}
-          </p>
-
-          {/* The rating half of the line only appears once somebody in this
-              category has actually been reviewed. */}
-          {rating && (
-            <>
-              <span
-                className={`text-xs ${accent ? "text-primary-foreground/40" : "text-border"
-                  }`}
-              >
-                •
-              </span>
-              <span
-                className={`flex items-center gap-0.5 text-xs font-medium ${accent ? "text-amber-200" : "text-amber-500"
-                  }`}
-              >
-                <Star className="h-2.5 w-2.5 fill-current" />
-                {rating}
-              </span>
-            </>
-          )}
-        </div>
-      </div>
-
-    </Link>
+    <div>
+      <dt className="text-lg font-semibold text-foreground">{value}</dt>
+      <dd className="text-xs leading-tight text-muted-foreground">{label}</dd>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Bot,
@@ -272,6 +272,7 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
 
 export function ChatPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [sessions, setSessions] = useState<SessionMeta[]>(() => loadSessions());
 
@@ -325,6 +326,34 @@ export function ChatPage() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isStreaming]);
+
+  // A question carried in from elsewhere on the site (?q=...) is asked as
+  // soon as the session's history has loaded.
+  //
+  // Every "common question" chip on the landing page has always linked here
+  // with ?q=, but nothing ever read the parameter -- the question was
+  // dropped and the visitor landed on an empty chat, having to retype what
+  // they'd just clicked. Waiting for `messagesLoading` matters: firing
+  // before the history arrives would let the fetch overwrite the message
+  // that was just sent.
+  const prefillRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const question = searchParams.get("q")?.trim();
+
+    if (!question || messagesLoading) return;
+
+    // Consumed once. Without this guard, clearing the URL below re-runs the
+    // effect and `sendMessage` would fire a second time on the same visit.
+    if (prefillRef.current === question) return;
+
+    prefillRef.current = question;
+
+    setSearchParams({}, { replace: true });
+
+    sendMessage(question);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, messagesLoading]);
 
   function autoResize() {
     const el = textareaRef.current;

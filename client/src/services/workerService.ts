@@ -18,9 +18,23 @@ export const uploadAvatar = async (file: File): Promise<string> => {
 };
 
 /**
+ * What a worker may submit for their own listing.
+ *
+ * Reputation is not part of it. The server stopped accepting `rating`,
+ * `reviewsCount`, `cnicVerified` and `badges` on a gig -- a worker could
+ * otherwise hand themselves a 5.0 rating, a "Top Rated" badge and the CNIC
+ * verified tick without an admin ever seeing the account. Those four are
+ * derived on read from the worker record instead.
+ */
+export type GigDraft = Omit<
+  Worker,
+  "id" | "rating" | "reviewsCount" | "cnicVerified" | "badges"
+>;
+
+/**
  * Create gig
  */
-export const createGig = async (gig: Omit<Worker, "id">) => {
+export const createGig = async (gig: GigDraft) => {
   const response = await api.post("/worker/gig", gig);
   return response.data;
 };

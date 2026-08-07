@@ -599,41 +599,40 @@ def get_gigs():
 
     for gig in gigs:
 
-        worker = workers_by_id.get(gig.get("workerId"))
+        # Falls back to an empty worker rather than skipping the block, so
+        # every gig leaves here with the same shape. Previously these keys
+        # were only written when the worker lookup succeeded, and the gig
+        # document supplied them otherwise -- now that reputation fields are
+        # no longer accepted on the gig (see GigCreate), an orphaned gig
+        # would arrive at the client with `badges` undefined, and
+        # WorkerDetails calls .map() on it straight away.
+        worker = workers_by_id.get(gig.get("workerId")) or {}
 
-        if worker:
+        gig["rating"] = worker.get("rating", 0)
+        gig["reviewsCount"] = worker.get("reviewsCount", 0)
 
-            gig["rating"] = worker.get("rating", 0)
-            gig["reviewsCount"] = worker.get("reviewsCount", 0)
+        # "CNIC Verified" is the strongest trust signal on the site -- it's
+        # what persuades someone to let a stranger into their home. It was
+        # being read off the gig document, which the worker themselves
+        # supplies, so 888 of 1006 listings displayed the badge while not a
+        # single worker had ever been through verification. It now reflects
+        # the only thing that actually means verified: an admin approving
+        # them from the dashboard queue.
+        gig["cnicVerified"] = worker.get("verificationStatus") == "approved"
 
-            # ------------------------
-            # AI Fields
-            # ------------------------
+        # ------------------------
+        # AI Fields
+        # ------------------------
 
-            gig["marketplaceScore"] = worker.get(
-                "marketplaceScore",
-                0
-            )
+        gig["marketplaceScore"] = worker.get("marketplaceScore", 0)
 
-            gig["reputationLabel"] = worker.get(
-                "reputationLabel",
-                "New Worker"
-            )
+        gig["reputationLabel"] = worker.get("reputationLabel", "New Worker")
 
-            gig["reviewSummary"] = worker.get(
-                "reviewSummary",
-                {}
-            )
+        gig["reviewSummary"] = worker.get("reviewSummary", {})
 
-            gig["aiSummary"] = worker.get(
-                "aiSummary",
-                {}
-            )
+        gig["aiSummary"] = worker.get("aiSummary", {})
 
-            gig["badges"] = worker.get(
-                "badges",
-                []
-            )
+        gig["badges"] = worker.get("badges", [])
 
         gig["id"] = str(gig["_id"])
 

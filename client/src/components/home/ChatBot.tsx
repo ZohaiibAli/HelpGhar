@@ -1,258 +1,214 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  Bot,
-  Sparkles,
-  Send,
   ArrowRight,
-  ShieldCheck,
-  Zap,
+  Bot,
+  CreditCard,
   MessageCircle,
-  Star,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  User,
 } from "lucide-react";
 
 /**
- * Scripted preview conversation. Purely presentational — this is the "trailer",
- * not the real chat. Loops on an interval so the section feels alive without
- * requiring the visitor to do anything.
+ * Preview of the assistant at /chat.
+ *
+ * The version before this one was a looping scripted conversation staged to
+ * look live, and its replies invented things the product doesn't do -- "12
+ * min away" (no distance is tracked anywhere), "Standard cleaning ... 2.5
+ * hrs, PKR 2,200" (there are no packages; every worker sets their own rate),
+ * and a worker named Faisal R. who doesn't exist.
+ *
+ * Stripping it back to a plain box then went too far the other way: nothing
+ * about it read as *chat*. So the transcript is back, because a chat mockup
+ * is how you make a chat feature legible at a glance -- but it is labelled
+ * as an example rather than animated to look live, and every answer in it is
+ * one the assistant can actually give. The 5% fee, the refund-on-cancel
+ * rule and the two-hour slots below are the real behaviour of
+ * booking_route.py.
  */
-const SCRIPT: { role: "user" | "bot"; text: string }[] = [
-  { role: "user", text: "I need a verified electrician in Karachi tonight" },
+
+const TRANSCRIPT: {
+  role: "user" | "bot";
+  text: string;
+  icon?: typeof ShieldCheck;
+}[] = [
   {
-    role: "bot",
-    text: "Found 6 CNIC-verified electricians near you with open slots tonight. Top match: Faisal R. — 4.9★, 3 yrs exp, 12 min away.",
+    role: "user",
+    text: "What does CNIC verified actually mean?",
   },
-  { role: "user", text: "What's included in the cleaning package?" },
   {
     role: "bot",
-    text: "Standard cleaning covers kitchen, bathrooms, living areas & dusting — 2.5 hrs, PKR 2,200. Deep cleaning adds appliances & windows.",
+    icon: ShieldCheck,
+    text: "It means an admin has reviewed that worker's CNIC and approved the account. Workers can't set the badge themselves — if you don't see it, they haven't been through the check yet.",
+  },
+  {
+    role: "user",
+    text: "And if I cancel after paying?",
+  },
+  {
+    role: "bot",
+    icon: CreditCard,
+    text: "You can cancel while a booking is pending or confirmed, and the payment is refunded automatically. Once the worker has started the job it can't be cancelled — raise a dispute instead.",
   },
 ];
 
-const SUGGESTED_PROMPTS = [
-  "Find a driver near me",
-  "Compare tutor rates",
-  "How does verification work?",
+const SUGGESTED = [
+  "How is the price calculated?",
+  "What are the time slots?",
+  "Can I reschedule a booking?",
+  "How do reviews work?",
 ];
 
 export function ChatbotTeaserSection() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
-  const [typing, setTyping] = useState(false);
+  const [draft, setDraft] = useState("");
 
-  useEffect(() => {
-    setTyping(true);
-    const typingTimer = setTimeout(() => setTyping(false), 900);
-    const advanceTimer = setTimeout(() => {
-      setStep((s) => (s + 1) % SCRIPT.length);
-    }, 2600);
-    return () => {
-      clearTimeout(typingTimer);
-      clearTimeout(advanceTimer);
-    };
-  }, [step]);
+  const ask = (question: string) => {
+    const trimmed = question.trim();
 
-  const visible = SCRIPT.slice(0, step + 1);
-
-  function goToChat(prefill?: string) {
-    navigate(prefill ? `/chat?q=${encodeURIComponent(prefill)}` : "/chat");
-  }
+    navigate(trimmed ? `/chat?q=${encodeURIComponent(trimmed)}` : "/chat");
+  };
 
   return (
-    <section id="chat" className="relative overflow-hidden border-y border-border/70 bg-card/60">
-      <div className="relative z-10 mx-auto grid max-w-7xl gap-14 px-4 py-20 sm:px-6 md:py-24 lg:grid-cols-2 lg:gap-10 lg:px-8">
-        {/* ─── LEFT: copy + CTA ─── */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col justify-center"
-        >
-          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-xs font-semibold text-primary backdrop-blur-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            AI Concierge
+    <section id="chat" className="border-y border-border bg-card/40 py-16">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-8">
+        {/* ─────────── Left: what it is, and what to ask it ─────────── */}
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+            <Sparkles className="h-3 w-3 text-primary" />
+            Built-in assistant
           </span>
 
-          <h2 className="font-display mt-6 text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.75rem]">
-            Don't search.
-            <br />
-            <span className="italic text-primary">Just ask.</span>
+          <h2 className="font-display mt-4 text-2xl font-semibold tracking-tight md:text-3xl">
+            Not sure how something works? Ask.
           </h2>
 
-          <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground md:text-lg">
-            Our assistant knows every verified pro on the platform —{" "}
-            <span className="font-medium text-foreground">
-              availability, ratings, pricing, and reviews
-            </span>
-            . Describe what you need in plain words and get a matched worker
-            in seconds.
+          <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
+            The assistant answers questions about the platform itself —
+            verification, pricing, cancellations, refunds, disputes and how
+            reviews work. For anything specific to one worker (their timings,
+            whether they'll do a bigger job) message that worker directly;
+            they'll answer better than we can.
           </p>
 
-          {/* Suggested prompts */}
-          <div className="mt-7 flex flex-wrap gap-2">
-            {SUGGESTED_PROMPTS.map((prompt, i) => (
-              <motion.button
-                key={prompt}
-                initial={{ opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.15 + i * 0.07 }}
-                onClick={() => goToChat(prompt)}
-                className="group inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/80 px-3.5 py-1.5 text-xs font-medium text-foreground/80 backdrop-blur-sm transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary-dark hover:shadow-sm"
+          <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Common questions
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {SUGGESTED.map((question) => (
+              <button
+                key={question}
+                type="button"
+                onClick={() => ask(question)}
+                className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3.5 py-2 text-xs font-medium transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary-dark"
               >
-                <MessageCircle className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
-                {prompt}
-              </motion.button>
+                <MessageCircle className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary" />
+                {question}
+              </button>
             ))}
           </div>
 
-          {/* Primary CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-            className="mt-8"
-          >
-            <button
-              type="button"
-              onClick={() => goToChat()}
-              className="group/btn inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-primary px-8 text-base font-semibold text-primary-foreground shadow-soft transition-all hover:bg-primary-dark hover:shadow-lg active:scale-[0.97]"
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <Link
+              to="/chat"
+              className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary-dark"
             >
-              Chat with the AI Concierge
-              <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
-            </button>
-          </motion.div>
+              <Bot className="h-4 w-4" />
+              Open the assistant
+              <ArrowRight className="h-4 w-4" />
+            </Link>
 
-          <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5">
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
-              <ShieldCheck className="h-3 w-3 text-primary/60" />
-              Grounded in verified worker data
+            <Link
+              to="/services"
+              className="inline-flex h-12 items-center rounded-xl border border-border px-6 text-sm font-semibold transition hover:border-primary hover:text-primary"
+            >
+              Browse workers instead
+            </Link>
+          </div>
+        </div>
+
+        {/* ─────────── Right: a chat window, so it reads as chat ─────────── */}
+        <div className="overflow-hidden rounded-2xl border border-border bg-background shadow-card">
+          <div className="flex items-center gap-2.5 border-b border-border bg-card px-4 py-3">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-primary">
+              <Bot className="h-4 w-4" />
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
-              <Zap className="h-3 w-3 text-primary/60" />
-              Instant answers, 24/7
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">HelpGhar assistant</p>
+              <p className="text-[11px] text-muted-foreground">
+                Answers about bookings, payments and verification
+              </p>
+            </div>
+            {/* Said plainly: this is a sample, not a live session. */}
+            <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Example
             </span>
           </div>
-        </motion.div>
 
-        {/* ─── RIGHT: live-looking chat preview card ─── */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-          className="relative flex items-center"
-        >
-          <Link
-            to="/chat"
-            className="group relative block w-full overflow-hidden rounded-3xl border border-border/60 bg-card/90 shadow-lift backdrop-blur-md transition-transform hover:-translate-y-1"
-          >
-            {/* Header bar */}
-            <div className="flex items-center gap-3 border-b border-border/50 bg-primary px-5 py-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
-                <Bot className="h-4.5 w-4.5 text-primary-foreground" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-primary-foreground">
-                  HelpGhar Assistant
-                </p>
-                <p className="flex items-center gap-1 text-[11px] text-primary-foreground/70">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300" />
-                  </span>
-                  Online now
-                </p>
-              </div>
-              <span className="rounded-lg bg-white/15 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground/90">
-                Live preview
-              </span>
-            </div>
+          <div className="space-y-3 px-4 py-5">
+            {TRANSCRIPT.map((line, index) => {
+              const mine = line.role === "user";
+              const Icon = line.icon;
 
-            {/* Message scroll area */}
-            <div className="flex h-[360px] flex-col justify-end gap-3 overflow-hidden p-5">
-              <AnimatePresence initial={false}>
-                {visible.map((msg, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                    className={`flex ${
-                      msg.role === "user" ? "justify-end" : "justify-start"
+              return (
+                <div
+                  key={index}
+                  className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}
+                >
+                  {!mine && (
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                      {Icon ? <Icon className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
+                    </span>
+                  )}
+
+                  <p
+                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                      mine
+                        ? "rounded-br-md bg-primary text-primary-foreground"
+                        : "rounded-bl-md border border-border bg-card text-foreground"
                     }`}
                   >
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed shadow-sm ${
-                        msg.role === "user"
-                          ? "rounded-br-sm bg-primary text-primary-foreground"
-                          : "rounded-bl-sm border border-border/60 bg-accent/40 text-foreground"
-                      }`}
-                    >
-                      {msg.text}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                    {line.text}
+                  </p>
 
-              {typing && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex justify-start"
-                >
-                  <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm border border-border/60 bg-accent/40 px-4 py-3">
-                    {[0, 1, 2].map((d) => (
-                      <motion.span
-                        key={d}
-                        animate={{ opacity: [0.3, 1, 0.3] }}
-                        transition={{
-                          duration: 1,
-                          repeat: Infinity,
-                          delay: d * 0.15,
-                        }}
-                        className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60"
-                      />
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </div>
+                  {mine && (
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+                      <User className="h-3.5 w-3.5" />
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
-            {/* Fake, disabled input footer — hints "click to open real chat" */}
-            <div className="flex items-center gap-2 border-t border-border/50 bg-accent/20 px-5 py-4">
-              <div className="flex h-10 flex-1 items-center rounded-xl border border-border/60 bg-card/80 px-3.5 text-[13px] text-muted-foreground/60">
-                Type your message…
-              </div>
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft transition-transform group-hover:scale-105">
-                <Send className="h-4 w-4" />
-              </span>
-            </div>
-
-            {/* Hover overlay CTA */}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/0 opacity-0 backdrop-blur-0 transition-all duration-300 group-hover:bg-background/60 group-hover:opacity-100 group-hover:backdrop-blur-[2px]">
-              <span className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lift">
-                Open full chat
-                <ArrowRight className="h-4 w-4" />
-              </span>
-            </div>
-          </Link>
-
-          {/* Floating rating chip */}
-          <motion.div
-            animate={{ y: [0, -8, 0] }}
-            transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -left-6 -top-5 z-20 flex items-center gap-1.5 rounded-xl border border-border/60 bg-card/90 px-3 py-2 shadow-card backdrop-blur-lg"
+          {/* A working input, not a picture of one -- whatever is typed here
+              opens the real assistant with the question already asked. */}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              ask(draft);
+            }}
+            className="flex items-center gap-2 border-t border-border bg-card p-3"
           >
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            <span className="text-xs font-bold text-foreground">
-              4.9/5 assistant rating
-            </span>
-          </motion.div>
-        </motion.div>
+            <input
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="Ask your own question…"
+              aria-label="Ask the assistant"
+              className="h-11 flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none transition focus:border-primary"
+            />
+            <button
+              type="submit"
+              aria-label="Ask the assistant"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary-dark"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
       </div>
     </section>
   );

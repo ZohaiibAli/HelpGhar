@@ -9,7 +9,7 @@ import { api } from "@/services/api";
 // import { useGigStore } from "@/store/gigStore";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-// Add these interfaces HERE 👇
+// API response shapes for this page.
 interface Worker {
   workerId: string;
   workerName: string;

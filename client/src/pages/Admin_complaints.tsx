@@ -34,7 +34,7 @@ function ComplaintSection({
       </div>
       <div className="mt-4 space-y-3">
         {complaints.length === 0 && (
-          <p className="py-6 text-center text-xs text-muted-foreground">No complaints here. 🎉</p>
+          <p className="py-6 text-center text-xs text-muted-foreground">No complaints here.</p>
         )}
         {complaints.map((c) => (
           <div key={c.id} className="rounded-2xl border border-border bg-background p-4">

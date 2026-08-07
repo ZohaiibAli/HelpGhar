@@ -1,234 +1,151 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Star, ShieldCheck, MapPin, Briefcase } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Star, ShieldCheck, MapPin } from "lucide-react";
 import type { Worker } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { handleHireNowClick } from "@/lib/hireNow";
-import ReputationBadge from "@/components/ai/ReputationBadge";
-import RecommendationReason from "@/components/ai/RecommendationReason";
 
-export function WorkerCard({ worker, index = 0 }: { worker: Worker; index?: number }) {
+/**
+ * A listing card, in the order someone actually decides in: who they are,
+ * whether they're trustworthy, what they cost, then book.
+ *
+ * It previously stacked six competing signals on every card — a "🔥 92%
+ * Match" pill, a reputation badge, a green "Marketplace Score 8.4" panel, a
+ * positive-review progress bar, a "Why Recommended" tag cloud and a
+ * three-way content/collaborative score breakdown. Those are internal
+ * ranking mechanics; showing all of them at once made a hiring decision look
+ * like a dashboard, and pushed the price and the buttons below the fold. The
+ * ranking still decides the order of the results — it just doesn't narrate
+ * itself on top of them. The full breakdown remains on the worker's own
+ * page, where someone comparing two people can go looking for it.
+ */
+export function WorkerCard({
+  worker,
+  note,
+}: {
+  worker: Worker;
+  index?: number;
+  /**
+   * Optional context for why this particular card is in front of this
+   * particular person — used by the customer dashboard's recommendations.
+   * Deliberately a slot rather than more built-in badges: a card in a plain
+   * search result has nothing to explain.
+   */
+  note?: ReactNode;
+}) {
   const navigate = useNavigate();
   const { user, token } = useAuthStore();
   const [showWorkerAlert, setShowWorkerAlert] = useState(false);
-  const priceUnit = worker.priceUnit === "month" ? "/month" : worker.priceUnit === "hour" ? "/hour" : "/day";
+
+  const priceUnit =
+    worker.priceUnit === "month"
+      ? "/month"
+      : worker.priceUnit === "hour"
+        ? "/hour"
+        : "/day";
+
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }} transition={{ duration: 0.4, delay: index * 0.05 }}
-      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lift"
-    >
-      <div className="relative h-56 overflow-hidden bg-muted">
+    <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition hover:border-primary/40 hover:shadow-card">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         <img
-          src={worker.avatar} alt={worker.fullName}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          src={worker.avatar}
+          alt={worker.fullName}
+          loading="lazy"
+          className="h-full w-full object-cover"
         />
-        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-          {worker.cnicVerified && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-card/95 px-2 py-1 text-[10px] font-bold text-primary-dark shadow-soft backdrop-blur">
-              <ShieldCheck className="h-3 w-3" /> CNIC Verified
-            </span>
-          )}
-        </div>
+
         {worker.available && (
-          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground shadow-soft">
-            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Available Now
+          <span className="absolute left-3 top-3 rounded-md bg-background/95 px-2 py-1 text-[11px] font-semibold text-foreground shadow-soft">
+            Available now
           </span>
-        )}
-        {worker.badges.length > 0 && (
-          <div className="absolute bottom-3 left-3 flex gap-1.5">
-            {worker.badges.slice(0, 2).map((b) => (
-              <span key={b} className="rounded-full bg-foreground/85 px-2 py-1 text-[10px] font-bold text-background backdrop-blur">{b}</span>
-            ))}
-          </div>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        <div className="flex items-start justify-between gap-2">
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="truncate text-base font-bold">{worker.fullName}</h3>
-            <p className="text-xs text-muted-foreground">{worker.category}</p>
-            {
-              worker.reputationLabel && (
-
-                <div className="mt-2">
-
-                  <ReputationBadge
-
-                    label={worker.reputationLabel}
-
-                  />
-
-                </div>
-
-              )
-            }
-          </div>
-          <div className="shrink-0 text-right">
-            <div className="flex items-center gap-1 text-sm font-bold">
-              <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-              {worker.rating.toFixed(1)}
-            </div>
-
-            {worker.recommendationScore != null && (
-              <div className="mt-2">
-                <span className="rounded-full bg-emerald-600 px-2 py-1 text-xs font-bold text-white">
-                  🔥 {worker.recommendationScore}% Match
-                </span>
-              </div>
-            )}
-
-            <p className="text-[10px] text-muted-foreground">
-              ({worker.reviewsCount})
-            </p>
-          </div>
-          </div>
-
-
-
-          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{worker.city}</span>
-            <span className="inline-flex items-center gap-1"><Briefcase className="h-3 w-3" />{worker.experienceYears}y exp</span>
-            <span>{worker.gender} • {worker.age}y</span>
-            <span>Since {new Date(worker.memberSince).getFullYear()}</span>
-          </div>
-
-          {
-            worker.reviewSummary && (
-
-              <div className="mt-3">
-
-                <div className="flex justify-between text-xs">
-
-                  <span className="text-muted-foreground">
-
-                    Positive Reviews
-
-                  </span>
-
-                  <span className="font-semibold text-emerald-600">
-
-                    {worker.reviewSummary.positivePercentage}%
-
-                  </span>
-
-                </div>
-
-                <div className="mt-1 h-2 rounded-full bg-gray-200">
-
-                  <div
-
-                    className="h-2 rounded-full bg-emerald-500"
-
-                    style={{
-
-                      width: `${worker.reviewSummary.positivePercentage}%`
-
-                    }}
-
-                  />
-
-                </div>
-
-              </div>
-
-            )
-          }
-
-          <div className="mt-4 rounded-xl bg-muted/60 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Price</p>
-            <p className="text-sm font-bold text-foreground">
-              Rs. {worker.priceMin.toLocaleString()} – {worker.priceMax.toLocaleString()}
-              <span className="text-xs font-medium text-muted-foreground">{priceUnit}</span>
+            <h3 className="truncate font-semibold">{worker.fullName}</h3>
+            <p className="truncate text-sm text-muted-foreground">
+              {worker.category}
             </p>
           </div>
 
-          {
-            worker.marketplaceScore && (
-
-              <div className="mt-4 rounded-xl bg-emerald-50 p-3">
-
-                <p className="text-xs text-gray-500">
-
-                  Marketplace Score
-
-                </p>
-
-                <p className="text-xl font-bold text-emerald-600">
-
-                  {worker.marketplaceScore.toFixed(1)}
-
-                </p>
-
-              </div>
-
-            )}
-
-            {worker.recommendationScore != null &&
-            worker.contentScore != null &&
-            worker.collaborativeScore != null && (
-              <RecommendationReason
-                score={worker.recommendationScore}
-                content={worker.contentScore}
-                collaborative={worker.collaborativeScore}
-              />
-            )}
-
-            {(worker.recommendationReasons?.length ?? 0) > 0 && (
-              <div className="mt-3">
-                <p className="text-xs font-semibold">
-                  Why Recommended
-                </p>
-
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(worker.recommendationReasons ?? []).map((reason) => (
-                    <span
-                      key={reason}
-                      className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700"
-                    >
-                      {reason}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          
-
-          <div className="mt-auto flex gap-2 pt-4">
-            <Link
-              to={`/workers/${worker.id}`}
-              className="flex-1 rounded-xl border border-border bg-background py-2.5 text-center text-xs font-semibold transition hover:border-primary hover:text-primary"
-            >
-              View Profile
-            </Link>
-            <button
-              onClick={() =>
-                handleHireNowClick({
-                  user,
-                  token,
-                  navigate,
-                  workerId: worker.id,
-                  onWorkerTriesToHire: () => setShowWorkerAlert(true),
-                })
-              }
-              className="flex-1 rounded-xl bg-primary py-2.5 text-center text-xs font-bold text-primary-foreground shadow-soft transition hover:bg-primary-dark active:scale-95"
-            >
-              Hire Now
-            </button>
-          </div>
+          {worker.reviewsCount > 0 ? (
+            <span className="flex shrink-0 items-center gap-1 text-sm">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <span className="font-semibold">{worker.rating.toFixed(1)}</span>
+              <span className="text-muted-foreground">
+                ({worker.reviewsCount})
+              </span>
+            </span>
+          ) : (
+            // "0.0 (0)" reads as a bad rating rather than no rating, and a new
+            // worker shouldn't be punished for having no history yet.
+            <span className="shrink-0 text-xs text-muted-foreground">
+              No reviews yet
+            </span>
+          )}
         </div>
-        <HgAlert
-          open={showWorkerAlert}
-          onClose={() => setShowWorkerAlert(false)}
-          type="warning"
-          title="Wrong account type"
-          description="Please log in from a customer profile to hire a worker."
-          cancelLabel="Got it"
-        />
-    </motion.article>
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {worker.city}
+          </span>
+          <span>{worker.experienceYears} yrs experience</span>
+          {worker.cnicVerified && (
+            <span className="inline-flex items-center gap-1 font-medium text-primary-dark">
+              <ShieldCheck className="h-3 w-3" />
+              CNIC verified
+            </span>
+          )}
+        </div>
+
+        <p className="mt-4 text-base font-semibold">
+          Rs. {worker.priceMin.toLocaleString()} –{" "}
+          {worker.priceMax.toLocaleString()}
+          <span className="text-sm font-normal text-muted-foreground">
+            {priceUnit}
+          </span>
+        </p>
+
+        {note && (
+          <div className="mt-3 border-t border-border pt-3">{note}</div>
+        )}
+
+        <div className="mt-4 flex gap-2 pt-1">
+          <Link
+            to={`/workers/${worker.id}`}
+            className="flex-1 rounded-lg border border-border py-2.5 text-center text-sm font-medium transition hover:border-primary hover:text-primary"
+          >
+            View profile
+          </Link>
+          <button
+            onClick={() =>
+              handleHireNowClick({
+                user,
+                token,
+                navigate,
+                workerId: worker.id,
+                onWorkerTriesToHire: () => setShowWorkerAlert(true),
+              })
+            }
+            className="flex-1 rounded-lg bg-primary py-2.5 text-center text-sm font-semibold text-primary-foreground transition hover:bg-primary-dark"
+          >
+            Book
+          </button>
+        </div>
+      </div>
+
+      <HgAlert
+        open={showWorkerAlert}
+        onClose={() => setShowWorkerAlert(false)}
+        type="warning"
+        title="Wrong account type"
+        description="Please log in from a customer profile to hire a worker."
+        cancelLabel="Got it"
+      />
+    </article>
   );
 }

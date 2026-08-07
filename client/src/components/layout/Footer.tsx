@@ -62,7 +62,7 @@ return (
     <div className="border-t border-border">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
         <p>© {new Date().getFullYear()} HelpGhar. All rights reserved.</p>
-        <p>Made with care in Pakistan 🇵🇰</p>
+        <p>Karachi, Pakistan</p>
       </div>
     </div>
   </footer>

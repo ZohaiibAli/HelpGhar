@@ -35,11 +35,13 @@ import { customerItems } from "@/data/customerMenu";
 import { adminItems } from "@/data/adminMenu";
 import { workerItems } from "@/data/workerMenu";
 
+// "Chat" was ambiguous once real customer/worker messaging arrived -- this
+// anchor is the AI assistant, not your inbox (that's the icon on the right).
 const NAV = [
   { to: "/#home", label: "Home", icon: Home },
   { to: "/#services", label: "Services", icon: Wrench },
   { to: "/#reviews", label: "Reviews", icon: Star },
-  { to: "/#chat", label: "Chat", icon: MessageCircle },
+  { to: "/#chat", label: "Help", icon: MessageCircle },
 ];
 
 const CUSTOMER_DASHBOARD_ROUTES = [

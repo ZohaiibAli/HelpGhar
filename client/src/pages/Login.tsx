@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Home, Wrench, Zap, Sparkles, ShieldCheck, User, Info } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { api } from "@/services/api";
 import { LOGOUT_MESSAGES, takeLogoutReason } from "@/lib/session";
 import CustomerLoginForm from "@/pages/Customer_login";
 import WorkerLoginForm from "@/pages/Worker_login";
@@ -14,6 +15,43 @@ function isValidRole(r: string | undefined): r is UserRole {
   return ROLES.includes(r as UserRole);
 }
 
+interface PublicStats {
+  workers: number;
+  verifiedWorkers: number;
+  customers: number;
+  completedBookings: number;
+  avgRating: number;
+  reviewsCount: number;
+}
+
+type StatKey =
+  | "workers"
+  | "verifiedWorkers"
+  | "customers"
+  | "completedBookings"
+  | "avgRating";
+
+const STAT_LABELS: Record<StatKey, string> = {
+  workers: "Workers listed",
+  verifiedWorkers: "CNIC verified",
+  customers: "Customers",
+  completedBookings: "Jobs completed",
+  avgRating: "Avg. rating",
+};
+
+/** Returns null when the figure has no meaning yet, so the slot is dropped. */
+function readStat(stats: PublicStats | null, key: StatKey): string | null {
+  if (!stats) return null;
+
+  if (key === "avgRating") {
+    return stats.reviewsCount > 0 ? stats.avgRating.toFixed(1) : null;
+  }
+
+  const value = stats[key];
+
+  return value > 0 ? value.toLocaleString() : null;
+}
+
 type RoleConfig = {
   accent: string;
   accentSoft: string;
@@ -21,7 +59,15 @@ type RoleConfig = {
   tabIcon: typeof User;
   headline: [string, string];
   sub: string;
-  stats: { value: string; label: string }[];
+  /**
+   * Which real platform figures this portal's side panel shows. These used
+   * to be literals -- "12k+ Jobs completed", "4.9★ Avg. rating", "Rs 2.1M
+   * Paid last month", "99.9% Uptime" -- none of which the platform measures
+   * or could stand behind. They are now read from /dashboard/public-stats,
+   * and a panel simply shows fewer figures when there is nothing real to
+   * put in them.
+   */
+  stats: StatKey[];
 };
 
 const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
@@ -32,10 +78,7 @@ const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
     tabIcon: User,
     headline: ["Book trusted", "home services."],
     sub: "Browse workers, schedule bookings, and manage your home services.",
-    stats: [
-      { value: "12k+", label: "Jobs completed" },
-      { value: "4.9★", label: "Avg. rating" },
-    ],
+    stats: ["workers", "avgRating"],
   },
   worker: {
     accent: "#F2A93B",
@@ -44,10 +87,7 @@ const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
     tabIcon: Wrench,
     headline: ["Manage your", "jobs & earnings."],
     sub: "View requests, track jobs and manage your earnings.",
-    stats: [
-      { value: "500+", label: "Verified pros" },
-      { value: "Rs 2.1M", label: "Paid last month" },
-    ],
+    stats: ["customers", "completedBookings"],
   },
   admin: {
     accent: "#6366F1",
@@ -56,10 +96,7 @@ const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
     tabIcon: ShieldCheck,
     headline: ["Platform", "control center."],
     sub: "Manage users, reports and platform settings.",
-    stats: [
-      { value: "24/7", label: "Monitoring" },
-      { value: "99.9%", label: "Uptime" },
-    ],
+    stats: ["workers", "verifiedWorkers"],
   },
 };
 
@@ -70,6 +107,24 @@ export default function LoginPage() {
   // Why the user is looking at this form. Parked by lib/session.ts before the
   // redirect, because a toast fired at logout time dies with the React tree.
   const [notice, setNotice] = useState<string | null>(null);
+  const [stats, setStats] = useState<PublicStats | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    api
+      .get<{ stats: PublicStats }>("/dashboard/public-stats")
+      .then((response) => {
+        if (!cancelled) setStats(response.data.stats);
+      })
+      .catch(() => {
+        // Signing in must not depend on a decorative figure loading.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const reason = takeLogoutReason();
@@ -87,6 +142,10 @@ export default function LoginPage() {
 
   const activeRole: UserRole = isValidRole(role) ? role : "customer";
   const config = ROLE_CONFIG[activeRole];
+
+  const visibleStats = config.stats
+    .map((key) => ({ key, value: readStat(stats, key) }))
+    .filter((stat): stat is { key: StatKey; value: string } => stat.value !== null);
 
   return (
     <MainLayout>
@@ -165,17 +224,19 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Stats row */}
-            <div className="relative mt-6 flex gap-6 border-t border-white/10 pt-6">
-              {config.stats.map((stat) => (
-                <div key={stat.label}>
-                  <p className="text-xl font-bold text-white">{stat.value}</p>
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-slate-400">
-                    {stat.label}
-                  </p>
-                </div>
-              ))}
-            </div>
+            {/* Stats row — omitted entirely when nothing real is available */}
+            {visibleStats.length > 0 && (
+              <div className="relative mt-6 flex gap-6 border-t border-white/10 pt-6">
+                {visibleStats.map(({ key, value }) => (
+                  <div key={key}>
+                    <p className="text-xl font-bold text-white">{value}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-slate-400">
+                      {STAT_LABELS[key]}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

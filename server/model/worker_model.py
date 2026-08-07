@@ -49,11 +49,15 @@ class GigCreate(BaseModel):
     priceMin: int
     priceMax: int
     priceUnit: str
-    rating: float = 0
-    reviewsCount: int = 0
     available: bool = True
-    cnicVerified: bool = False
-    badges: List[str] = []
+    # rating, reviewsCount, cnicVerified and badges are deliberately NOT
+    # accepted here. They are reputation, not listing content, and a worker
+    # was previously able to submit them with their own gig -- posting
+    # cnicVerified: true awarded the CNIC badge with no admin ever seeing
+    # the account, and rating: 5.0 / badges: ["Top Rated"] wrote a
+    # reputation nobody had earned. All four are now owned by the server:
+    # rating and reviewsCount come from review_ranking_service, badges from
+    # the reputation pass, and cnicVerified from the admin's approval.
     bio: str = ""
     skills: List[str] = []
     certificates: List[str] = []
