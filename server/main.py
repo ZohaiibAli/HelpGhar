@@ -12,6 +12,7 @@ from routes.dispute import router as dispute_router
 from routes.worker_dispute import router as worker_dispute_router
 from routes.theme_routes import router as website_settings_router
 from routes.chat_routes import router as chat_router
+from routes.messaging_routes import router as messaging_router
 from routes.booking_route import router as booking_router
 from routes.payment_route import router as payment_router
 from routes.review_routes import router as review_router
@@ -78,6 +79,7 @@ app.include_router(dispute_router)
 app.include_router(worker_dispute_router)
 app.include_router(website_settings_router)
 app.include_router(chat_router)
+app.include_router(messaging_router)
 app.include_router(booking_router)
 app.include_router(payment_router)
 app.include_router(review_router)

@@ -1,5 +1,9 @@
 fastapi
 uvicorn
+# Real-time messaging (routes/messaging_routes.py) speaks WebSocket.
+# Bare uvicorn ships no WS protocol implementation, so without this the
+# /messages/ws handshake is refused on a clean install.
+websockets
 pymongo
 python-dotenv
 email-validator

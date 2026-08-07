@@ -8,6 +8,7 @@ import {
   Calendar,
   CheckCircle2,
   Award,
+  MessageSquare,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { useGigStore } from "@/store/gigStore";
 import { useAuthStore } from "@/store/authStore";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { handleHireNowClick } from "@/lib/hireNow";
+import { handleMessageWorkerClick } from "@/lib/startChat";
 import AIInsightsCard from "@/components/ai/AIInsightsCard";
 
 
@@ -248,7 +250,26 @@ ${r.sentiment === "Positive"
               >
                 Hire now
               </Button>
-              <Button asChild variant="outline" className="mt-2 h-12 w-full rounded-xl text-base font-bold">
+              {/* Sits directly under "Hire now": most people want to agree
+                  scope and price before committing to a booking, and burying
+                  this is what pushes those conversations off-platform. */}
+              <Button
+                variant="outline"
+                className="mt-2 h-12 w-full rounded-xl text-base font-bold"
+                onClick={() =>
+                  handleMessageWorkerClick({
+                    user,
+                    token,
+                    navigate,
+                    workerId: worker.workerId ?? worker.id,
+                    onWorkerTriesToMessage: () => setShowWorkerAlert(true),
+                  })
+                }
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Message {worker.fullName.split(" ")[0]}
+              </Button>
+              <Button asChild variant="ghost" className="mt-2 h-11 w-full rounded-xl text-sm font-semibold">
                 <Link to="/services">Back to results</Link>
               </Button>
               <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs">
@@ -265,7 +286,7 @@ ${r.sentiment === "Positive"
         onClose={() => setShowWorkerAlert(false)}
         type="warning"
         title="Wrong account type"
-        description="Please log in from a customer profile to hire a worker."
+        description="Please log in from a customer profile to hire or message a worker."
         cancelLabel="Got it"
       />
     </MainLayout>

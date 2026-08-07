@@ -109,6 +109,11 @@ def generate_transaction_id():
     seq = _next_sequence("transaction_id")
     return f"TXN-{seq:05d}"
 
+def generate_thread_id():
+    seq = _next_sequence("message_thread_id")
+    return f"THR-{seq:05d}"
+
+
 def generate_review_id():
 
     counter = counter_collection.find_one_and_update(

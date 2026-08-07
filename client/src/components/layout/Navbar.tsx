@@ -16,8 +16,10 @@ import {
   Settings,
   Wrench,
   MessageCircle,
+  MessagesSquare,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { useChatStore } from "@/store/chatStore";
 import { logout as endSession, loginPathForSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
@@ -42,6 +44,7 @@ const NAV = [
 
 const CUSTOMER_DASHBOARD_ROUTES = [
   "/dashboard/customer",
+  "/messages",
   "/my-bookings",
   "/transactions",
   "/reviews",
@@ -61,6 +64,7 @@ function isOnDashboard(pathname: string): boolean {
 export function Navbar() {
   const { websiteLogo, websiteName, loading } = useWebsiteSettingsStore();
   const { user } = useAuthStore();
+  const unreadMessages = useChatStore((state) => state.unreadTotal);
   const [open, setOpen] = useState(false);
   const { pathname, hash } = useLocation();
   const navigate = useNavigate();
@@ -96,6 +100,9 @@ export function Navbar() {
   };
 
   const closeMobile = () => setOpen(false);
+
+  // Admins have no inbox, so the icon only appears for the two roles that do.
+  const canMessage = user?.role === "customer" || user?.role === "worker";
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-md">
@@ -137,6 +144,26 @@ export function Navbar() {
 
         {/* Desktop right side */}
         <div className="hidden items-center gap-2 md:flex">
+          {canMessage && (
+            <Link
+              to="/messages"
+              aria-label={
+                unreadMessages > 0
+                  ? `Messages, ${unreadMessages} unread`
+                  : "Messages"
+              }
+              title="Messages"
+              className="relative grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
+            >
+              <MessagesSquare className="h-5 w-5" />
+              {unreadMessages > 0 && (
+                <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
+            </Link>
+          )}
+
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -227,6 +254,11 @@ export function Navbar() {
                     >
                       <Icon className="h-5 w-5" />
                       {item.label}
+                      {item.to === "/messages" && unreadMessages > 0 && (
+                        <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+                          {unreadMessages > 99 ? "99+" : unreadMessages}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

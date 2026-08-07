@@ -32,6 +32,12 @@ try:
     conversation_collection = db["conversations"]
     customer_preference_collection = db["customer_preferences"]
 
+    # Customer <-> worker direct messaging. Deliberately NOT the
+    # "conversations" collection above -- that one belongs to the Gemini
+    # support bot (services/chat_service.py) and has an unrelated shape.
+    message_thread_collection = db["message_threads"]
+    message_collection = db["messages"]
+
     # Registration only checked "does this email already exist?" with a
     # find_one before insert_one -- two concurrent requests for the same
     # email can both pass that check before either insert completes,
@@ -44,6 +50,38 @@ try:
         worker_collection.create_index("email", unique=True)
     except Exception as e:
         print("Could not create unique email index:", str(e))
+
+    # Messaging indexes.
+    #
+    # There is exactly one thread per (customer, worker) pair -- the same
+    # model Upwork/Fiverr use, where a thread outlives any individual
+    # order. The unique index makes that a database guarantee, so two
+    # simultaneous "Message" clicks can't create two threads.
+    #
+    # The inbox always reads "my threads, newest activity first", and the
+    # thread view always reads "this thread, newest first" -- both are
+    # covered below so neither degrades into a collection scan.
+    #
+    # clientId is the client-generated idempotency key for a send. It is
+    # partial (not merely sparse) so that a null clientId never collides,
+    # while a retried send with the same key is rejected instead of
+    # duplicating the message.
+    try:
+        message_thread_collection.create_index(
+            [("customerId", 1), ("workerId", 1)],
+            unique=True
+        )
+        message_thread_collection.create_index([("customerId", 1), ("lastMessageAt", -1)])
+        message_thread_collection.create_index([("workerId", 1), ("lastMessageAt", -1)])
+
+        message_collection.create_index([("threadId", 1), ("createdAt", -1)])
+        message_collection.create_index(
+            [("threadId", 1), ("clientId", 1)],
+            unique=True,
+            partialFilterExpression={"clientId": {"$type": "string"}}
+        )
+    except Exception as e:
+        print("Could not create messaging indexes:", str(e))
 
     print("MongoDB Connected Successfully")
     print(f"Database: {DB_NAME}")

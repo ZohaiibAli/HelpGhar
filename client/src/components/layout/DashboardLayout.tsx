@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { Navbar } from "./Navbar";
 import { useAuthStore } from "@/store/authStore";
+import { useChatStore } from "@/store/chatStore";
 import { hasValidSession, loginPathForSession } from "@/lib/session";
 
 export interface DashSidebarItem {
@@ -25,6 +26,7 @@ export function DashboardLayout({
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const unreadMessages = useChatStore((state) => state.unreadTotal);
 
   // Expiry counts as "not logged in" here too, and a worker/admin gets sent to
   // their own login rather than the customer one.
@@ -73,6 +75,17 @@ export function DashboardLayout({
                   >
                     <Icon className="h-4 w-4" />
                     {it.label}
+                    {it.to === "/messages" && unreadMessages > 0 && (
+                      <span
+                        className={`ml-auto grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[10px] font-bold ${
+                          active
+                            ? "bg-primary-foreground text-primary"
+                            : "bg-primary text-primary-foreground"
+                        }`}
+                      >
+                        {unreadMessages > 99 ? "99+" : unreadMessages}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

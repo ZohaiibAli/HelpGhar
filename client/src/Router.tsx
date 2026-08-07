@@ -30,6 +30,7 @@ import AdminSettings from "@/pages/Admin_settings";
 import AdminProfile from "@/pages/Admin_profile";
 import AdminForgotPasswordPage from "./pages/AdminForgotPassword";
 import AdminResetPasswordPage from "./pages/AdminResetPassword";
+import MessagesPage from "@/pages/Messages";
 import NotFound from "@/pages/NotFound";
 import WorkerSettingsPage from "./pages/Worker_settings";
 import WorkerReviewsPage from "./pages/Worker_review";
@@ -274,6 +275,17 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={["worker"]}>
               <WorkerBookings />
+            </ProtectedRoute>
+          }
+        />
+        {/* One inbox shared by both sides -- the page renders the right
+            sidebar and copy from the signed-in role, so a customer and a
+            worker land on the same URL and see their own conversations. */}
+        <Route
+          path="/messages"
+          element={
+            <ProtectedRoute allowedRoles={["customer", "worker"]}>
+              <MessagesPage />
             </ProtectedRoute>
           }
         />
