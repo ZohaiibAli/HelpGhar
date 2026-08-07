@@ -394,6 +394,122 @@ def worker_dashboard(current_worker=Depends(get_current_worker)):
     }
 
 
+@router.get("/public-stats")
+def public_stats():
+    """
+    Public: the handful of real figures the landing page hero shows.
+
+    Those numbers were literals in the JSX -- "4.9" average rating,
+    "100%" verified, "50K+" happy users -- so they described a
+    marketplace that doesn't exist and never moved as the real one grew.
+    No authentication: this is the same information any visitor can
+    already derive by browsing the worker listings.
+    """
+
+    total_workers = worker_collection.count_documents({})
+
+    verified_workers = worker_collection.count_documents(
+        {"verificationStatus": "approved"}
+    )
+
+    completed_bookings = booking_collection.count_documents(
+        {"status": "completed"}
+    )
+
+    customers = customer_collection.count_documents({})
+
+    ratings = [
+        review.get("rating", 0)
+        for review in review_collection.find({}, {"rating": 1})
+    ]
+
+    return {
+        "success": True,
+        "stats": {
+            "workers": total_workers,
+            "verifiedWorkers": verified_workers,
+            "verifiedPercentage": (
+                round((verified_workers / total_workers) * 100)
+                if total_workers
+                else 0
+            ),
+            "customers": customers,
+            "completedBookings": completed_bookings,
+            "avgRating": (
+                round(sum(ratings) / len(ratings), 1) if ratings else 0
+            ),
+            "reviewsCount": len(ratings),
+        },
+    }
+
+
+def _category_breakdown(limit: int = 6):
+    """
+    Which services actually drive the marketplace, by booking volume and
+    the revenue they brought in. Cancelled bookings are counted in the
+    volume (they still represent demand) but contribute no revenue,
+    since that money was refunded.
+    """
+
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$category",
+                "bookings": {"$sum": 1},
+                "revenue": {
+                    "$sum": {
+                        "$cond": [
+                            {"$eq": ["$status", "cancelled"]},
+                            0,
+                            {"$ifNull": ["$total", 0]},
+                        ]
+                    }
+                },
+            }
+        },
+        {"$sort": {"bookings": -1}},
+        {"$limit": limit},
+    ]
+
+    rows = [row for row in booking_collection.aggregate(pipeline) if row["_id"]]
+
+    peak = max((row["bookings"] for row in rows), default=0)
+
+    return [
+        {
+            "category": row["_id"],
+            "bookings": row["bookings"],
+            "revenue": _money(row["revenue"]),
+            # Share of the busiest category, so the frontend can draw a
+            # bar without needing to know the maximum itself.
+            "share": round((row["bookings"] / peak) * 100) if peak else 0,
+        }
+        for row in rows
+    ]
+
+
+def _status_breakdown():
+    """Every booking status with its count, including the ones at zero."""
+
+    counts = {
+        row["_id"]: row["count"]
+        for row in booking_collection.aggregate(
+            [{"$group": {"_id": "$status", "count": {"$sum": 1}}}]
+        )
+    }
+
+    return {
+        status: counts.get(status, 0)
+        for status in (
+            "pending",
+            "confirmed",
+            "in_progress",
+            "completed",
+            "cancelled",
+        )
+    }
+
+
 @router.get("/admin")
 def admin_dashboard(current_admin=Depends(get_current_admin)):
     """
@@ -495,6 +611,8 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
             "bookings": _daily_series(bookings, "createdAt", one, now),
             "revenue": _daily_series(payments, "date", revenue_of, now),
         },
+        "categories": _category_breakdown(),
+        "statusBreakdown": _status_breakdown(),
         "verificationQueue": _verification_queue(),
     }
 

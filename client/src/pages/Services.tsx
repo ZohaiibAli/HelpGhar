@@ -1,36 +1,78 @@
 import { useMemo, useState, useEffect } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Search } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { WorkerCard } from "@/components/workers/WorkerCard";
 import { categories } from "@/data/mock";
 import { useGigStore } from "@/store/gigStore";
 
+const SORT_OPTIONS = [
+  { id: "rating", label: "Sort: Top rated" },
+  { id: "price-asc", label: "Price: Low to high" },
+  { id: "price-desc", label: "Price: High to low" },
+] as const;
+
+type SortId = (typeof SORT_OPTIONS)[number]["id"];
+
 export default function ServicesPage() {
   const gigs = useGigStore((s) => s.gigs);
-  useEffect(() => {
-  console.log("Gigs in store:", gigs);
-}, [gigs]);
   const fetchGigs = useGigStore((s) => s.fetchGigs);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [query, setQuery] = useState("");
-  const [activeCat, setActiveCat] = useState<string>("All");
+  // Seeded from the URL so the landing page's category tiles can link
+  // straight into a filtered list, and so a filtered view is shareable.
+  const [activeCat, setActiveCat] = useState<string>(
+    () => searchParams.get("category") || "All"
+  );
   const [minRating, setMinRating] = useState(0);
   const [maxPrice, setMaxPrice] = useState(100000);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [sort, setSort] = useState<SortId>("rating");
 
   useEffect(() => {
     fetchGigs();
   }, [fetchGigs]);
 
+  // Keeps the two in step when the user arrives via a new link (e.g. taps a
+  // different category on the landing page while already on this route).
+  useEffect(() => {
+    setActiveCat(searchParams.get("category") || "All");
+  }, [searchParams]);
+
+  const selectCategory = (category: string) => {
+    setActiveCat(category);
+
+    if (category === "All") {
+      searchParams.delete("category");
+    } else {
+      searchParams.set("category", category);
+    }
+
+    setSearchParams(searchParams, { replace: true });
+  };
+
   const allWorkers = useMemo(() => gigs, [gigs]);
 
-  const filtered = useMemo(() => allWorkers.filter((w) => {
-    if (activeCat !== "All" && w.category !== activeCat) return false;
-    if (query && !`${w.fullName} ${w.category} ${w.city}`.toLowerCase().includes(query.toLowerCase())) return false;
-    if (w.rating < minRating) return false;
-    if (w.priceMin > maxPrice) return false;
-    if (onlyAvailable && !w.available) return false;
-    return true;
-  }), [query, activeCat, minRating, maxPrice, onlyAvailable, allWorkers]);
+  const filtered = useMemo(() => {
+    const matches = allWorkers.filter((w) => {
+      if (activeCat !== "All" && w.category !== activeCat) return false;
+      if (query && !`${w.fullName} ${w.category} ${w.city}`.toLowerCase().includes(query.toLowerCase())) return false;
+      if (w.rating < minRating) return false;
+      if (w.priceMin > maxPrice) return false;
+      if (onlyAvailable && !w.available) return false;
+      return true;
+    });
+
+    // The sort dropdown was previously an uncontrolled <select> with no
+    // handler -- picking an option changed the label and nothing else.
+    return [...matches].sort((a, b) => {
+      if (sort === "price-asc") return a.priceMin - b.priceMin;
+      if (sort === "price-desc") return b.priceMax - a.priceMax;
+      return b.rating - a.rating;
+    });
+  }, [query, activeCat, minRating, maxPrice, onlyAvailable, allWorkers, sort]);
 
   return (
     <MainLayout>
@@ -55,7 +97,7 @@ export default function ServicesPage() {
             <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Category</p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {["All", ...categories.map(c => c.name)].map((c) => (
-                <button key={c} onClick={() => setActiveCat(c)}
+                <button key={c} onClick={() => selectCategory(c)}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${activeCat === c ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}>
                   {c}
                 </button>
@@ -81,8 +123,17 @@ export default function ServicesPage() {
         <div>
           <div className="mb-4 flex items-center justify-between text-sm">
             <p className="font-semibold">{filtered.length} workers found</p>
-            <select className="rounded-lg border border-input bg-card px-3 py-1.5 text-xs">
-              <option>Sort: Top rated</option><option>Price: Low to high</option><option>Price: High to low</option>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortId)}
+              aria-label="Sort results"
+              className="rounded-lg border border-input bg-card px-3 py-1.5 text-xs"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
           {filtered.length === 0 ? (

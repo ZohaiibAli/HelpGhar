@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { api } from "@/services/api";
+import { useGigStore } from "@/store/gigStore";
 import {
   ShieldCheck,
   Star,
@@ -18,30 +20,40 @@ import {
 
 const CYCLE_WORDS = ["Electricians", "Plumbers", "House Help", "Drivers", "Tutors"];
 
+/**
+ * The tiles carried invented figures -- "1,200+ pros" with a "4.9" rating
+ * for Cleaning, "800+ pros" for Drivers and so on -- for a marketplace that
+ * has nothing like those numbers. Each tile now names the real system
+ * category it stands for, and its count and rating are computed from the
+ * live gig listings below.
+ */
 const CATEGORIES = [
   {
     label: "Cleaning",
     icon: Sparkles,
     slug: "cleaning",
-    stat: "1,200+ pros",
-    rating: "4.9",
+    category: "Cleaners",
     accent: true,
     className: "row-span-2",
     trending: true,
   },
-  { label: "Drivers", icon: Car, slug: "driver", stat: "800+ pros", rating: "4.8" },
-  { label: "Tutors", icon: GraduationCap, slug: "tutor", stat: "650+ pros", rating: "4.9" },
-  { label: "Electricians", icon: Zap, slug: "electrician", stat: "900+ pros", rating: "4.7" },
-  { label: "Plumbing", icon: Wrench, slug: "plumbing", stat: "700+ pros", rating: "4.8" },
+  { label: "Drivers", icon: Car, slug: "driver", category: "Drivers" },
+  { label: "Tutors", icon: GraduationCap, slug: "tutor", category: "Home Teachers" },
+  { label: "Electricians", icon: Zap, slug: "electrician", category: "Electricians" },
+  { label: "Plumbing", icon: Wrench, slug: "plumbing", category: "Plumbers" },
 ];
 
 const PILLS = [
-  { label: "Cleaning", icon: Sparkles, slug: "cleaning" },
-  { label: "Driver", icon: Car, slug: "driver" },
-  { label: "Tutor", icon: GraduationCap, slug: "tutor" },
-  { label: "Electrician", icon: Zap, slug: "electrician" },
-  { label: "Plumbing", icon: Wrench, slug: "plumbing" },
+  { label: "Cleaning", icon: Sparkles, category: "Cleaners" },
+  { label: "Driver", icon: Car, category: "Drivers" },
+  { label: "Tutor", icon: GraduationCap, category: "Home Teachers" },
+  { label: "Electrician", icon: Zap, category: "Electricians" },
+  { label: "Plumbing", icon: Wrench, category: "Plumbers" },
 ];
+
+/** Deep link into the results list, pre-filtered to one category. */
+const categoryLink = (category: string) =>
+  `/services?category=${encodeURIComponent(category)}`;
 
 const TRUST_POINTS = [
   "Background checked",
@@ -50,8 +62,22 @@ const TRUST_POINTS = [
   "Instant booking",
 ];
 
+interface PublicStats {
+  workers: number;
+  verifiedWorkers: number;
+  verifiedPercentage: number;
+  customers: number;
+  completedBookings: number;
+  avgRating: number;
+  reviewsCount: number;
+}
+
 export function HeroSection() {
   const [wordIndex, setWordIndex] = useState(0);
+  const [stats, setStats] = useState<PublicStats | null>(null);
+
+  const gigs = useGigStore((state) => state.gigs);
+  const fetchGigs = useGigStore((state) => state.fetchGigs);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -59,6 +85,66 @@ export function HeroSection() {
     }, 2200);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    fetchGigs();
+  }, [fetchGigs]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    api
+      .get<{ stats: PublicStats }>("/dashboard/public-stats")
+      .then((response) => {
+        if (!cancelled) setStats(response.data.stats);
+      })
+      .catch(() => {
+        // The hero still renders; it just shows no figures rather than
+        // falling back to invented ones.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Real per-category supply and quality, derived from the same active gig
+  // listings the Services page shows.
+  const categoryStats = useMemo(() => {
+    const byCategory = new Map<string, { count: number; ratingSum: number; rated: number }>();
+
+    for (const gig of gigs) {
+      const entry = byCategory.get(gig.category) ?? {
+        count: 0,
+        ratingSum: 0,
+        rated: 0,
+      };
+
+      entry.count += 1;
+
+      if (gig.rating > 0) {
+        entry.ratingSum += gig.rating;
+        entry.rated += 1;
+      }
+
+      byCategory.set(gig.category, entry);
+    }
+
+    return byCategory;
+  }, [gigs]);
+
+  // Up to five real worker photos for the trust stack. The stack previously
+  // showed stock portraits from i.pravatar.cc -- photographs of people with
+  // no connection to this platform, presented as its users.
+  const faces = useMemo(
+    () => gigs.filter((gig) => gig.avatar).slice(0, 5),
+    [gigs]
+  );
+
+  // The floating "Booking Confirmed" card is an illustration of the product,
+  // but it used to put a stock photograph and an invented rating behind an
+  // invented name. It now showcases a worker who is genuinely listed.
+  const showcase = faces[0] ?? gigs[0] ?? null;
 
   return (
     <section id="home" className="relative overflow-hidden bg-hero-gradient">
@@ -132,19 +218,22 @@ export function HeroSection() {
 
           {/* Category pills */}
           <div className="mt-6 flex flex-wrap gap-2">
-            {PILLS.map(({ label, icon: Icon, slug }, i) => (
+            {/* These were <div>s with hover styling and no link -- they
+                looked like filter chips and did nothing when tapped. */}
+            {PILLS.map(({ label, icon: Icon, category }, i) => (
               <motion.div
-                key={slug}
+                key={category}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 + i * 0.06 }}
               >
-                <div
+                <Link
+                  to={categoryLink(category)}
                   className="group inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/80 px-3.5 py-1.5 text-xs font-medium text-foreground/80 backdrop-blur-sm transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary-dark hover:shadow-sm"
                 >
                   <Icon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
                   {label}
-                </div>
+                </Link>
               </motion.div>
             ))}
           </div>
@@ -172,38 +261,63 @@ export function HeroSection() {
             transition={{ delay: 0.7, duration: 0.6 }}
             className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-center"
           >
-            {/* Avatar stack */}
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-3">
-                {[12, 32, 45, 8, 60].map((id, i) => (
-                  <motion.img
-                    key={id}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.8 + i * 0.07 }}
-                    src={`https://i.pravatar.cc/64?img=${id}`}
-                    alt=""
-                    className="h-9 w-9 rounded-full border-2 border-card object-cover ring-1 ring-black/5"
-                  />
-                ))}
-                <motion.span
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.1 }}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-card bg-primary text-[9px] font-bold text-primary-foreground shadow-sm"
-                >
-                  +50K
-                </motion.span>
-              </div>
-            </div>
+            {/* Avatar stack — real workers currently listed on the platform */}
+            {faces.length > 0 && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-3">
+                    {faces.map((worker, i) => (
+                      <motion.img
+                        key={worker.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.8 + i * 0.07 }}
+                        src={worker.avatar}
+                        alt={worker.fullName}
+                        className="h-9 w-9 rounded-full border-2 border-card object-cover ring-1 ring-black/5"
+                      />
+                    ))}
+                    {!!stats && stats.workers > faces.length && (
+                      <motion.span
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 1.1 }}
+                        className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-card bg-primary text-[9px] font-bold text-primary-foreground shadow-sm"
+                      >
+                        +{stats.workers - faces.length}
+                      </motion.span>
+                    )}
+                  </div>
+                </div>
 
-            <div className="hidden h-10 w-px bg-border/60 sm:block" />
+                <div className="hidden h-10 w-px bg-border/60 sm:block" />
+              </>
+            )}
 
-            {/* Stats */}
+            {/* Stats — each one omitted until there is something real behind it */}
             <div className="flex flex-wrap items-center gap-4">
-              <Stat icon={Star} value="4.9" label="avg rating" filled />
-              <Stat icon={ShieldCheck} value="100%" label="verified" />
-              <Stat icon={Users} value="50K+" label="happy users" />
+              {!!stats?.reviewsCount && (
+                <Stat
+                  icon={Star}
+                  value={stats.avgRating.toFixed(1)}
+                  label="avg rating"
+                  filled
+                />
+              )}
+              {!!stats?.workers && (
+                <Stat
+                  icon={ShieldCheck}
+                  value={`${stats.verifiedPercentage}%`}
+                  label="verified"
+                />
+              )}
+              {!!stats?.customers && (
+                <Stat
+                  icon={Users}
+                  value={stats.customers.toLocaleString()}
+                  label={stats.customers === 1 ? "customer" : "customers"}
+                />
+              )}
             </div>
           </motion.div>
 
@@ -240,8 +354,18 @@ export function HeroSection() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + i * 0.08 }}
+                className={cat.className}
               >
-                <BentoTile {...cat} />
+                <BentoTile
+                  {...cat}
+                  count={categoryStats.get(cat.category)?.count ?? 0}
+                  rating={(() => {
+                    const entry = categoryStats.get(cat.category);
+                    return entry && entry.rated > 0
+                      ? (entry.ratingSum / entry.rated).toFixed(1)
+                      : null;
+                  })()}
+                />
               </motion.div>
             ))}
           </div>
@@ -267,24 +391,36 @@ export function HeroSection() {
                     Booking Confirmed
                   </p>
                 </div>
-                <p className="mt-2.5 text-sm font-bold text-foreground">Plumbing Repair</p>
+                <p className="mt-2.5 text-sm font-bold text-foreground">
+                  {showcase?.category ?? "Home Services"}
+                </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   <Clock className="mr-0.5 inline h-3 w-3" />
                   Today, 3:30 PM
                 </p>
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <img
-                      src="https://i.pravatar.cc/40?img=53"
-                      className="h-6 w-6 rounded-full object-cover ring-1 ring-black/5"
-                      alt=""
-                    />
-                    <span className="text-[11px] font-medium text-foreground">Farhan R.</span>
+                    {showcase?.avatar ? (
+                      <img
+                        src={showcase.avatar}
+                        className="h-6 w-6 rounded-full object-cover ring-1 ring-black/5"
+                        alt=""
+                      />
+                    ) : (
+                      <span className="grid h-6 w-6 place-items-center rounded-full bg-primary/15 text-[9px] font-bold text-primary">
+                        {showcase?.fullName?.charAt(0).toUpperCase() ?? "H"}
+                      </span>
+                    )}
+                    <span className="text-[11px] font-medium text-foreground">
+                      {showcase?.fullName ?? "Verified pro"}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-0.5 text-xs font-semibold text-amber-500">
-                    <Star className="h-3 w-3 fill-current" />
-                    4.7
-                  </div>
+                  {!!showcase?.rating && (
+                    <div className="flex items-center gap-0.5 text-xs font-semibold text-amber-500">
+                      <Star className="h-3 w-3 fill-current" />
+                      {showcase.rating.toFixed(1)}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -348,28 +484,33 @@ function Stat({
 function BentoTile({
   icon: Icon,
   label,
-  stat,
+  category,
+  count,
   rating,
-  slug,
-  className = "",
   accent = false,
   trending = false,
 }: {
   icon: typeof Star;
   label: string;
-  stat: string;
-  rating: string;
-  slug: string;
+  category: string;
+  /** Active listings in this category right now. */
+  count: number;
+  /** Average rating, or null when nobody in the category has been rated. */
+  rating: string | null;
+  slug?: string;
   className?: string;
   accent?: boolean;
   trending?: boolean;
 }) {
   return (
-    <div
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${accent
+    // Was a bare <div>: it lifted on hover like a card you could open, but
+    // there was nothing behind the click.
+    <Link
+      to={categoryLink(category)}
+      className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lift ${accent
           ? "border-primary/20 bg-primary shadow-soft"
           : "border-border/60 bg-card/80 shadow-card backdrop-blur-sm hover:border-primary/30"
-        } ${className}`}
+        }`}
     >
       {/* Background decorative icon */}
       <Icon
@@ -411,24 +552,33 @@ function BentoTile({
             className={`text-xs ${accent ? "text-primary-foreground/60" : "text-muted-foreground"
               }`}
           >
-            {stat}
+            {count > 0
+              ? `${count} ${count === 1 ? "pro" : "pros"}`
+              : "Coming soon"}
           </p>
-          <span
-            className={`text-xs ${accent ? "text-primary-foreground/40" : "text-border"
-              }`}
-          >
-            •
-          </span>
-          <span
-            className={`flex items-center gap-0.5 text-xs font-medium ${accent ? "text-amber-200" : "text-amber-500"
-              }`}
-          >
-            <Star className="h-2.5 w-2.5 fill-current" />
-            {rating}
-          </span>
+
+          {/* The rating half of the line only appears once somebody in this
+              category has actually been reviewed. */}
+          {rating && (
+            <>
+              <span
+                className={`text-xs ${accent ? "text-primary-foreground/40" : "text-border"
+                  }`}
+              >
+                •
+              </span>
+              <span
+                className={`flex items-center gap-0.5 text-xs font-medium ${accent ? "text-amber-200" : "text-amber-500"
+                  }`}
+              >
+                <Star className="h-2.5 w-2.5 fill-current" />
+                {rating}
+              </span>
+            </>
+          )}
         </div>
       </div>
 
-    </div>
+    </Link>
   );
 }

@@ -107,26 +107,6 @@ def connection_key(role: str, user_id: str) -> str:
 # Counterparty lookups
 # ---------------------------------------------------------------------
 
-def _worker_avatar(worker: dict, worker_id: str) -> str:
-    """
-    Workers upload a profile picture (`profileImage`), but the older gig
-    listing carries its own `avatar` and is what the public worker cards
-    render. Prefer the profile picture, fall back to the gig, so a chat
-    header never shows a blank avatar for a worker who has one visible
-    elsewhere on the site.
-    """
-
-    if worker.get("profileImage"):
-        return worker["profileImage"]
-
-    gig = gig_collection.find_one(
-        {"workerId": worker_id},
-        {"avatar": 1}
-    )
-
-    return (gig or {}).get("avatar", "") or ""
-
-
 def resolve_customers(customer_ids: List[str]) -> Dict[str, dict]:
     if not customer_ids:
         return {}
@@ -169,20 +149,25 @@ def resolve_workers(worker_ids: List[str]) -> Dict[str, dict]:
         )
     )
 
-    # One bulk gig lookup for the avatar fallback rather than a query per
-    # worker -- the inbox resolves every counterparty at once.
-    missing_avatar = [
-        doc["workerId"] for doc in docs if not doc.get("profileImage")
-    ]
-
+    # One bulk gig lookup for every counterparty at once, rather than a
+    # query per worker. It serves two purposes: the avatar fallback, and
+    # `profileId` -- the public worker page is routed by the gig's Mongo
+    # _id (/workers/:id), not by the HGW- code, so without this the chat
+    # header has no way to link to the person it is showing.
     gig_avatars: Dict[str, str] = {}
+    gig_ids: Dict[str, str] = {}
 
-    if missing_avatar:
-        for gig in gig_collection.find(
-            {"workerId": {"$in": missing_avatar}},
-            {"workerId": 1, "avatar": 1}
-        ):
-            gig_avatars.setdefault(gig["workerId"], gig.get("avatar", "") or "")
+    for gig in gig_collection.find(
+        {"workerId": {"$in": unique_ids}},
+        {"workerId": 1, "avatar": 1, "status": 1}
+    ):
+        worker_id = gig["workerId"]
+
+        gig_avatars.setdefault(worker_id, gig.get("avatar", "") or "")
+
+        # Only an Active listing has a page worth linking to.
+        if gig.get("status") == "Active":
+            gig_ids.setdefault(worker_id, str(gig["_id"]))
 
     return {
         doc["workerId"]: {
@@ -193,6 +178,7 @@ def resolve_workers(worker_ids: List[str]) -> Dict[str, dict]:
             "category": doc.get("category", ""),
             "status": doc.get("status", "active"),
             "lastSeenAt": _iso(doc.get("lastSeenAt")),
+            "profileId": gig_ids.get(doc["workerId"]),
         }
         for doc in docs
     }
@@ -261,6 +247,7 @@ def serialize_thread(doc: dict, viewer_role: str, counterparty: Optional[dict]) 
         "avatar": "",
         "status": "deleted",
         "lastSeenAt": None,
+        "profileId": None,
     }
 
     last_message = doc.get("lastMessage") or None

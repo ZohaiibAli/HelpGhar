@@ -31,6 +31,19 @@ export interface PendingWorker {
   appliedAt: string;
 }
 
+export interface CategoryBreakdown {
+  category: string;
+  bookings: number;
+  revenue: number;
+  /** Percentage of the busiest category, ready to use as a bar width. */
+  share: number;
+}
+
+export type BookingStatusBreakdown = Record<
+  "pending" | "confirmed" | "in_progress" | "completed" | "cancelled",
+  number
+>;
+
 export interface AdminOverview {
   success: boolean;
   stats: AdminOverviewStats;
@@ -38,6 +51,8 @@ export interface AdminOverview {
   // dash instead of inventing a percentage.
   trends: { bookings: number | null; revenue: number | null };
   series: { bookings: SeriesPoint[]; revenue: SeriesPoint[] };
+  categories: CategoryBreakdown[];
+  statusBreakdown: BookingStatusBreakdown;
   verificationQueue: PendingWorker[];
 }
 

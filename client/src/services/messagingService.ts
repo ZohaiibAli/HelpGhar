@@ -12,6 +12,12 @@ export interface ChatParticipant {
   status?: string;
   lastSeenAt: string | null;
   online?: boolean;
+  /**
+   * Gig id backing this worker's public page (/workers/:id). Null when they
+   * have no active listing, in which case there is no page to link to.
+   * Customers never have one.
+   */
+  profileId?: string | null;
 }
 
 export interface ChatAttachment {

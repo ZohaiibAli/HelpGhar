@@ -202,10 +202,13 @@ export function MessageThread({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-56">
-            {participant.role === "worker" && (
+            {/* Only offered when there is a real page behind it: the public
+                profile is routed by gig id, and a worker with no active
+                listing has none. */}
+            {participant.role === "worker" && participant.profileId && (
               <>
                 <DropdownMenuItem asChild>
-                  <Link to={`/services?worker=${participant.id}`}>
+                  <Link to={`/workers/${participant.profileId}`}>
                     <UserIcon className="mr-2 h-4 w-4" />
                     View profile
                   </Link>

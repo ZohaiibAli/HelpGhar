@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { Button } from "@/components/ui/button";
@@ -19,8 +18,13 @@ export default function WorkerDetailsDescriptionPage() {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const navigate = useNavigate();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  // Last value the server confirmed. Cancel reverts to this, and comparing
+  // against it is what tells us whether there is anything to save at all.
+  const [saved, setSaved] = useState<WorkerDetails>({
+    about: "",
+    skills: "",
+    certifications: "",
+  });
 
   const [alertState, setAlertState] = useState<{
     open: boolean;
@@ -48,15 +52,35 @@ export default function WorkerDetailsDescriptionPage() {
         try {
           const { data } = await api.get("/worker/details");
 
-          setAbout(data.about ?? "");
-          setSkills(data.skills ?? "");
-          setCertifications(data.certifications ?? "");
+          const current: WorkerDetails = {
+            about: data.about ?? "",
+            skills: data.skills ?? "",
+            certifications: data.certifications ?? "",
+          };
+
+          setAbout(current.about);
+          setSkills(current.skills);
+          setCertifications(current.certifications);
+          setSaved(current);
           setLoaded(true);
         } catch (error) {
           console.error(error);
           setLoaded(true);
         }
       };
+
+    const isDirty =
+      about !== saved.about ||
+      skills !== saved.skills ||
+      certifications !== saved.certifications;
+
+    // Cancel used to be an inert button. It now discards edits and puts the
+    // three fields back to what the server last confirmed.
+    const handleCancel = () => {
+      setAbout(saved.about);
+      setSkills(saved.skills);
+      setCertifications(saved.certifications);
+    };
 
     const handleSave = async () => {
       setSaving(true);
@@ -67,6 +91,10 @@ export default function WorkerDetailsDescriptionPage() {
           skills,
           certifications,
         });
+
+        // New baseline: Cancel now reverts to what was just saved, not to
+        // whatever was on the page when it first loaded.
+        setSaved({ about, skills, certifications });
 
         setAlertState({
           open: true,
@@ -138,10 +166,16 @@ export default function WorkerDetailsDescriptionPage() {
           </Card>
 
           <div className="flex justify-end gap-3">
-            <Button variant="outline">Cancel</Button>
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={saving || !isDirty}
+            >
+              Cancel
+            </Button>
             <Button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || !isDirty}
               className="bg-primary hover:bg-primary-dark"
             >
               {saving ? "Saving..." : "Save Changes"}

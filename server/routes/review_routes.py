@@ -128,6 +128,73 @@ def get_my_reviews(
         "reviews": reviews
     }
 
+@router.get("/featured")
+def get_featured_reviews(limit: int = 3):
+    """
+    Public: the strongest recent reviews, for the landing page.
+
+    That section used to render three invented testimonials from
+    data/mock.ts ("Sara Malik", "Bilal Ahmed", "Zara Hussain") under a
+    "Real jobs, real people" heading. These are actual reviews written by
+    actual customers about actual completed bookings -- and when there
+    are none yet, the endpoint returns an empty list so the section can
+    hide itself rather than fall back to fiction.
+    """
+
+    limit = max(1, min(limit, 12))
+
+    reviews = list(
+        review_collection.find(
+            {
+                "rating": {"$gte": 4},
+                # A one-word "good" carries no weight on a landing page.
+                "comment": {"$exists": True, "$ne": ""},
+            },
+            {
+                "_id": 0,
+                "reviewId": 1,
+                "customerName": 1,
+                "workerName": 1,
+                "workerId": 1,
+                "rating": 1,
+                "comment": 1,
+                "createdAt": 1,
+            },
+        )
+        .sort("createdAt", -1)
+        .limit(limit * 4)
+    )
+
+    # Longer quotes read better in the featured slot, so rank by length
+    # among the recent pool rather than showing whatever came last.
+    reviews.sort(key=lambda review: len(review.get("comment", "")), reverse=True)
+
+    selected = reviews[:limit]
+
+    worker_ids = [r["workerId"] for r in selected if r.get("workerId")]
+
+    categories = {
+        worker["workerId"]: worker.get("category", "")
+        for worker in worker_collection.find(
+            {"workerId": {"$in": worker_ids}},
+            {"workerId": 1, "category": 1},
+        )
+    }
+
+    for review in selected:
+        review["workerCategory"] = categories.get(review.get("workerId"), "")
+
+        created = review.get("createdAt")
+        review["createdAt"] = (
+            created.isoformat() if hasattr(created, "isoformat") else created
+        )
+
+    return {
+        "success": True,
+        "reviews": selected,
+    }
+
+
 @router.get("/worker/{worker_id}")
 def get_worker_reviews(worker_id: str):
 

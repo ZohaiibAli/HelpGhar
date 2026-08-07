@@ -122,9 +122,11 @@ export default function WorkerDetailsPage() {
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
             <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
-              <div className="h-40 bg-gradient-to-br from-primary/30 to-primary-soft" />
-              <div className="-mt-16 grid gap-4 p-6 sm:flex sm:items-end">
-                <img src={worker.avatar} alt={worker.fullName} className="h-28 w-28 shrink-0 rounded-2xl border-4 border-card object-cover shadow-card" />
+              {/* No decorative cover banner: it pushed the actual profile
+                  below the fold on phones and carried no information. The
+                  photo alone identifies the worker. */}
+              <div className="grid gap-4 p-6 sm:flex sm:items-center">
+                <img src={worker.avatar} alt={worker.fullName} className="h-28 w-28 shrink-0 rounded-2xl border border-border object-cover shadow-card" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-2xl font-black">{worker.fullName}</h1>

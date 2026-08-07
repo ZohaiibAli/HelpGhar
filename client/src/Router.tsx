@@ -22,6 +22,7 @@ import WorkerDisputePage from "@/pages/Worker_dispute";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import WorkerDashboard from "@/pages/WorkerDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminAnalytics from "@/pages/Admin_analytics";
 import AdminUsers from "@/pages/Admin_users";
 import AdminBookings from "@/pages/Admin_bookings";
 import AdminComplaints from "@/pages/Admin_complaints";
@@ -169,6 +170,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminUsers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/analytics"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminAnalytics />
             </ProtectedRoute>
           }
         />

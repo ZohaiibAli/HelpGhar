@@ -8,6 +8,14 @@ import { toast } from "sonner";
 import type { Booking } from "@/types";
 import type { BookingStatus } from "@/types";
 
+// Kept in step with ACTIVE_STATUSES in server/routes/booking_route.py --
+// the only statuses the cancel endpoint will accept.
+const CANCELLABLE_STATUSES: BookingStatus[] = [
+  "pending",
+  "confirmed",
+  "in_progress",
+];
+
 const statusStyles: Record<BookingStatus, string> = {
   pending: "bg-yellow-100 text-yellow-800",
   confirmed: "bg-emerald-100 text-emerald-700",
@@ -67,11 +75,24 @@ export default function AdminBookings() {
       }
     }
 
+    // The menu is position:fixed at coordinates captured when the button
+    // was clicked, so once the page scrolls it no longer sits next to the
+    // row it belongs to -- it floats over an unrelated booking, which is
+    // how you cancel the wrong one. Dismiss it instead of letting it drift.
+    function handleReflow() {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    }
+
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
+    window.addEventListener("scroll", handleReflow, true);
+    window.addEventListener("resize", handleReflow);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("scroll", handleReflow, true);
+      window.removeEventListener("resize", handleReflow);
     };
   }, [openMenuId]);
 
@@ -170,9 +191,6 @@ export default function AdminBookings() {
                             top: rect.bottom + 6,
                             left: rect.right - 145,
                           });
-                          console.log("Clicked:", b.bookingId);
-                          console.log(rect);
-
                           setOpenMenuId(b.bookingId);
                         }}
                         className="rounded-full p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
@@ -202,8 +220,14 @@ export default function AdminBookings() {
           }}
         >
           <button
+            // Mirrors ACTIVE_STATUSES on the server: it refuses to cancel a
+            // completed or already-cancelled booking. Only "cancelled" was
+            // greyed out here, so cancelling a completed job looked
+            // available and came back as an error toast.
             disabled={
-              bookings.find((b) => b.bookingId === openMenuId)?.status === "cancelled"
+              !CANCELLABLE_STATUSES.includes(
+                bookings.find((b) => b.bookingId === openMenuId)?.status as BookingStatus
+              )
             }
             onClick={() => {
               setCancelTargetId(openMenuId);
