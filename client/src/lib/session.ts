@@ -223,6 +223,13 @@ export function handleAuthFailure(
 ): boolean {
   if (!isAuthFailure(response)) return false;
 
+  // No token on file means there was never a session to end. A guest
+  // browsing a public page (e.g. the Jobs tab) who hits a 401/403 -- because
+  // a route is misconfigured, or briefly stale during a deploy -- should
+  // just see that one request fail, not get bounced to a login screen with
+  // a "session expired" message for a session they never had.
+  if (!getToken()) return false;
+
   logout(isTokenExpired() ? "expired" : "unauthorized");
 
   return true;
