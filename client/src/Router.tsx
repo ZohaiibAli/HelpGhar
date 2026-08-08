@@ -41,6 +41,11 @@ import WorkerForgotPasswordPage from "@/pages/WorkerForgotPassword";
 import WorkerResetPasswordPage from "@/pages/WorkerResetPassword";
 
 import { ChatPage } from "./pages/Main_ChatBot";
+import Customer_PostJob from "@/pages/Customer_PostJob";
+import Customer_MyJobs from "@/pages/Customer_MyJobs";
+import Customer_JobApplicants from "@/pages/Customer_JobApplicants";
+import Worker_JobBoard from "@/pages/Worker_JobBoard";
+import Worker_MyApplications from "@/pages/Worker_MyApplications";
 
 function ProfileRouter() {
   const { user } = useAuthStore();
@@ -284,6 +289,46 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={["worker"]}>
               <WorkerBookings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/post-job"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <Customer_PostJob />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-jobs"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <Customer_MyJobs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-jobs/:jobId"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <Customer_JobApplicants />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/job-board"
+          element={
+            <ProtectedRoute allowedRoles={["worker"]}>
+              <Worker_JobBoard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/worker/applications"
+          element={
+            <ProtectedRoute allowedRoles={["worker"]}>
+              <Worker_MyApplications />
             </ProtectedRoute>
           }
         />

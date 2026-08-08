@@ -38,6 +38,13 @@ try:
     message_thread_collection = db["message_threads"]
     message_collection = db["messages"]
 
+    # Customer-posted job requests, and the worker proposals against them --
+    # the reverse of a gig listing. A worker's application becomes a real
+    # booking (see routes/job_routes.py) once the customer accepts it, so
+    # these two collections only need to model the request/proposal phase.
+    job_post_collection = db["job_posts"]
+    job_application_collection = db["job_applications"]
+
     # Registration only checked "does this email already exist?" with a
     # find_one before insert_one -- two concurrent requests for the same
     # email can both pass that check before either insert completes,
@@ -82,6 +89,25 @@ try:
         )
     except Exception as e:
         print("Could not create messaging indexes:", str(e))
+
+    # Job post / application indexes.
+    #
+    # A worker can apply to a given job post at most once -- the unique
+    # index makes that a database guarantee (mirrors the one-thread-per-pair
+    # index above) instead of relying solely on the application route's own
+    # pre-check, which can't stop two concurrent "Apply" clicks.
+    try:
+        job_post_collection.create_index([("customerId", 1), ("createdAt", -1)])
+        job_post_collection.create_index([("status", 1), ("category", 1)])
+
+        job_application_collection.create_index(
+            [("jobId", 1), ("workerId", 1)],
+            unique=True
+        )
+        job_application_collection.create_index([("jobId", 1), ("createdAt", -1)])
+        job_application_collection.create_index([("workerId", 1), ("createdAt", -1)])
+    except Exception as e:
+        print("Could not create job indexes:", str(e))
 
     print("MongoDB Connected Successfully")
     print(f"Database: {DB_NAME}")

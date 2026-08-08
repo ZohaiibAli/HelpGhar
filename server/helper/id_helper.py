@@ -114,6 +114,14 @@ def generate_thread_id():
     return f"THR-{seq:05d}"
 
 
+def generate_job_id():
+    seq = _next_sequence("job_id")
+    return f"JOB-{seq:04d}"
+
+def generate_job_application_id():
+    seq = _next_sequence("job_application_id")
+    return f"JAP-{seq:04d}"
+
 def generate_review_id():
 
     counter = counter_collection.find_one_and_update(

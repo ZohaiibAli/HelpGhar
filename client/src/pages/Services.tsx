@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { WorkerCard } from "@/components/workers/WorkerCard";
@@ -94,6 +94,13 @@ export default function ServicesPage() {
               <SlidersHorizontal className="h-4 w-4" /> Filters
             </button> */}
           </div>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Can't find who you need?{" "}
+            <Link to="/post-job" className="font-semibold text-primary hover:underline">
+              Post a job
+            </Link>{" "}
+            and let workers apply to you.
+          </p>
         </div>
       </section>
 

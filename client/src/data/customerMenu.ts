@@ -7,11 +7,15 @@ import {
   MessagesSquare,
   User,
   Settings,
+  ClipboardList,
+  FilePlus2,
 } from "lucide-react";
 
 export const customerItems = [
   { label: "Overview", to: "/dashboard/customer", icon: LayoutDashboard },
   { label: "Messages", to: "/messages", icon: MessagesSquare },
+  { label: "Post a Job", to: "/post-job", icon: FilePlus2 },
+  { label: "My Job Posts", to: "/my-jobs", icon: ClipboardList },
   { label: "My Bookings", to: "/my-bookings", icon: Calendar },
   { label: "Transactions", to: "/transactions", icon: CreditCard },
   { label: "Reviews", to: "/reviews", icon: Star },
