@@ -316,14 +316,10 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/job-board"
-          element={
-            <ProtectedRoute allowedRoles={["worker"]}>
-              <Worker_JobBoard />
-            </ProtectedRoute>
-          }
-        />
+        {/* Public on purpose, same as /services -- anyone can browse open
+            job requests without an account. Applying still requires a
+            worker login, enforced inside the page and by the API. */}
+        <Route path="/job-board" element={<Worker_JobBoard />} />
         <Route
           path="/worker/applications"
           element={

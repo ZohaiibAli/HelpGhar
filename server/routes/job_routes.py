@@ -68,27 +68,22 @@ def get_my_job_posts(current_customer: dict = Depends(get_current_customer)):
 
 
 @router.get("/open")
-def get_open_jobs(
-    category: str | None = Query(default=None),
-    current_worker: dict = Depends(get_current_worker)
-):
+def get_open_jobs(category: str | None = Query(default=None)):
+    # Public on purpose, same as GET /worker/gigs -- anyone should be able to
+    # browse open job requests without an account, exactly like the services
+    # listing. Posting a job still requires a customer login and applying
+    # still requires a worker login (enforced on those routes below); only
+    # *browsing* is open. Because there's no authenticated worker here,
+    # "already applied" can't be computed server-side -- the frontend
+    # derives that itself from the logged-in worker's own applications.
     query = {"status": "open"}
     if category:
         query["category"] = category
 
     jobs = list(job_post_collection.find(query).sort("createdAt", -1))
 
-    applied_job_ids = {
-        app["jobId"]
-        for app in job_application_collection.find(
-            {"workerId": current_worker["workerId"], "jobId": {"$in": [j["jobId"] for j in jobs]}},
-            {"jobId": 1}
-        )
-    }
-
     for job in jobs:
         del job["_id"]
-        job["alreadyApplied"] = job["jobId"] in applied_job_ids
 
     return {"success": True, "jobs": jobs}
 

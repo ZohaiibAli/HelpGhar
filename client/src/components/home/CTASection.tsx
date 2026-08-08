@@ -24,7 +24,11 @@ export function CTASection() {
               List what you do and what you charge. Customers find you by
               service and area, message you before booking, and pay through the
               platform so there's a record of every job. Verification takes a
-              CNIC and an admin review.
+              CNIC and an admin review. Or skip the listing and{" "}
+              <Link to="/job-board" className="font-semibold underline underline-offset-2">
+                browse job requests
+              </Link>{" "}
+              customers have already posted.
             </p>
 
             <ul className="mt-5 grid gap-x-8 gap-y-2 text-sm text-primary-foreground/85 sm:grid-cols-2">

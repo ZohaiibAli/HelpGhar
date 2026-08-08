@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,6 +25,7 @@ export default function WorkerLoginForm() {
 
   const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setSession } = useAuthStore();
   const [showPwd, setShowPwd] = useState(false);
 
@@ -73,7 +74,8 @@ export default function WorkerLoginForm() {
           result.token
         );
 
-        navigate("/dashboard/worker");
+        const redirectTo = searchParams.get("redirect");
+        navigate(redirectTo || "/dashboard/worker");
 
       } else {
 

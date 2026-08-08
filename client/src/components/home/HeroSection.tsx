@@ -255,6 +255,16 @@ export function HeroSection() {
               ))}
             </div>
 
+            {/* Two-way marketplace, said in one line: search for someone, or
+                post what you need and let workers apply to you instead. */}
+            <p className="mt-3 text-sm text-muted-foreground">
+              Or{" "}
+              <Link to="/post-job" className="font-semibold text-primary hover:underline">
+                post a job
+              </Link>{" "}
+              and let workers apply to you.
+            </p>
+
             <ul className="mt-8 grid gap-3 sm:grid-cols-2">
               {HOW_IT_PROTECTS.map(({ icon: Icon, text }) => (
                 <li
