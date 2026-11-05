@@ -46,11 +46,34 @@ AREAS = [
     "Bahadurabad", "Federal B Area", "Model Colony", "Landhi",
 ]
 
-# i.pravatar.cc is the same free avatar source already used elsewhere in
-# this codebase (HeroSection, WorkerCard, mock testimonials). It only has
-# ~70 distinct photos, so at 1000 records each photo is reused ~14x —
-# normal for seed/demo data.
-AVATAR_POOL = [f"https://i.pravatar.cc/300?img={i}" for i in range(1, 71)]
+# Professional studio headshots generated from client/Json/pakistani_professionals_500.json
+# (AI-generated fictional people, disclosed as such in that file). Replaces
+# the old i.pravatar.cc pool of random strangers' real photos. Split by
+# gender so a seeded record's avatar matches its gender, and served from
+# the client app's own /images/professionals/ folder (client/public), so
+# the path resolves correctly regardless of which domain the API itself
+# runs on. At 1000 records each photo is reused ~12-13x — normal for
+# seed/demo data.
+AVATAR_IDS_MALE = [
+    "pk-0001", "pk-0013", "pk-0025", "pk-0037", "pk-0051", "pk-0063",
+    "pk-0075", "pk-0087", "pk-0101", "pk-0113", "pk-0125", "pk-0137",
+    "pk-0151", "pk-0163", "pk-0175", "pk-0187", "pk-0201", "pk-0213",
+    "pk-0225", "pk-0237", "pk-0251", "pk-0263", "pk-0275", "pk-0287",
+    "pk-0301", "pk-0313", "pk-0325", "pk-0337", "pk-0351", "pk-0363",
+    "pk-0375", "pk-0387", "pk-0401", "pk-0413", "pk-0425", "pk-0437",
+    "pk-0451", "pk-0463", "pk-0475", "pk-0487",
+]
+AVATAR_IDS_FEMALE = [
+    "pk-0002", "pk-0014", "pk-0026", "pk-0038", "pk-0052", "pk-0064",
+    "pk-0076", "pk-0088", "pk-0102", "pk-0114", "pk-0126", "pk-0138",
+    "pk-0152", "pk-0164", "pk-0176", "pk-0188", "pk-0202", "pk-0214",
+    "pk-0226", "pk-0238", "pk-0252", "pk-0264", "pk-0276", "pk-0288",
+    "pk-0302", "pk-0314", "pk-0326", "pk-0338", "pk-0352", "pk-0364",
+    "pk-0376", "pk-0388", "pk-0402", "pk-0414", "pk-0426", "pk-0438",
+    "pk-0452", "pk-0464", "pk-0476", "pk-0488",
+]
+AVATAR_POOL_MALE = [f"/images/professionals/{i}.png" for i in AVATAR_IDS_MALE]
+AVATAR_POOL_FEMALE = [f"/images/professionals/{i}.png" for i in AVATAR_IDS_FEMALE]
 
 MALE_FIRST_NAMES = [
     "Ahmed", "Ali", "Hassan", "Usman", "Bilal", "Fahad", "Imran", "Kamran",
@@ -334,7 +357,7 @@ def build_records(total):
                 "priceUnit": unit,
                 "rating": rating,
                 "reviewsCount": reviews_count,
-                "avatar": random.choice(AVATAR_POOL),
+                "avatar": random.choice(AVATAR_POOL_MALE if gender == "Male" else AVATAR_POOL_FEMALE),
                 "bio": bio,
                 "skills": skills,
                 "certificates": certs,
