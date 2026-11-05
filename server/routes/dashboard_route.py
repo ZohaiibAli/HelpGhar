@@ -650,6 +650,7 @@ def _verification_queue(limit: int = 8):
             "email": worker.get("email", ""),
             "category": worker.get("category", ""),
             "cnic": worker.get("cnic", ""),
+            "cnicImage": worker.get("cnicImage", ""),
             "avatar": avatars.get(worker.get("workerId"), ""),
             # No createdAt is stored at registration, but an ObjectId
             # already encodes its own creation time.

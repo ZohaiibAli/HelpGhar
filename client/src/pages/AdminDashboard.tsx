@@ -233,7 +233,14 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
                             </td>
-                            <td className="text-xs text-muted-foreground">{w.cnic || "—"}</td>
+                            <td className="text-xs text-muted-foreground">
+                              <div>{w.cnic || "—"}</div>
+                              {w.cnicImage ? (
+                                <a href={w.cnicImage} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">View CNIC photo</a>
+                              ) : (
+                                <span className="text-[10px]">No photo</span>
+                              )}
+                            </td>
                             <td className="text-xs text-muted-foreground">{formatDate(w.appliedAt)}</td>
                             <td className="space-x-1 whitespace-nowrap text-right">
                               <button

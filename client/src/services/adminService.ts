@@ -27,6 +27,7 @@ export interface PendingWorker {
   email: string;
   category: string;
   cnic: string;
+  cnicImage?: string;
   avatar: string;
   appliedAt: string;
 }

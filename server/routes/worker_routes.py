@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from config.db import worker_collection, gig_collection,worker_details_collection
 from model.worker_model import (
@@ -14,6 +14,7 @@ from model.worker_model import (
 from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo.errors import DuplicateKeyError
+from pydantic import EmailStr
 from helper.password_helper import hash_password, verify_password
 from helper.cloudinary_helper import upload_image, delete_image
 from helper.jwt_helper import create_access_token
@@ -36,7 +37,28 @@ router = APIRouter(prefix="/worker", tags=["Worker"])
 
 
 @router.post("/register")
-def register_worker(worker: WorkerRegister):
+def register_worker(
+    fullName: str = Form(...),
+    email: EmailStr = Form(...),
+    phone: str = Form(...),
+    address: str = Form(...),
+    password: str = Form(...),
+    cnic: str = Form(...),
+    dob: str = Form(...),
+    gender: str = Form(...),
+    category: str = Form(...),
+    experience: str = Form(...),
+    pricing: str = Form(...),
+    skills: str = Form(...),
+    cnicImage: UploadFile = File(...),
+):
+
+    worker = WorkerRegister(
+        fullName=fullName, email=email, phone=phone, address=address,
+        password=password, cnic=cnic, dob=dob, gender=gender,
+        category=category, experience=experience, pricing=pricing,
+        skills=skills,
+    )
 
     existing = worker_collection.find_one(
         {
@@ -50,6 +72,10 @@ def register_worker(worker: WorkerRegister):
             "message": "Email already exists"
         }
 
+    # Upload only after the duplicate check so rejected sign-ups don't
+    # leave orphaned CNIC photos in Cloudinary.
+    cnic_image_url = upload_image(cnicImage, folder="HelpGhar/cnic")
+
     worker_data = worker.dict()
 
     worker_data["password"] = hash_password(worker.password)
@@ -57,6 +83,11 @@ def register_worker(worker: WorkerRegister):
     worker_data["workerId"] = generate_worker_id()
 
     worker_data["status"] = "Active"
+
+    worker_data["cnicImage"] = cnic_image_url
+
+    # The worker can't log in until an admin approves this.
+    worker_data["verificationStatus"] = "pending"
 
     try:
         result = worker_collection.insert_one(worker_data)
@@ -109,6 +140,25 @@ def worker_login(worker: WorkerLogin):
         return {
             "success": False,
             "message": "Invalid Email or Password"
+        }
+
+    # Credentials are right, but the account only becomes usable once an
+    # admin has approved the CNIC. Workers registered before this feature
+    # have no verificationStatus and are treated as pending, matching the
+    # admin queue (PENDING_VERIFICATION_QUERY).
+    verification = existing_worker.get("verificationStatus")
+
+    if verification != "approved":
+        if verification == "rejected":
+            return {
+                "success": False,
+                "code": "VERIFICATION_REJECTED",
+                "message": "Your account verification was rejected. Please contact support."
+            }
+        return {
+            "success": False,
+            "code": "VERIFICATION_PENDING",
+            "message": "Your account verification is pending. You can log in once an admin approves your CNIC."
         }
 
     token = create_access_token(

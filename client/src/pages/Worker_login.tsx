@@ -82,7 +82,12 @@ export default function WorkerLoginForm() {
         setAlertState({
           open: true,
           type: "error",
-          title: "Invalid credentials",
+          title:
+            result.code === "VERIFICATION_PENDING"
+              ? "Verification pending"
+              : result.code === "VERIFICATION_REJECTED"
+              ? "Verification rejected"
+              : "Invalid credentials",
           description: result.message || "The email or password you entered is incorrect. Please try again.",
         });
       }
