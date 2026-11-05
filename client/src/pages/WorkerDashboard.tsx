@@ -390,7 +390,7 @@ export default function WorkerDashboard() {
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-16 rounded-2xl border border-border bg-muted overflow-hidden flex items-center justify-center shrink-0">
                     {form.avatar
-                      ? <img src={form.avatar} alt="preview" className="h-full w-full object-cover" />
+                      ? <img src={form.avatar} alt="preview" className="h-full w-full object-cover object-top" />
                       : <User className="h-6 w-6 text-muted-foreground" />}
                   </div>
                   <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-background px-3 py-3 text-center text-xs text-muted-foreground hover:border-primary transition-colors">

@@ -284,7 +284,7 @@ export default function WorkerProfilePage() {
                 <img
                   src={user.profileImage}
                   alt={user.fullName}
-                  className="h-full w-full cursor-pointer object-cover"
+                  className="h-full w-full cursor-pointer object-cover object-top"
                 />
               ) : (
                 <div className="grid h-full w-full place-items-center bg-primary-soft text-3xl font-black text-primary-dark">

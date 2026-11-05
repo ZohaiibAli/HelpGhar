@@ -368,7 +368,7 @@ export default function AdminDashboard() {
 
 function Avatar({ src, name }: { src: string; name: string }) {
   if (src) {
-    return <img src={src} className="h-8 w-8 rounded-full object-cover" alt="" />;
+    return <img src={src} className="h-8 w-8 rounded-full object-cover object-top" alt="" />;
   }
 
   // Workers apply before they ever publish a gig, so most of the queue

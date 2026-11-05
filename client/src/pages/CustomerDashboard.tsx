@@ -147,7 +147,7 @@ export default function CustomerDashboard() {
               {recentBookings.map(b => (
                 <div key={b.bookingId} className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3">
                   {b.workerAvatar ? (
-                    <img src={b.workerAvatar} alt="" className="h-10 w-10 rounded-xl object-cover" />
+                    <img src={b.workerAvatar} alt="" className="h-10 w-10 rounded-xl object-cover object-top" />
                   ) : (
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-sm font-bold text-primary-dark">
                       {b.workerName?.trim().charAt(0).toUpperCase() || "?"}

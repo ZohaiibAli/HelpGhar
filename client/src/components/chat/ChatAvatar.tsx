@@ -28,7 +28,7 @@ export function ChatAvatar({
         <img
           src={src}
           alt={name}
-          className={`${dimension} rounded-full border border-border object-cover`}
+          className={`${dimension} rounded-full border border-border object-cover object-top`}
         />
       ) : (
         <div

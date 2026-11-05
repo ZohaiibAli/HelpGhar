@@ -52,7 +52,7 @@ export function WorkerCard({
           src={worker.avatar}
           alt={worker.fullName}
           loading="lazy"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover object-top"
         />
 
         {worker.available && (

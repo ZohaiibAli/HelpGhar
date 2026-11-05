@@ -194,7 +194,7 @@ function BookingRow({
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
       <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
-        <img src={booking.workerAvatar} alt="" className="h-14 w-14 rounded-2xl object-cover" />
+        <img src={booking.workerAvatar} alt="" className="h-14 w-14 rounded-2xl object-cover object-top" />
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">#{booking.bookingId}</p>
           <p className="truncate text-base font-bold">{booking.workerName}</p>

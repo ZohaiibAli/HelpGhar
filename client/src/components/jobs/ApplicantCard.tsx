@@ -33,7 +33,7 @@ export function ApplicantCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {application.workerAvatar ? (
-            <img src={application.workerAvatar} alt="" className="h-12 w-12 rounded-xl object-cover" />
+            <img src={application.workerAvatar} alt="" className="h-12 w-12 rounded-xl object-cover object-top" />
           ) : (
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
               <User className="h-5 w-5" />

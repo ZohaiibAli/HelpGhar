@@ -224,7 +224,7 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
         <div className="flex items-center gap-2.5">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full overflow-hidden bg-primary/10">
             {worker.avatar ? (
-              <img src={worker.avatar} alt={worker.name} className="h-full w-full object-cover" />
+              <img src={worker.avatar} alt={worker.name} className="h-full w-full object-cover object-top" />
             ) : (
               <span className="text-sm font-bold text-primary">{worker.name?.charAt(0) || "?"}</span>
             )}

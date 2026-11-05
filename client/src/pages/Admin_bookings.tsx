@@ -163,7 +163,7 @@ export default function AdminBookings() {
                     <td className="py-3 text-xs font-bold">{b.bookingId}</td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <img src={b.workerAvatar} className="h-8 w-8 rounded-full object-cover" alt="" />
+                        <img src={b.workerAvatar} className="h-8 w-8 rounded-full object-cover object-top" alt="" />
                         <div className="min-w-0">
                           <p className="truncate text-xs font-bold">{b.workerName}</p>
                           <p className="truncate text-[10px] text-muted-foreground">{b.category}</p>

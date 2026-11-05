@@ -112,7 +112,7 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
           <div className="space-y-6">
             <Card>
               <div className="flex items-center gap-4">
-                <img src={worker.avatar} className="h-14 w-14 rounded-2xl object-cover" alt="" />
+                <img src={worker.avatar} className="h-14 w-14 rounded-2xl object-cover object-top" alt="" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-base font-bold">{worker.fullName}</p>
                   <p className="text-xs text-muted-foreground">{worker.category} • {worker.city}</p>

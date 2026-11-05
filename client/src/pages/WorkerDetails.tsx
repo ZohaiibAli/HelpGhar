@@ -126,7 +126,7 @@ export default function WorkerDetailsPage() {
                   below the fold on phones and carried no information. The
                   photo alone identifies the worker. */}
               <div className="grid gap-4 p-6 sm:flex sm:items-center">
-                <img src={worker.avatar} alt={worker.fullName} className="h-28 w-28 shrink-0 rounded-2xl border border-border object-cover shadow-card" />
+                <img src={worker.avatar} alt={worker.fullName} className="h-28 w-28 shrink-0 rounded-2xl border border-border object-cover object-top shadow-card" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-2xl font-black">{worker.fullName}</h1>
