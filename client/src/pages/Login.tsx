@@ -189,13 +189,13 @@ export default function LoginPage() {
               {config.eyebrow}
             </span>
 
-            <h2 className="relative mt-5 text-4xl font-black leading-tight tracking-tight text-white">
+            <h2 className="relative mt-5 text-2xl font-black leading-tight tracking-tight text-white">
               {config.headline[0]}
               <br />
               {config.headline[1]}
             </h2>
 
-            <p className="relative mt-3 max-w-md text-sm text-slate-300">
+            <p className="relative mt-3 max-w-md text-xs text-slate-300">
               {config.sub}
             </p>
 
@@ -235,8 +235,8 @@ export default function LoginPage() {
               <div className="relative mt-6 flex gap-6 border-t border-white/10 pt-6">
                 {visibleStats.map(({ key, value }) => (
                   <div key={key}>
-                    <p className="text-xl font-bold text-white">{value}</p>
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-slate-400">
+                    <p className="text-lg font-bold text-white">{value}</p>
+                    <p className="font-mono text-[9px] uppercase tracking-wider text-slate-400">
                       {STAT_LABELS[key]}
                     </p>
                   </div>
