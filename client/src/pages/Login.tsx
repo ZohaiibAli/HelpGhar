@@ -7,6 +7,7 @@ import { LOGOUT_MESSAGES, takeLogoutReason } from "@/lib/session";
 import CustomerLoginForm from "@/pages/Customer_login";
 import WorkerLoginForm from "@/pages/Worker_login";
 import AdminLoginForm from "@/pages/Admin_login";
+import { WorkerLoginScene } from "@/components/auth/WorkerLoginScene";
 import type { UserRole } from "@/types";
 
 const ROLES: UserRole[] = ["customer", "worker", "admin"];
@@ -198,31 +199,36 @@ export default function LoginPage() {
               {config.sub}
             </p>
 
-            {/* Signature: orbiting service icons around the home */}
-            <div className="relative mx-auto mt-10 flex h-64 items-center justify-center">
-              <div className="hg-orbit-ring relative h-56 w-56 rounded-full border border-dashed border-white/15">
-                {[Wrench, Zap, Sparkles].map((Icon, i) => (
-                  <div
-                    key={i}
-                    className="absolute left-1/2 top-1/2 h-10 w-10"
-                    style={{
-                      transform: `rotate(${i * 120}deg) translate(108px) rotate(-${i * 120}deg)`,
-                    }}
-                  >
-                    <div className="hg-orbit-icon flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-white/10 backdrop-blur-sm">
-                      <Icon className="h-4 w-4 text-white" />
+            {/* Signature visual: an animated scene for the worker portal,
+                the orbiting service icons for everyone else. */}
+            {activeRole === "worker" ? (
+              <WorkerLoginScene className="relative mx-auto mt-8 aspect-[600/460] w-full overflow-hidden rounded-2xl shadow-xl" />
+            ) : (
+              <div className="relative mx-auto mt-10 flex h-64 items-center justify-center">
+                <div className="hg-orbit-ring relative h-56 w-56 rounded-full border border-dashed border-white/15">
+                  {[Wrench, Zap, Sparkles].map((Icon, i) => (
+                    <div
+                      key={i}
+                      className="absolute left-1/2 top-1/2 h-10 w-10"
+                      style={{
+                        transform: `rotate(${i * 120}deg) translate(108px) rotate(-${i * 120}deg)`,
+                      }}
+                    >
+                      <div className="hg-orbit-icon flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-white/10 backdrop-blur-sm">
+                        <Icon className="h-4 w-4 text-white" />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              <div
-                className="absolute flex h-20 w-20 items-center justify-center rounded-2xl shadow-lg transition-colors duration-500"
-                style={{ backgroundColor: config.accent }}
-              >
-                <Home className="h-9 w-9 text-white" />
+                <div
+                  className="absolute flex h-20 w-20 items-center justify-center rounded-2xl shadow-lg transition-colors duration-500"
+                  style={{ backgroundColor: config.accent }}
+                >
+                  <Home className="h-9 w-9 text-white" />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Stats row — omitted entirely when nothing real is available */}
             {visibleStats.length > 0 && (
