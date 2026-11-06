@@ -1,10 +1,20 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from config.db import worker_collection, gig_collection,worker_details_collection
-from model.worker_model import WorkerRegister, WorkerLogin, GigCreate, WorkerUpdate, WorkerPasswordUpdate,WorkerDetailsUpdate
+from model.worker_model import (
+    WorkerRegister,
+    WorkerLogin,
+    GigCreate,
+    WorkerUpdate,
+    WorkerPasswordUpdate,
+    WorkerDetailsUpdate,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+)
 from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo.errors import DuplicateKeyError
+from pydantic import EmailStr
 from helper.password_helper import hash_password, verify_password
 from helper.cloudinary_helper import upload_image, delete_image
 from helper.jwt_helper import create_access_token
@@ -13,11 +23,42 @@ from fastapi import HTTPException, Depends
 from helper.id_helper import generate_worker_id
 from config.db import review_collection
 
+from helper.email_helper import send_reset_email
+import secrets
+from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
+
+
+load_dotenv()
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+
 router = APIRouter(prefix="/worker", tags=["Worker"])
 
 
 @router.post("/register")
-def register_worker(worker: WorkerRegister):
+def register_worker(
+    fullName: str = Form(...),
+    email: EmailStr = Form(...),
+    phone: str = Form(...),
+    address: str = Form(...),
+    password: str = Form(...),
+    cnic: str = Form(...),
+    dob: str = Form(...),
+    gender: str = Form(...),
+    category: str = Form(...),
+    experience: str = Form(...),
+    pricing: str = Form(...),
+    skills: str = Form(...),
+    cnicImage: UploadFile = File(...),
+):
+
+    worker = WorkerRegister(
+        fullName=fullName, email=email, phone=phone, address=address,
+        password=password, cnic=cnic, dob=dob, gender=gender,
+        category=category, experience=experience, pricing=pricing,
+        skills=skills,
+    )
 
     existing = worker_collection.find_one(
         {
@@ -31,6 +72,10 @@ def register_worker(worker: WorkerRegister):
             "message": "Email already exists"
         }
 
+    # Upload only after the duplicate check so rejected sign-ups don't
+    # leave orphaned CNIC photos in Cloudinary.
+    cnic_image_url = upload_image(cnicImage, folder="HelpGhar/cnic")
+
     worker_data = worker.dict()
 
     worker_data["password"] = hash_password(worker.password)
@@ -38,6 +83,11 @@ def register_worker(worker: WorkerRegister):
     worker_data["workerId"] = generate_worker_id()
 
     worker_data["status"] = "Active"
+
+    worker_data["cnicImage"] = cnic_image_url
+
+    # The worker can't log in until an admin approves this.
+    worker_data["verificationStatus"] = "pending"
 
     try:
         result = worker_collection.insert_one(worker_data)
@@ -92,6 +142,25 @@ def worker_login(worker: WorkerLogin):
             "message": "Invalid Email or Password"
         }
 
+    # Credentials are right, but the account only becomes usable once an
+    # admin has approved the CNIC. Workers registered before this feature
+    # have no verificationStatus and are treated as pending, matching the
+    # admin queue (PENDING_VERIFICATION_QUERY).
+    verification = existing_worker.get("verificationStatus")
+
+    if verification != "approved":
+        if verification == "rejected":
+            return {
+                "success": False,
+                "code": "VERIFICATION_REJECTED",
+                "message": "Your account verification was rejected. Please contact support."
+            }
+        return {
+            "success": False,
+            "code": "VERIFICATION_PENDING",
+            "message": "Your account verification is pending. You can log in once an admin approves your CNIC."
+        }
+
     token = create_access_token(
     {
         "id": str(existing_worker["_id"]),
@@ -114,6 +183,108 @@ def worker_login(worker: WorkerLogin):
             "status": existing_worker["status"],
             "role": "worker"
         }
+    }
+
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+
+    worker = worker_collection.find_one(
+        {
+            "email": request.email
+        }
+    )
+
+    # Always return the same response
+    if not worker:
+        return {
+            "success": True,
+            "message": "If this email exists, a reset link has been sent."
+        }
+
+    token = secrets.token_urlsafe(32)
+
+    expiry = datetime.utcnow() + timedelta(minutes=15)
+
+    worker_collection.update_one(
+        {
+            "_id": worker["_id"]
+        },
+        {
+            "$set": {
+                "resetToken": token,
+                "resetTokenExpiry": expiry
+            }
+        }
+    )
+
+    reset_link = f"{FRONTEND_URL}/worker-reset-password?token={token}"
+
+    await send_reset_email(
+        request.email,
+        reset_link
+    )
+
+    return {
+        "success": True,
+        "message": "If this email exists, a reset link has been sent."
+    }
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest):
+
+    worker = worker_collection.find_one(
+        {
+            "resetToken": request.token
+        }
+    )
+
+    if not worker:
+        return {
+            "success": False,
+            "message": "Invalid or expired reset link."
+        }
+
+    expiry = worker.get("resetTokenExpiry")
+
+    if not expiry or datetime.utcnow() > expiry:
+
+        worker_collection.update_one(
+            {
+                "_id": worker["_id"]
+            },
+            {
+                "$unset": {
+                    "resetToken": "",
+                    "resetTokenExpiry": ""
+                }
+            }
+        )
+
+        return {
+            "success": False,
+            "message": "Reset link has expired."
+        }
+
+    hashed_password = hash_password(request.password)
+
+    worker_collection.update_one(
+        {
+            "_id": worker["_id"]
+        },
+        {
+            "$set": {
+                "password": hashed_password
+            },
+            "$unset": {
+                "resetToken": "",
+                "resetTokenExpiry": ""
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "Password reset successfully."
     }
 
 @router.get("/profile")
@@ -462,55 +633,60 @@ def delete_gig(
 @router.get("/gigs")
 def get_gigs():
 
-    gigs = []
+    gigs = list(gig_collection.find({"status": "Active"}))
 
-    for gig in gig_collection.find({"status": "Active"}):
+    # One bulk lookup instead of a find_one() per gig -- with a handful
+    # of gigs the per-gig round trip was invisible, but at hundreds+ it
+    # turned every /worker/gigs call into hundreds of sequential remote
+    # queries (tens of seconds), well past the frontend's request
+    # timeout, so the page silently rendered zero workers.
+    worker_ids = {gig["workerId"] for gig in gigs if "workerId" in gig}
 
-        worker = worker_collection.find_one(
-            {
-                "workerId": gig["workerId"]
-            }
-        )
+    workers_by_id = {
+        worker["workerId"]: worker
+        for worker in worker_collection.find({"workerId": {"$in": list(worker_ids)}})
+    }
 
-        if worker:
+    for gig in gigs:
 
-            gig["rating"] = worker.get("rating", 0)
-            gig["reviewsCount"] = worker.get("reviewsCount", 0)
+        # Falls back to an empty worker rather than skipping the block, so
+        # every gig leaves here with the same shape. Previously these keys
+        # were only written when the worker lookup succeeded, and the gig
+        # document supplied them otherwise -- now that reputation fields are
+        # no longer accepted on the gig (see GigCreate), an orphaned gig
+        # would arrive at the client with `badges` undefined, and
+        # WorkerDetails calls .map() on it straight away.
+        worker = workers_by_id.get(gig.get("workerId")) or {}
 
-            # ------------------------
-            # AI Fields
-            # ------------------------
+        gig["rating"] = worker.get("rating", 0)
+        gig["reviewsCount"] = worker.get("reviewsCount", 0)
 
-            gig["marketplaceScore"] = worker.get(
-                "marketplaceScore",
-                0
-            )
+        # "CNIC Verified" is the strongest trust signal on the site -- it's
+        # what persuades someone to let a stranger into their home. It was
+        # being read off the gig document, which the worker themselves
+        # supplies, so 888 of 1006 listings displayed the badge while not a
+        # single worker had ever been through verification. It now reflects
+        # the only thing that actually means verified: an admin approving
+        # them from the dashboard queue.
+        gig["cnicVerified"] = worker.get("verificationStatus") == "approved"
 
-            gig["reputationLabel"] = worker.get(
-                "reputationLabel",
-                "New Worker"
-            )
+        # ------------------------
+        # AI Fields
+        # ------------------------
 
-            gig["reviewSummary"] = worker.get(
-                "reviewSummary",
-                {}
-            )
+        gig["marketplaceScore"] = worker.get("marketplaceScore", 0)
 
-            gig["aiSummary"] = worker.get(
-                "aiSummary",
-                {}
-            )
+        gig["reputationLabel"] = worker.get("reputationLabel", "New Worker")
 
-            gig["badges"] = worker.get(
-                "badges",
-                []
-            )
+        gig["reviewSummary"] = worker.get("reviewSummary", {})
+
+        gig["aiSummary"] = worker.get("aiSummary", {})
+
+        gig["badges"] = worker.get("badges", [])
 
         gig["id"] = str(gig["_id"])
 
         del gig["_id"]
-
-        gigs.append(gig)
 
     return {
 

@@ -8,6 +8,9 @@ import {
   SquarePen,
   Calendar,
   MessageSquareWarning,
+  MessagesSquare,
+  Briefcase,
+  ClipboardList,
 } from "lucide-react";
 
 export const workerItems = [
@@ -15,6 +18,21 @@ export const workerItems = [
     label: "Overview",
     to: "/dashboard/worker",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Messages",
+    to: "/messages",
+    icon: MessagesSquare,
+  },
+  {
+    label: "Job Board",
+    to: "/job-board",
+    icon: Briefcase,
+  },
+  {
+    label: "My Applications",
+    to: "/worker/applications",
+    icon: ClipboardList,
   },
   {
     label: "My Bookings",

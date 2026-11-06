@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Calendar, MapPin, Phone, X, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Calendar, MapPin, MessageSquare, Phone, X, CheckCircle2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { messagesPath } from "@/lib/startChat";
 
 const tabs: { id: "upcoming" | "completed" | "cancelled"; label: string }[] = [
   { id: "upcoming", label: "Upcoming" },
@@ -285,6 +287,21 @@ function BookingRow({
           {booking.status === "pending" && (
             <Button size="sm" variant="outline" className="rounded-xl text-destructive" onClick={onCancelBooking}>
               <X className="mr-1 h-3 w-3" />Cancel
+            </Button>
+          )}
+          {/* The worker's side of the same conversation: confirm the address,
+              ask what's needed, tell them you're running late. */}
+          {booking.customerId && (
+            <Button asChild size="sm" variant="outline" className="rounded-xl">
+              <Link
+                to={messagesPath({
+                  customer: booking.customerId,
+                  booking: booking.id,
+                })}
+              >
+                <MessageSquare className="mr-1 h-3 w-3" />
+                Message {(booking.customerName ?? "customer").split(" ")[0]}
+              </Link>
             </Button>
           )}
         </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, Camera } from "lucide-react";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { api } from "@/services/api";
+import { hasValidSession, logout } from "@/lib/session";
 import { Pencil, X } from "lucide-react";
 import { useRef } from "react";
 import {
@@ -234,10 +235,9 @@ export default function ProfilePage() {
   };
   const handleUpdate = async () => {
 
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      navigate("/customer-login");
+    if (!hasValidSession()) {
+      logout("expired", { redirect: false });
+      navigate("/login/customer");
       return;
     }
 
@@ -374,7 +374,7 @@ export default function ProfilePage() {
                   src={user.profileImage}
                   alt={user.fullName}
                   onClick={() => setPreviewOpen(true)}
-                  className="h-full w-full cursor-pointer object-cover"
+                  className="h-full w-full cursor-pointer object-cover object-top"
                 />
               ) : (
                 <div className="grid h-full w-full place-items-center bg-primary-soft text-3xl font-black text-primary-dark">

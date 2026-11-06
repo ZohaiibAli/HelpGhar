@@ -35,6 +35,9 @@ type DashboardStats = {
   avgRating: number;
   reviewsCount: number;
   totalEarnings: number;
+  activeGigs: number;
+  available: boolean;
+  pendingJobs: number;
 };
 
 type AlertState = {
@@ -203,11 +206,10 @@ export default function WorkerDashboard() {
         priceMin: Number(form.priceMin),
         priceMax: Number(form.priceMax),
         priceUnit: form.priceUnit,
-        rating: 0,
-        reviewsCount: 0,
         available: true,
-        cnicVerified: false,
-        badges: [],
+        // rating, reviewsCount, cnicVerified and badges are not sent: the
+        // server owns them (reviews set the rating, an admin sets the CNIC
+        // badge) and no longer accepts them on a gig submission.
         bio: "",
         skills: [],
         certificates: [],
@@ -263,7 +265,21 @@ export default function WorkerDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary-soft px-3 py-1.5 text-xs font-bold text-primary-dark">Available now</span>
+            {/* Availability comes from the worker's live gigs -- this badge
+                used to read "Available now" even with no active gig at all. */}
+            <span
+              className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                stats?.available
+                  ? "bg-primary-soft text-primary-dark"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {stats?.available
+                ? "Available now"
+                : stats?.activeGigs
+                  ? "Not accepting jobs"
+                  : "No active gig"}
+            </span>
             <button
               onClick={() => setModalOpen(true)}
               className="rounded-full bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark transition-colors"
@@ -374,7 +390,7 @@ export default function WorkerDashboard() {
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-16 rounded-2xl border border-border bg-muted overflow-hidden flex items-center justify-center shrink-0">
                     {form.avatar
-                      ? <img src={form.avatar} alt="preview" className="h-full w-full object-cover" />
+                      ? <img src={form.avatar} alt="preview" className="h-full w-full object-cover object-top" />
                       : <User className="h-6 w-6 text-muted-foreground" />}
                   </div>
                   <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-background px-3 py-3 text-center text-xs text-muted-foreground hover:border-primary transition-colors">

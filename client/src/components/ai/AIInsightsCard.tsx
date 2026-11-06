@@ -14,7 +14,7 @@ export default function AIInsightsCard({
     <div className="rounded-2xl border bg-white p-6 shadow-sm">
 
       <h3 className="mb-5 text-lg font-bold">
-        🤖 AI Reputation
+        Reputation summary
       </h3>
 
       <ReputationBadge

@@ -8,6 +8,7 @@ import {
   Calendar,
   CheckCircle2,
   Award,
+  MessageSquare,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { useGigStore } from "@/store/gigStore";
 import { useAuthStore } from "@/store/authStore";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { handleHireNowClick } from "@/lib/hireNow";
+import { handleMessageWorkerClick } from "@/lib/startChat";
 import AIInsightsCard from "@/components/ai/AIInsightsCard";
 
 
@@ -120,9 +122,11 @@ export default function WorkerDetailsPage() {
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
             <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
-              <div className="h-40 bg-gradient-to-br from-primary/30 to-primary-soft" />
-              <div className="-mt-16 grid gap-4 p-6 sm:flex sm:items-end">
-                <img src={worker.avatar} alt={worker.fullName} className="h-28 w-28 shrink-0 rounded-2xl border-4 border-card object-cover shadow-card" />
+              {/* No decorative cover banner: it pushed the actual profile
+                  below the fold on phones and carried no information. The
+                  photo alone identifies the worker. */}
+              <div className="grid gap-4 p-6 sm:flex sm:items-center">
+                <img src={worker.avatar} alt={worker.fullName} className="h-28 w-28 shrink-0 rounded-2xl border border-border object-cover object-top shadow-card" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-2xl font-black">{worker.fullName}</h1>
@@ -248,7 +252,26 @@ ${r.sentiment === "Positive"
               >
                 Hire now
               </Button>
-              <Button asChild variant="outline" className="mt-2 h-12 w-full rounded-xl text-base font-bold">
+              {/* Sits directly under "Hire now": most people want to agree
+                  scope and price before committing to a booking, and burying
+                  this is what pushes those conversations off-platform. */}
+              <Button
+                variant="outline"
+                className="mt-2 h-12 w-full rounded-xl text-base font-bold"
+                onClick={() =>
+                  handleMessageWorkerClick({
+                    user,
+                    token,
+                    navigate,
+                    workerId: worker.workerId ?? worker.id,
+                    onWorkerTriesToMessage: () => setShowWorkerAlert(true),
+                  })
+                }
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Message {worker.fullName.split(" ")[0]}
+              </Button>
+              <Button asChild variant="ghost" className="mt-2 h-11 w-full rounded-xl text-sm font-semibold">
                 <Link to="/services">Back to results</Link>
               </Button>
               <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs">
@@ -265,7 +288,7 @@ ${r.sentiment === "Positive"
         onClose={() => setShowWorkerAlert(false)}
         type="warning"
         title="Wrong account type"
-        description="Please log in from a customer profile to hire a worker."
+        description="Please log in from a customer profile to hire or message a worker."
         cancelLabel="Got it"
       />
     </MainLayout>

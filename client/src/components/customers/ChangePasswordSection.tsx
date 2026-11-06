@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { authHeaders, getToken, handleAuthFailure } from "@/lib/session";
 
 export default function ChangePasswordSection() {
   const navigate = useNavigate();
@@ -62,10 +63,8 @@ export default function ChangePasswordSection() {
       return;
     }
 
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      navigate("/customer-login");
+    if (!getToken()) {
+      navigate("/login/customer");
       return;
     }
 
@@ -78,7 +77,7 @@ export default function ChangePasswordSection() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            ...authHeaders(),
           },
           body: JSON.stringify({
             currentPassword,
@@ -87,13 +86,9 @@ export default function ChangePasswordSection() {
         }
       );
 
-      const result = await response.json();
+      if (handleAuthFailure(response)) return;
 
-      if (response.status === 401) {
-        localStorage.removeItem("token");
-        navigate("/customer-login");
-        return;
-      }
+      const result = await response.json();
 
       if (result.success) {
         setCurrentPassword("");

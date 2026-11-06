@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -45,10 +45,15 @@ const workerSchema = baseCustomerSchema.extend({
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams();
   const [customerId, setCustomerId] = useState("");
   const [workerId, setWorkerId] = useState("");
-  const [role, setRole] = useState<UserRole>("customer");
+  const [role, setRole] = useState<UserRole>(
+    searchParams.get("role") === "worker" ? "worker" : "customer"
+  );
   const [submitted, setSubmitted] = useState(false);
+  const [cnicFile, setCnicFile] = useState<File | null>(null);
+  const [cnicError, setCnicError] = useState("");
   const [alertState, setAlertState] = useState<{
     open: boolean;
     type: "error" | "server";
@@ -65,6 +70,13 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: any) => {
 
+    if (role === "worker") {
+      if (!cnicFile) {
+        setCnicError("Please upload a picture of your CNIC");
+        return;
+      }
+    }
+
     try {
 
       const api =
@@ -72,17 +84,23 @@ export default function RegisterPage() {
           ? "http://127.0.0.1:8000/customer/register"
           : "http://127.0.0.1:8000/worker/register";
 
-      const response = await fetch(api, {
+      let response: Response;
 
-        method: "POST",
+      if (role === "worker") {
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          if (key !== "confirmPassword") formData.append(key, String(value ?? ""));
+        });
+        formData.append("cnicImage", cnicFile as File);
 
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify(data),
-
-      });
+        response = await fetch(api, { method: "POST", body: formData });
+      } else {
+        response = await fetch(api, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+      }
 
       const result = await response.json();
 
@@ -97,6 +115,7 @@ export default function RegisterPage() {
         }
 
         setSubmitted(true);
+        setCnicFile(null);
         reset();
       } else {
 
@@ -222,6 +241,40 @@ export default function RegisterPage() {
                   <F label="Experience (years)" error={errors.experience?.message as any}><input type="number" min="0" className="hg-input" {...register("experience")} /></F>
                   <F label="Pricing (Rs.)" error={errors.pricing?.message as any}><input className="hg-input" placeholder="e.g. 15000 - 25000 / month" {...register("pricing")} /></F>
                 </Grid>
+                <F label="CNIC picture (front)" error={cnicError as any}>
+                  <label className="flex min-h-[180px] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-muted/30 p-6 text-center transition hover:border-primary hover:bg-primary/5">
+                    {cnicFile ? (
+                      <>
+                        <img
+                          src={URL.createObjectURL(cnicFile)}
+                          alt="CNIC preview"
+                          className="max-h-40 rounded-lg object-contain"
+                        />
+                        <span className="text-xs font-semibold text-primary">{cnicFile.name} — click to change</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm font-semibold">Click to upload your CNIC picture</span>
+                        <span className="text-xs text-muted-foreground">JPEG, PNG or WEBP, up to 5 MB</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        if (f && f.size > 5 * 1024 * 1024) {
+                          setCnicFile(null);
+                          setCnicError("Image must be 5 MB or smaller");
+                          return;
+                        }
+                        setCnicFile(f);
+                        setCnicError("");
+                      }}
+                    />
+                  </label>
+                </F>
                 <F label="Skills & description" error={errors.skills?.message as any}>
                   <textarea rows={4} className="hg-input !h-auto py-3" {...register("skills")} />
                 </F>

@@ -185,6 +185,53 @@ export interface Complaint {
   createdAt: string;
 }
 
+export type JobStatus = "open" | "assigned" | "completed" | "cancelled";
+
+export interface JobPost {
+  id: string;
+  jobId: string;
+  customerId: string;
+  customerName: string;
+  category: WorkerCategory;
+  title: string;
+  description: string;
+  budgetMin: number;
+  budgetMax: number;
+  budgetUnit: "hour" | "day" | "month" | "fixed";
+  address: string;
+  preferredDate: string;
+  preferredTime: string;
+  status: JobStatus;
+  applicationsCount?: number;
+  alreadyApplied?: boolean;
+  createdAt: string;
+}
+
+export type ApplicationStatus = "pending" | "accepted" | "rejected" | "withdrawn";
+
+export interface JobApplication {
+  id: string;
+  applicationId: string;
+  jobId: string;
+  workerId: string;
+  workerName: string;
+  workerAvatar?: string;
+  message: string;
+  proposedPrice: number;
+  status: ApplicationStatus;
+  createdAt: string;
+
+  // Present on the customer's "applicants" view (worker reputation).
+  rating?: number;
+  reviewsCount?: number;
+  cnicVerified?: boolean;
+
+  // Present on the worker's "my applications" view (parent job snapshot).
+  jobTitle?: string;
+  jobCategory?: WorkerCategory;
+  jobStatus?: JobStatus;
+}
+
 export interface NotificationItem {
   id: string;
   type: "success" | "warning" | "error" | "info";

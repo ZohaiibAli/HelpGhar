@@ -36,3 +36,7 @@ venv/
 
 # Environment variables
 .env
+
+SOLVER.md
+
+admin.py

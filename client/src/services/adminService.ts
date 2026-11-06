@@ -1,6 +1,70 @@
 import { api } from "./api";
 
+export interface AdminOverviewStats {
+  totalUsers: number;
+  totalCustomers: number;
+  totalWorkers: number;
+  pendingVerifications: number;
+  totalBookings: number;
+  activeBookings: number;
+  completedBookings: number;
+  grossRevenue: number;
+  platformEarnings: number;
+  openComplaints: number;
+  avgRating: number;
+  reviewsCount: number;
+}
+
+export interface SeriesPoint {
+  day: string;
+  date: string;
+  value: number;
+}
+
+export interface PendingWorker {
+  workerId: string;
+  fullName: string;
+  email: string;
+  category: string;
+  cnic: string;
+  cnicImage?: string;
+  avatar: string;
+  appliedAt: string;
+}
+
+export interface CategoryBreakdown {
+  category: string;
+  bookings: number;
+  revenue: number;
+  /** Percentage of the busiest category, ready to use as a bar width. */
+  share: number;
+}
+
+export type BookingStatusBreakdown = Record<
+  "pending" | "confirmed" | "in_progress" | "completed" | "cancelled",
+  number
+>;
+
+export interface AdminOverview {
+  success: boolean;
+  stats: AdminOverviewStats;
+  // null means "no previous week to compare against" -- the UI shows a
+  // dash instead of inventing a percentage.
+  trends: { bookings: number | null; revenue: number | null };
+  series: { bookings: SeriesPoint[]; revenue: SeriesPoint[] };
+  categories: CategoryBreakdown[];
+  statusBreakdown: BookingStatusBreakdown;
+  verificationQueue: PendingWorker[];
+}
+
 export const adminService = {
+  // Platform overview (real stats, trends, charts, verification queue)
+  getOverview: () => api.get<AdminOverview>("/dashboard/admin"),
+
+  // Approve / reject a worker's CNIC verification
+  setWorkerVerification: (workerId: string, action: "approve" | "reject") =>
+    api.patch(`/admin/workers/${workerId}/verification`, { action }),
+
   // Get all customers + workers
   getUsers: () => api.get("/admin/users"),
 

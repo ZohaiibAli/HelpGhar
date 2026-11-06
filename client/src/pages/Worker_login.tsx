@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,6 +25,7 @@ export default function WorkerLoginForm() {
 
   const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setSession } = useAuthStore();
   const [showPwd, setShowPwd] = useState(false);
 
@@ -43,8 +44,6 @@ export default function WorkerLoginForm() {
 
     try {
 
-      const token = localStorage.getItem("token");
-
       const response = await fetch(`${API_BASE_URL}/worker/login`, {
         method: "POST",
         headers: {
@@ -59,8 +58,6 @@ export default function WorkerLoginForm() {
       const result = await response.json();
 
       if (result.success) {
-
-        localStorage.setItem("token", result.token);
 
         setSession(
           {
@@ -77,14 +74,20 @@ export default function WorkerLoginForm() {
           result.token
         );
 
-        navigate("/dashboard/worker");
+        const redirectTo = searchParams.get("redirect");
+        navigate(redirectTo || "/dashboard/worker");
 
       } else {
 
         setAlertState({
           open: true,
           type: "error",
-          title: "Invalid credentials",
+          title:
+            result.code === "VERIFICATION_PENDING"
+              ? "Verification pending"
+              : result.code === "VERIFICATION_REJECTED"
+              ? "Verification rejected"
+              : "Invalid credentials",
           description: result.message || "The email or password you entered is incorrect. Please try again.",
         });
       }
@@ -130,7 +133,7 @@ export default function WorkerLoginForm() {
           <label className="flex items-center gap-2 text-muted-foreground">
             <input type="checkbox" {...register("remember")} className="h-4 w-4 rounded border-input" /> Remember me
           </label>
-          <Link to="/forgot-password" className="font-semibold text-amber-600 hover:underline">Forgot password?</Link>
+          <Link to="/worker-forgot-password"className="font-semibold text-amber-600 hover:underline">Forgot password?</Link>
         </div>
         <Button type="submit" disabled={isSubmitting} className="h-12 w-full rounded-xl bg-amber-500 text-base font-bold text-white hover:bg-amber-600">
           {isSubmitting ? "Signing in…" : "Sign in as Worker"}

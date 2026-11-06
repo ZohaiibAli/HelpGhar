@@ -5,7 +5,9 @@ from model.customer_model import (
     CustomerRegister,
     CustomerLogin,
     CustomerUpdate,
-    ChangePassword
+    ChangePassword,
+    ForgotPasswordRequest,
+    ResetPasswordRequest
 )
 from helper.password_helper import hash_password, verify_password
 from helper.jwt_helper import create_access_token
@@ -14,6 +16,15 @@ from fastapi import HTTPException, Depends
 from bson import ObjectId
 from helper.id_helper import generate_customer_id
 from helper.cloudinary_helper import upload_image, delete_image
+from helper.email_helper import send_reset_email
+import secrets
+from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+
 
 router = APIRouter(prefix="/customer", tags=["Customer"])
 
@@ -123,6 +134,109 @@ def login_customer(customer: CustomerLogin):
 }
     }
 
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+
+    customer = customer_collection.find_one(
+        {
+            "email": request.email
+        }
+    )
+
+    # Always return the same response
+    if not customer:
+        return {
+            "success": True,
+            "message": "If this email exists, a reset link has been sent."
+        }
+
+    # Generate secure random token
+    token = secrets.token_urlsafe(32)
+
+    # Token expires after 15 minutes
+    expiry = datetime.utcnow() + timedelta(minutes=15)
+
+    customer_collection.update_one(
+        {
+            "_id": customer["_id"]
+        },
+        {
+            "$set": {
+                "resetToken": token,
+                "resetTokenExpiry": expiry
+            }
+        }
+    )
+
+    reset_link = f"{FRONTEND_URL}/reset-password?token={token}"
+
+    await send_reset_email(
+        request.email,
+        reset_link
+    )
+
+    return {
+        "success": True,
+        "message": "If this email exists, a reset link has been sent."
+    }
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest):
+
+    customer = customer_collection.find_one(
+        {
+            "resetToken": request.token
+        }
+    )
+
+    if not customer:
+        return {
+            "success": False,
+            "message": "Invalid or expired reset link."
+        }
+
+    expiry = customer.get("resetTokenExpiry")
+
+    if not expiry or datetime.utcnow() > expiry:
+
+        customer_collection.update_one(
+            {
+                "_id": customer["_id"]
+            },
+            {
+                "$unset": {
+                    "resetToken": "",
+                    "resetTokenExpiry": ""
+                }
+            }
+        )
+
+        return {
+            "success": False,
+            "message": "Reset link has expired."
+        }
+
+    hashed_password = hash_password(request.password)
+
+    customer_collection.update_one(
+        {
+            "_id": customer["_id"]
+        },
+        {
+            "$set": {
+                "password": hashed_password
+            },
+            "$unset": {
+                "resetToken": "",
+                "resetTokenExpiry": ""
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "message": "Password reset successfully."
+    }
 
 @router.get("/profile")
 def get_profile(user=Depends(verify_token)):
@@ -385,3 +499,4 @@ def delete_account(
         "message": "Account deleted successfully"
 
     }
+

@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { applyTheme, DEFAULT_THEME, saveTheme, WebsiteTheme } from "@/lib/theme";
+import { authHeaders, handleAuthFailure } from "@/lib/session";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const getFileAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("token")}`,
+  ...authHeaders(),
   "x-api-key": import.meta.env.VITE_API_KEY_ADMIN || "",
 });
 
@@ -69,6 +70,7 @@ export function ThemeCustomizer() {
         const res = await fetch(`${API_BASE}/admin/get-website-settings`, {
           headers: getFileAuthHeaders(),
         });
+        if (handleAuthFailure(res)) return;
         const data = await res.json();
         if (data.success && data.settings?.theme) {
           setFromTheme(data.settings.theme);
@@ -122,6 +124,7 @@ export function ThemeCustomizer() {
         headers: getFileAuthHeaders(),
         body: formData,
       });
+      if (handleAuthFailure(res)) return;
       const data = await res.json();
 
       if (data.success) {

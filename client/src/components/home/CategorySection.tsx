@@ -1,45 +1,102 @@
-// import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { categories } from "@/data/mock";
+import { useGigStore } from "@/store/gigStore";
 
+/**
+ * A plain directory of what the platform actually offers.
+ *
+ * The previous version was a bento mosaic: one oversized "Most requested"
+ * tile in brand green beside eight small rows, with counts that came from a
+ * hardcoded list. The asymmetry made one category look editorially chosen
+ * when nothing had chosen it, and it made the grid harder to scan than a
+ * grid. Nine equal tiles, real counts, sorted by how many workers are
+ * actually available.
+ */
 export function CategorySection() {
+  const gigs = useGigStore((state) => state.gigs);
+  const fetchGigs = useGigStore((state) => state.fetchGigs);
+
+  useEffect(() => {
+    fetchGigs();
+  }, [fetchGigs]);
+
+  const listed = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const gig of gigs) {
+      counts.set(gig.category, (counts.get(gig.category) ?? 0) + 1);
+    }
+
+    return categories
+      .map((category) => ({
+        ...category,
+        count: counts.get(category.name) ?? 0,
+      }))
+      // Most available first: an empty category at the top of a directory is
+      // just a dead end for whoever clicks it.
+      .sort((a, b) => b.count - a.count);
+  }, [gigs]);
+
   return (
-    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-      <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Categories</p>
-          <h2 className="mt-1 text-3xl font-black md:text-4xl">Browse popular services</h2>
+          <h2 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
+            Browse by service
+          </h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Nine trades, all hired the same way.
+          </p>
         </div>
-        {/* <Link to="/services" className="text-sm font-semibold text-primary hover:underline">View all services →</Link> */}
+
+        <Link
+          to="/services"
+          className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
+        >
+          See everyone
+        </Link>
       </div>
 
-      <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-5">
-        {categories.map((c, i) => {
-          const Icon = c.icon;
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {listed.map((category) => {
+          const Icon = category.icon;
+          const empty = category.count === 0;
+
           return (
-            <motion.div
-              key={c.name}
-              initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }} transition={{ duration: 0.4, delay: i * 0.04 }}
+            <Link
+              key={category.name}
+              to={`/services?category=${encodeURIComponent(category.name)}`}
+              className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition hover:border-primary/40 hover:bg-accent/40"
             >
-<div
-  className="group block h-full rounded-2xl border border-border bg-card p-5 shadow-soft transition hover:-translate-y-1 hover:border-primary hover:shadow-lift cursor-default"
->
-  <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary-soft text-primary-dark transition group-hover:bg-primary group-hover:text-primary-foreground">
-    <Icon className="h-6 w-6" />
-  </div>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-dark">
+                <Icon className="h-5 w-5" strokeWidth={1.75} />
+              </span>
 
-  <h3 className="mt-4 text-base font-bold">{c.name}</h3>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{category.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {category.description}
+                </p>
+              </div>
 
-  <p className="mt-1 text-xs text-muted-foreground">
-    {c.description}
-  </p>
-
-  <p className="mt-3 text-xs font-semibold text-primary">
-    {c.workersCount.toLocaleString()} workers
-  </p>
-</div>
-            </motion.div>
+              <span
+                className={`shrink-0 text-right text-xs ${
+                  empty ? "text-muted-foreground" : "font-semibold text-foreground"
+                }`}
+              >
+                {empty ? (
+                  "None yet"
+                ) : (
+                  <>
+                    {category.count.toLocaleString()}
+                    <span className="block text-[10px] font-normal text-muted-foreground">
+                      available
+                    </span>
+                  </>
+                )}
+              </span>
+            </Link>
           );
         })}
       </div>

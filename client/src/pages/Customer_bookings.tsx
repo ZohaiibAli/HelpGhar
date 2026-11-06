@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, MapPin, X } from "lucide-react";
+import { Calendar, MapPin, MessageSquare, X } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { messagesPath } from "@/lib/startChat";
 
 const tabs: { id: "upcoming" | "completed" | "cancelled"; label: string }[] = [
   { id: "upcoming", label: "Upcoming" },
@@ -193,7 +194,7 @@ function BookingRow({
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
       <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
-        <img src={booking.workerAvatar} alt="" className="h-14 w-14 rounded-2xl object-cover" />
+        <img src={booking.workerAvatar} alt="" className="h-14 w-14 rounded-2xl object-cover object-top" />
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">#{booking.bookingId}</p>
           <p className="truncate text-base font-bold">{booking.workerName}</p>
@@ -246,6 +247,20 @@ function BookingRow({
           {booking.status === "completed" && (
             <Button asChild size="sm" className="rounded-xl bg-primary hover:bg-primary-dark"><Link to="/reviews">Leave review</Link></Button>
           )}
+          {/* Available on every status: questions come up before a job
+              starts, during it, and after it's done. `booking` scopes the
+              first message to this job. */}
+          <Button asChild size="sm" variant="outline" className="rounded-xl">
+            <Link
+              to={messagesPath({
+                worker: booking.workerId,
+                booking: booking.bookingId,
+              })}
+            >
+              <MessageSquare className="mr-1 h-3 w-3" />
+              Message
+            </Link>
+          </Button>
           <Button asChild size="sm" variant="ghost" className="rounded-xl"><Link to="/disputes">Report issue</Link></Button>
         </div>
       )}

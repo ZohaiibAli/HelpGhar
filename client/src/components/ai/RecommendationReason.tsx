@@ -30,17 +30,13 @@ export default function RecommendationReason({
 
             <p className="text-xs text-gray-600 mt-1">
 
-                Profile Match 
-
-                {content.toFixed(0)}%
+                Profile Match {content.toFixed(0)}%
 
             </p>
 
             <p className="text-xs text-gray-600">
 
-                Similar Customers 
-
-                {collaborative.toFixed(0)}%
+                Similar Customers {collaborative.toFixed(0)}%
 
             </p>
 

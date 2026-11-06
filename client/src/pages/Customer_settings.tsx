@@ -1,14 +1,13 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { HgAlert } from "@/components/ui/HgAlert";
 import ChangePasswordSection from "@/components/customers/ChangePasswordSection";
 import { api } from "@/services/api";
+import { logout } from "@/lib/session";
 
 export default function CustomerSettingsPage() {
-  const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
@@ -22,9 +21,10 @@ export default function CustomerSettingsPage() {
     try {
       const { data: result } = await api.delete("/customer/delete-account");
       if (result.success) {
-        localStorage.removeItem("token");
         localStorage.removeItem("customer");
-        navigate("/");
+        // Full teardown straight to the landing page -- clearing the session
+        // in place would let the dashboard guard bounce us to login instead.
+        logout("manual", { loginPath: "/" });
       } else {
         setErrorOpen(true);
       }
