@@ -1,9 +1,9 @@
 /**
- * Animated illustration for the worker side of the login screen: a worker
- * gets a job alert on their phone, accepts it, and gets paid. Built from
- * the same jointed-SVG-person system as the landing hero, but scoped to
- * just the worker scene so this stays a small, self-contained drop-in for
- * the login page's left panel.
+ * Animated illustrations for the three login portals: a customer booking
+ * help from the sofa, a worker getting a job alert on their phone, and an
+ * admin reviewing a CNIC on a dashboard. Built from the same jointed-SVG-
+ * person system as the landing hero, kept self-contained here so the login
+ * page can drop one in per role without pulling in the hero's own file.
  */
 
 /* Joint: rotates its children around (x, y).
@@ -138,13 +138,6 @@ function Head({ p }: { p: any }) {
           <path d="M9 -7.6 C14 -7.8 19 -6.8 21.4 -5.2 C17 -4.2 12 -4.4 9.6 -5 Z" fill={p.hatColor} />
           <path d="M9 -7.6 C14 -7.8 19 -6.8 21.4 -5.2" stroke="rgba(0,0,0,.25)" strokeWidth=".8" fill="none" />
           <circle cx="0" cy="-16.6" r="1.1" fill="rgba(0,0,0,.25)" />
-        </>
-      )}
-      {p.hat === "chef" && (
-        <>
-          <path d="M-10 -9 L-10 -15.5 C-18.5 -18 -15.5 -31.5 -6 -27.5 C-3 -34.5 8.5 -33.5 7 -26 C16 -28.5 17.4 -16.5 9 -15.5 L9.6 -8.6 C3 -10.4 -4 -10.4 -10 -9 Z" fill="#FFFFFF" />
-          <path d="M-10 -9 L-10 -15.5 C-18.5 -18 -15.5 -31.5 -6 -27.5 C-3 -34.5 8.5 -33.5 7 -26 C16 -28.5 17.4 -16.5 9 -15.5 L9.6 -8.6 C3 -10.4 -4 -10.4 -10 -9 Z" fill="url(#wlsShade)" />
-          <path d="M-10 -15.5 C-3 -17 3 -17 9 -15.5 M-4 -26 C-3 -21 -3 -18 -3.4 -16" stroke="rgba(0,0,0,.1)" strokeWidth=".8" fill="none" />
         </>
       )}
       {p.hat === "hard" && (
@@ -311,6 +304,17 @@ const Phone = ({ rot = 0 }: { rot?: number }) => (
   </g>
 );
 
+/* a cup of tea on a side table, with rising steam */
+const Tea = ({ x, y }: { x: number; y: number }) => (
+  <g>
+    <path d={`M${x - 8} ${y - 14} L${x + 8} ${y - 14} L${x + 6} ${y} L${x - 6} ${y} Z`} fill="#FFFFFF" />
+    <path d={`M${x + 8} ${y - 11} q6 1 4 7 q-2 3 -5 2`} stroke="#FFFFFF" strokeWidth="2.2" fill="none" />
+    {[0, 1].map((k) => (
+      <path key={k} className="wls-steam" style={{ animationDelay: `${k * 0.9}s` }} d={`M${x - 3 + k * 6} ${y - 18} q-4 -8 0 -16 q4 -8 0 -16`} stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+    ))}
+  </g>
+);
+
 /* a notification card inside the SVG */
 function Note({ x, y, w = 190, color, title, sub, delay, icon }: { x: number; y: number; w?: number; color: string; title: string; sub: string; delay: number; icon: string }) {
   return (
@@ -325,11 +329,60 @@ function Note({ x, y, w = 190, color, title, sub, delay, icon }: { x: number; y:
   );
 }
 
+/* Shared scenery */
+const Room = ({ wall, floor, line }: { wall: string; floor: string; line: string }) => (
+  <g>
+    <rect width="600" height="410" fill={wall} />
+    <rect y="410" width="600" height="50" fill={floor} />
+    <rect y="403" width="600" height="8" fill={line} />
+  </g>
+);
+const Win = ({ x, y, w, h, curtain }: { x: number; y: number; w: number; h: number; curtain?: string }) => (
+  <g>
+    <rect x={x} y={y} width={w} height={h} rx="4" fill="#FFFFFF" />
+    <rect x={x + 6} y={y + 6} width={w - 12} height={h - 12} fill="url(#wlsSky)" />
+    <g className="wls-cloud"><ellipse cx={x + w * 0.4} cy={y + h * 0.35} rx="20" ry="7" fill="#fff" opacity=".9" /></g>
+    <path d={`M${x + w / 2} ${y + 6} V${y + h - 6} M${x + 6} ${y + h / 2} H${x + w - 6}`} stroke="#FFFFFF" strokeWidth="4" />
+    {curtain && (
+      <>
+        <path className="wls-curtain" d={`M${x - 10} ${y - 8} L${x + 26} ${y - 8} Q${x + 18} ${y + h / 2} ${x + 30} ${y + h + 8} L${x - 10} ${y + h + 8} Z`} fill={curtain} />
+        <path className="wls-curtain wls-c2" d={`M${x + w + 10} ${y - 8} L${x + w - 26} ${y - 8} Q${x + w - 18} ${y + h / 2} ${x + w - 30} ${y + h + 8} L${x + w + 10} ${y + h + 8} Z`} fill={curtain} />
+        <rect x={x - 16} y={y - 12} width={w + 32} height="5" rx="2.5" fill="#8A6A4A" />
+      </>
+    )}
+  </g>
+);
+const Plant = ({ x, y }: { x: number; y: number }) => (
+  <g transform={`translate(${x} ${y})`}>
+    <g className="wls-leaf"><path d="M0 -20 Q-26 -50 -10 -78 Q2 -50 0 -20Z" fill="#4E9A6B" /><path d="M0 -20 Q24 -46 16 -84 Q0 -54 0 -20Z" fill="#5FB07C" /><path d="M0 -20 Q-4 -60 4 -96 Q10 -60 0 -20Z" fill="#3F8A5B" /></g>
+    <path d="M-16 -22 L16 -22 L12 0 L-12 0 Z" fill="#C8693F" />
+  </g>
+);
+
 const WORKER = {
   skin: "#A86B45", hair: "short", hairColor: "#1A1310", hat: "cap", hatColor: "#0B4F42", short: true, top: "#127A63", bottom: "#2C3E5C", collar: "#0B4F42",
   placket: true, mustache: true,
   pose: { torso: 0, neck: 20, nSh: -34, nEl: -96, fSh: { k: "kHold", f: 6, t: -165, d: 6 }, fEl: { k: "kHold", f: -14, t: -40, d: 6 }, nHip: -4, nKnee: 4, fHip: 5, fKnee: 0 },
   nHand: <Phone rot={-74} />,
+};
+
+const CUSTOMER = {
+  female: true, skin: "#D9A07A", hair: "long", hairColor: "#1E1611", kameez: true, hem: 8, lap: true, top: "#127A63", bottom: "#E9F5EF",
+  dupatta: "#F2C14E", trim: "#F2C14E", earring: true, bangles: "#F2C14E", shadow: 50,
+  pose: { torso: -4, neck: { k: "kHold", f: 20, t: -6, d: 7.5 }, nSh: -26, nEl: { f: -98, t: -104, d: 0.35 }, fSh: -22, fEl: -96, nHip: -86, nKnee: 86, fHip: -84, fKnee: 84 },
+  nHand: <Phone rot={-80} />,
+};
+
+const VISITOR = {
+  female: true, skin: "#B5764E", hair: "bun", hairColor: "#161210", kameez: true, hem: 26, top: "#D2477F", bottom: "#F7D1E0", dupatta: "#F4A62A",
+  bangles: "#F2C14E", earring: true, open: true,
+  pose: { torso: 0, neck: 0, nSh: { f: -148, t: -166, d: 0.45 }, nEl: { f: -18, t: -48, d: 0.45 }, fSh: 6, fEl: -10, nHip: -3, nKnee: 3, fHip: 4, fKnee: 0 },
+};
+
+const ADMIN = {
+  female: true, skin: "#E0AC88", hair: "bun", hairColor: "#2A1B14", glasses: true, earring: true, top: "#2E3A59", bottom: "#2E3A59", collar: "#FFFFFF",
+  shadow: false, lip: "#B0504A",
+  pose: { torso: 4, neck: { f: -8, t: -2, d: 3 }, nSh: -18, nEl: { f: -72, t: -80, d: 0.26 }, fSh: -12, fEl: { f: -74, t: -82, d: 0.26, dl: -0.13 }, nHip: -86, nKnee: 86, fHip: -84, fKnee: 84 },
 };
 
 function Defs() {
@@ -356,6 +409,7 @@ function Defs() {
         <stop offset=".5" stopColor="#fff" stopOpacity=".16" />
         <stop offset="1" stopColor="#fff" stopOpacity="0" />
       </linearGradient>
+      <linearGradient id="wlsSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#9FD3F2" /><stop offset="1" stopColor="#DDF1FB" /></linearGradient>
       <linearGradient id="wlsSkyBig" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8FCBEF" /><stop offset="1" stopColor="#E3F4FB" /></linearGradient>
     </defs>
   );
@@ -399,15 +453,90 @@ function SceneWorker() {
   );
 }
 
-export function WorkerLoginScene({ className }: { className?: string }) {
+/* Customer books help from the sofa; the worker arrives at the door */
+function SceneCustomer() {
   return (
-    <div className={className}>
-      <style>{CSS}</style>
-      <svg viewBox="0 0 600 460" className="wls-svg" role="img" aria-label="A worker accepting a job on their phone and getting paid">
-        <Defs />
-        <SceneWorker />
-      </svg>
-    </div>
+    <g>
+      <Room wall="#EAF5EF" floor="#D2B08A" line="#BC976C" />
+      <Win x={90} y={70} w={150} h={130} curtain="#F2C14E" />
+      <rect x="300" y="110" width="70" height="90" rx="3" fill="#FFFFFF" /><rect x="306" y="116" width="58" height="78" fill="#F6D7A7" />
+      <circle cx="335" cy="146" r="14" fill="#E07A2E" opacity=".7" />
+      <rect x="456" y="180" width="118" height="230" fill="#7A5534" />
+      <rect x="464" y="188" width="102" height="218" fill="url(#wlsSky)" />
+      <rect x="464" y="330" width="102" height="76" fill="#9BD3A8" />
+      <Human x={524} y={312} s={1.12} p={VISITOR} flip />
+      <path d="M464 188 L496 198 L496 398 L464 406 Z" fill="#A9774A" />
+      <circle cx="489" cy="300" r="3" fill="#F2C14E" />
+      <g className="wls-bell" style={{ transformOrigin: "590px 250px" }}>
+        <path d="M582 262 Q582 244 590 242 Q598 244 598 262 Z" fill="#F2C14E" /><circle cx="590" cy="265" r="3" fill="#F2C14E" />
+      </g>
+      <rect x="36" y="248" width="176" height="128" rx="22" fill="#5F7FB8" />
+      <rect x="22" y="352" width="270" height="40" rx="14" fill="#6E8FC8" />
+      <rect x="10" y="300" width="44" height="92" rx="16" fill="#5574AC" />
+      <rect x="36" y="390" width="10" height="16" fill="#3E5888" /><rect x="268" y="390" width="10" height="16" fill="#3E5888" />
+      <rect x="60" y="268" width="56" height="44" rx="12" fill="#F2C14E" />
+      <Human x={196} y={348} s={1.25} p={CUSTOMER} />
+      <rect x="320" y="356" width="96" height="9" rx="3" fill="#8C5A33" />
+      <rect x="330" y="364" width="6" height="42" fill="#6E4526" /><rect x="400" y="364" width="6" height="42" fill="#6E4526" />
+      <Tea x={360} y={356} />
+      <Note x={250} y={42} color="#127A63" icon="✓" title="Worker accepted" sub="Arriving at 4:30 PM" delay={0.3} />
+      <Note x={234} y={94} w={176} color="#2F6FD0" icon="ID" title="CNIC verified" sub="Checked by HelpGhar" delay={1.3} />
+      <Note x={256} y={146} w={184} color="#E07A2E" icon="₨" title="Paid Rs 1,260" sub="Includes 5% fee" delay={2.3} />
+    </g>
+  );
+}
+
+/* Admin checks a CNIC and watches the dashboard */
+function SceneAdmin() {
+  const bars = [46, 70, 58, 88, 74, 104];
+  return (
+    <g>
+      <Room wall="#EEF0F8" floor="#B9BFCF" line="#A5ACBF" />
+      <rect x="380" y="40" width="190" height="56" rx="4" fill="#FFFFFF" /><rect x="386" y="46" width="178" height="44" fill="url(#wlsSky)" />
+      <rect x="292" y="110" width="280" height="190" rx="10" fill="#1F2533" />
+      <rect x="300" y="118" width="264" height="174" rx="5" fill="#F7F8FC" />
+      <rect x="300" y="118" width="264" height="22" rx="5" fill="#0B4F42" />
+      <circle cx="312" cy="129" r="3.4" fill="#F2C14E" /><rect x="322" y="126" width="50" height="6" rx="3" fill="#fff" opacity=".8" />
+      {[["Bookings", "#127A63"], ["Verified", "#2F6FD0"], ["Complaints", "#E25858"]].map(([t, c], k) => (
+        <g key={t as string}>
+          <rect x={308 + k * 84} y="148" width="76" height="36" rx="5" fill="#FFFFFF" stroke="#E3E6EF" />
+          <text x={314 + k * 84} y="161" fontSize="8.5" fill="#6B7280" fontFamily="inherit">{t}</text>
+          <rect className="wls-kpi" style={{ animationDelay: `${k * 0.3}s` }} x={314 + k * 84} y="168" width={[40, 30, 12][k]} height="8" rx="2" fill={c as string} />
+        </g>
+      ))}
+      <rect x="308" y="192" width="148" height="92" rx="5" fill="#FFFFFF" stroke="#E3E6EF" />
+      {bars.map((h, k) => (
+        <rect key={k} className="wls-bar" style={{ animationDelay: `${k * 0.12}s` }} x={318 + k * 22} y={278 - h * 0.75} width="13" height={h * 0.75} rx="2" fill={k === 5 ? "#127A63" : "#9FD2BF"} />
+      ))}
+      <rect x="464" y="192" width="92" height="92" rx="5" fill="#FFFFFF" stroke="#E3E6EF" />
+      <path className="wls-line" d="M472 270 L488 254 L502 260 L518 236 L532 242 L548 214" stroke="#2F6FD0" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="424" y="300" width="16" height="22" fill="#2B3242" /><rect x="400" y="318" width="64" height="6" rx="3" fill="#2B3242" />
+      <rect x="148" y="250" width="24" height="112" rx="10" fill="#2B3242" />
+      <rect x="160" y="356" width="76" height="14" rx="6" fill="#363E52" />
+      <rect x="194" y="370" width="6" height="26" fill="#5B636C" />
+      <path d="M168 404 L226 404" stroke="#5B636C" strokeWidth="5" strokeLinecap="round" />
+      <circle cx="170" cy="406" r="4" fill="#2A2A2A" /><circle cx="224" cy="406" r="4" fill="#2A2A2A" />
+      <Human x={200} y={352} s={1.25} p={ADMIN} />
+      <rect x="238" y="314" width="66" height="7" rx="2" fill="#D5D9E2" />
+      <rect x="238" y="322" width="350" height="12" rx="3" fill="#C99A63" />
+      <rect x="548" y="334" width="10" height="72" fill="#A97C48" /><rect x="262" y="334" width="10" height="72" fill="#A97C48" />
+      <rect x="512" y="300" width="18" height="22" rx="3" fill="#E25858" />
+      <g className="wls-idcard">
+        <rect x="26" y="54" width="170" height="104" rx="10" fill="#FFFFFF" />
+        <rect x="26" y="54" width="170" height="24" rx="10" fill="#127A63" /><rect x="26" y="68" width="170" height="10" fill="#127A63" />
+        <text x="38" y="71" fontSize="10.5" fontWeight="700" fill="#fff" fontFamily="inherit">CNIC check</text>
+        <rect x="38" y="88" width="40" height="52" rx="5" fill="#DCE3E8" />
+        <circle cx="58" cy="106" r="9" fill="#B5764E" /><path d="M44 140 Q58 118 72 140 Z" fill="#B5764E" />
+        <rect x="88" y="92" width="88" height="7" rx="3" fill="#E3E6EF" /><rect x="88" y="106" width="64" height="7" rx="3" fill="#E3E6EF" />
+        <rect x="88" y="120" width="76" height="7" rx="3" fill="#E3E6EF" />
+        <rect className="wls-scan" x="30" y="82" width="162" height="3" fill="#4ADE80" opacity=".8" />
+        <g className="wls-stamp" style={{ transformOrigin: "150px 136px" }}>
+          <rect x="112" y="124" width="76" height="24" rx="6" fill="none" stroke="#127A63" strokeWidth="2.4" />
+          <text x="150" y="141" textAnchor="middle" fontSize="12" fontWeight="800" fill="#127A63" fontFamily="inherit">Verified ✓</text>
+        </g>
+      </g>
+      <Plant x={30} y={404} />
+    </g>
   );
 }
 
@@ -416,23 +545,66 @@ const CSS = `
 .wls-breathe{animation:wlsBreathe 3.2s ease-in-out infinite}
 .wls-blink{transform-box:fill-box;transform-origin:center;animation:wlsBlink 4.6s infinite}
 .wls-cloud{animation:wlsCloud 9s ease-in-out infinite alternate}
+.wls-curtain{transform-box:fill-box;transform-origin:top;animation:wlsCurtain 4s ease-in-out infinite alternate}
+.wls-curtain.wls-c2{animation-delay:-2s}
+.wls-leaf{transform-box:fill-box;transform-origin:bottom;animation:wlsLeafSway 3.5s ease-in-out infinite alternate}
 .wls-screen{animation:wlsScreen 1.6s ease-in-out infinite}
+.wls-steam{opacity:0;animation:wlsSteam 2.1s ease-out infinite}
 .wls-note{opacity:0;animation:wlsNote 7.5s cubic-bezier(.2,.9,.25,1.2) infinite}
 .wls-ping{transform-box:fill-box;transform-origin:center;animation:wlsPing 6s ease-in-out infinite}
 .wls-coin{opacity:0;animation:wlsCoin 7.5s ease-in infinite}
+.wls-bell{animation:wlsBell 7.5s ease-in-out infinite}
+.wls-kpi{transform-box:fill-box;transform-origin:left;animation:wlsKpi 4s ease-out infinite}
+.wls-bar{transform-box:fill-box;transform-origin:bottom;animation:wlsBar 4s cubic-bezier(.2,.9,.25,1.1) infinite}
+.wls-line{stroke-dasharray:120;stroke-dashoffset:120;animation:wlsLine 4s ease-out infinite}
+.wls-idcard{animation:wlsFloaty 5s ease-in-out infinite}
+.wls-scan{animation:wlsScan 4s ease-in-out infinite}
+.wls-stamp{opacity:0;animation:wlsStamp 4s cubic-bezier(.2,.9,.25,1.5) infinite}
 
 @keyframes wlsSwing{from{transform:rotate(var(--f))}to{transform:rotate(var(--t))}}
 @keyframes kHold{0%,30%{transform:rotate(var(--f))}42%,72%{transform:rotate(var(--t))}84%,100%{transform:rotate(var(--f))}}
 @keyframes wlsBreathe{50%{transform:translateY(-1px)}}
 @keyframes wlsBlink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
 @keyframes wlsCloud{to{transform:translateX(26px)}}
+@keyframes wlsCurtain{to{transform:skewX(3deg)}}
+@keyframes wlsLeafSway{from{transform:rotate(-3deg)}to{transform:rotate(3deg)}}
 @keyframes wlsScreen{50%{fill:#B9F5E0}}
+@keyframes wlsSteam{0%{opacity:0;transform:translateY(6px)}30%{opacity:.75}100%{opacity:0;transform:translateY(-26px)}}
 @keyframes wlsNote{0%{opacity:0;transform:translateY(14px) scale(.94)}8%,82%{opacity:1;transform:translateY(0) scale(1)}92%,100%{opacity:0;transform:translateY(-8px)}}
 @keyframes wlsPing{0%,100%{transform:scale(1)}10%{transform:scale(1.35)}20%{transform:scale(1)}}
 @keyframes wlsCoin{0%{opacity:0;transform:translateY(-30px)}10%{opacity:1}22%,80%{opacity:1;transform:translateY(0)}92%,100%{opacity:0}}
+@keyframes wlsBell{0%,4%,12%,100%{transform:rotate(0)}6%,10%{transform:rotate(14deg)}8%{transform:rotate(-14deg)}}
+@keyframes wlsKpi{0%{transform:scaleX(0)}40%,100%{transform:scaleX(1)}}
+@keyframes wlsBar{0%{transform:scaleY(0)}35%,85%{transform:scaleY(1)}100%{transform:scaleY(1)}}
+@keyframes wlsLine{0%{stroke-dashoffset:120}50%,100%{stroke-dashoffset:0}}
+@keyframes wlsFloaty{50%{transform:translateY(-6px)}}
+@keyframes wlsScan{0%{transform:translateY(0)}45%{transform:translateY(64px)}55%,100%{transform:translateY(0);opacity:0}}
+@keyframes wlsStamp{0%,48%{opacity:0;transform:scale(1.8) rotate(-12deg)}58%,92%{opacity:1;transform:scale(1) rotate(-8deg)}100%{opacity:0;transform:scale(1) rotate(-8deg)}}
 
 @media (prefers-reduced-motion:reduce){
   .wls-svg *{animation-duration:.001ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition:none!important}
-  .wls-note,.wls-coin{opacity:1!important}
+  .wls-note,.wls-coin,.wls-stamp{opacity:1!important}
 }
 `;
+
+function Scene({ className, label, render }: { className?: string; label: string; render: () => React.ReactElement }) {
+  return (
+    <div className={className}>
+      <style>{CSS}</style>
+      <svg viewBox="0 0 600 460" className="wls-svg" role="img" aria-label={label}>
+        <Defs />
+        {render()}
+      </svg>
+    </div>
+  );
+}
+
+export function CustomerLoginScene({ className }: { className?: string }) {
+  return <Scene className={className} label="A customer booking help and getting a confirmation" render={SceneCustomer} />;
+}
+export function WorkerLoginScene({ className }: { className?: string }) {
+  return <Scene className={className} label="A worker accepting a job on their phone and getting paid" render={SceneWorker} />;
+}
+export function AdminLoginScene({ className }: { className?: string }) {
+  return <Scene className={className} label="An admin verifying a worker's CNIC on a dashboard" render={SceneAdmin} />;
+}
