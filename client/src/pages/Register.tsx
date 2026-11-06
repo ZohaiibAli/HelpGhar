@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -45,9 +45,12 @@ const workerSchema = baseCustomerSchema.extend({
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams();
   const [customerId, setCustomerId] = useState("");
   const [workerId, setWorkerId] = useState("");
-  const [role, setRole] = useState<UserRole>("customer");
+  const [role, setRole] = useState<UserRole>(
+    searchParams.get("role") === "worker" ? "worker" : "customer"
+  );
   const [submitted, setSubmitted] = useState(false);
   const [cnicFile, setCnicFile] = useState<File | null>(null);
   const [cnicError, setCnicError] = useState("");
