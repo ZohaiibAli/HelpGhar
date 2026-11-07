@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, MapPin, MessageSquare, Phone, X, CheckCircle2 } from "lucide-react";
+import { Calendar, MapPin, MessageSquare, Phone, X, CheckCircle2, Lock, ShieldCheck } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { messagesPath } from "@/lib/startChat";
+import { CompletePinDialog } from "@/components/bookings/CompletePinDialog";
 
 const tabs: { id: "upcoming" | "completed" | "cancelled"; label: string }[] = [
   { id: "upcoming", label: "Upcoming" },
@@ -32,6 +33,7 @@ export default function WorkerBookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   const [alertState, setAlertState] = useState<AlertState>({
     open: false, type: "error", title: "", description: "",
@@ -114,36 +116,19 @@ export default function WorkerBookingsPage() {
     }
   };
 
-  const confirmComplete = (bookingId: string) => {
+  const handleCompleted = (message: string) => {
+    const bookingId = completingId;
+    setCompletingId(null);
+    setBookings((prev) => prev.map(b => b.id === bookingId ? { ...b, status: "completed" } : b));
     setAlertState({
       open: true,
-      type: "warning",
-      title: "Mark this booking as completed?",
-      description: "Only do this once the service has actually been delivered.",
-      actionLabel: "Yes, mark completed",
-      onAction: () => doComplete(bookingId),
+      type: "success",
+      title: "Job completed",
+      description: message,
     });
   };
 
-  const doComplete = async (bookingId: string) => {
-    try {
-      await api.patch(`/bookings/${bookingId}/complete`);
-      setBookings((prev) => prev.map(b => b.id === bookingId ? { ...b, status: "completed" } : b));
-      setAlertState({
-        open: true,
-        type: "success",
-        title: "Booking completed",
-        description: "This booking has been marked as completed.",
-      });
-    } catch (err: any) {
-      setAlertState({
-        open: true,
-        type: "server",
-        title: "Could not mark as completed",
-        description: err.message ?? "Something went wrong. Please try again.",
-      });
-    }
-  };
+  const completingBooking = bookings.find(b => b.id === completingId);
 
   const filtered = bookings.filter(b => tab === "upcoming" ? isUpcoming(b.status) : b.status === tab);
 
@@ -190,11 +175,22 @@ export default function WorkerBookingsPage() {
               onCancelReschedule={() => setReschedulingId(null)}
               onConfirmReschedule={(date, timeSlot) => handleReschedule(b.id, date, timeSlot)}
               onCancelBooking={() => confirmCancel(b.id)}
-              onCompleteBooking={() => confirmComplete(b.id)}
+              onCompleteBooking={() => setCompletingId(b.id)}
             />
           ))}
         </div>
       </div>
+
+      <CompletePinDialog
+        bookingId={completingId}
+        customerName={completingBooking?.customerName}
+        onClose={() => {
+          setCompletingId(null);
+          // Refresh so a booking that just got locked shows as locked.
+          loadBookings();
+        }}
+        onCompleted={handleCompleted}
+      />
 
       <HgAlert
         open={alertState.open}
@@ -248,9 +244,20 @@ function BookingRow({
         </div>
         <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end">
           <StatusBadge status={booking.status} />
-          <p className="text-base font-black">Rs. {booking.total.toLocaleString()}</p>
+          {/* The worker earns `amount`; `total` adds the platform fee. */}
+          <p className="text-base font-black">Rs. {(booking.amount ?? booking.total).toLocaleString()}</p>
         </div>
       </div>
+
+      {(booking.status === "confirmed" || booking.status === "in_progress") && (
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary-dark">
+          {booking.pinLocked ? (
+            <><Lock className="h-3 w-3" /> Locked after too many wrong PINs. The customer can contact HelpGhar support, or you can raise a dispute.</>
+          ) : (
+            <><ShieldCheck className="h-3 w-3" /> Payment held by HelpGhar. Ask the customer for the completion PIN when the job is done.</>
+          )}
+        </p>
+      )}
 
       {isRescheduling ? (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
@@ -273,11 +280,13 @@ function BookingRow({
         </div>
       ) : (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+          {(booking.status === "confirmed" || booking.status === "in_progress") && !booking.pinLocked && (
+            <Button size="sm" className="rounded-xl bg-primary hover:bg-primary-dark" onClick={onCompleteBooking}>
+              <CheckCircle2 className="mr-1 h-3 w-3" />Mark as done
+            </Button>
+          )}
           {booking.status === "confirmed" && (
             <>
-              <Button size="sm" className="rounded-xl bg-primary hover:bg-primary-dark" onClick={onCompleteBooking}>
-                <CheckCircle2 className="mr-1 h-3 w-3" />Mark completed
-              </Button>
               <Button size="sm" variant="outline" className="rounded-xl" onClick={onStartReschedule}>Reschedule</Button>
               <Button size="sm" variant="outline" className="rounded-xl text-destructive" onClick={onCancelBooking}>
                 <X className="mr-1 h-3 w-3" />Cancel

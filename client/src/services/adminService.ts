@@ -10,6 +10,7 @@ export interface AdminOverviewStats {
   completedBookings: number;
   grossRevenue: number;
   platformEarnings: number;
+  heldInEscrow: number;
   openComplaints: number;
   avgRating: number;
   reviewsCount: number;

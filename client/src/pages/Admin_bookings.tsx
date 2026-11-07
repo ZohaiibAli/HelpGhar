@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MoreVertical, X } from "lucide-react";
+import { Lock, MoreVertical, X } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 // import { bookings as initialBookings } from "@/data/mock";
@@ -16,6 +16,54 @@ const CANCELLABLE_STATUSES: BookingStatus[] = [
   "in_progress",
 ];
 
+const ESCROW_STATUSES: BookingStatus[] = ["confirmed", "in_progress"];
+
+type AdminAction = "cancel" | "release" | "refund" | "unlock";
+
+const ACTION_COPY: Record<AdminAction, {
+  title: string;
+  body: string;
+  confirm: string;
+  done: string;
+  danger: boolean;
+}> = {
+  cancel: {
+    title: "Cancel booking?",
+    body: "The booking will be cancelled and any payment held in escrow is refunded to the customer. This cannot be undone.",
+    confirm: "Yes, cancel",
+    done: "Booking cancelled",
+    danger: true,
+  },
+  release: {
+    title: "Release payment to worker?",
+    body: "Use this when the work was done but the customer can't or won't share the PIN. The booking is marked completed and the held payment goes to the worker.",
+    confirm: "Release payment",
+    done: "Payment released to the worker",
+    danger: false,
+  },
+  refund: {
+    title: "Refund payment to customer?",
+    body: "Use this when the work wasn't done. The booking is cancelled and the held payment goes back to the customer.",
+    confirm: "Refund customer",
+    done: "Payment refunded to the customer",
+    danger: true,
+  },
+  unlock: {
+    title: "Unlock PIN entry?",
+    body: "Resets the wrong-PIN counter so the worker can try the customer's PIN again.",
+    confirm: "Unlock",
+    done: "PIN entry unlocked",
+    danger: false,
+  },
+};
+
+const paymentStyles: Record<string, { label: string; cls: string }> = {
+  held: { label: "In escrow", cls: "bg-blue-100 text-blue-700" },
+  released: { label: "Released", cls: "bg-emerald-100 text-emerald-700" },
+  refunded: { label: "Refunded", cls: "bg-red-100 text-red-700" },
+  unpaid: { label: "Unpaid", cls: "bg-secondary text-muted-foreground" },
+};
+
 const statusStyles: Record<BookingStatus, string> = {
   pending: "bg-yellow-100 text-yellow-800",
   confirmed: "bg-emerald-100 text-emerald-700",
@@ -31,13 +79,15 @@ export default function AdminBookings() {
   const [filter, setFilter] = useState<"all" | BookingStatus>("all");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ type: AdminAction; bookingId: string } | null>(null);
+  const [working, setWorking] = useState(false);
 
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const filtered = bookings.filter((b) => filter === "all" || b.status === filter);
-  const cancelTarget =
-    bookings.find((b) => b.bookingId === cancelTargetId) ?? null;
+  const actionTarget =
+    bookings.find((b) => b.bookingId === pendingAction?.bookingId) ?? null;
+  const menuBooking = bookings.find((b) => b.bookingId === openMenuId);
 
   const loadBookings = async () => {
     try {
@@ -98,29 +148,42 @@ export default function AdminBookings() {
 
   // Close the confirm modal on Escape
   useEffect(() => {
-    if (!cancelTargetId) return;
+    if (!pendingAction) return;
     function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setCancelTargetId(null);
+      if (e.key === "Escape") setPendingAction(null);
     }
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [cancelTargetId]);
+  }, [pendingAction]);
 
-  async function confirmCancel() {
-    if (!cancelTargetId) return;
+  function chooseAction(type: AdminAction) {
+    if (!openMenuId) return;
+    setPendingAction({ type, bookingId: openMenuId });
+    setOpenMenuId(null);
+    setMenuPosition(null);
+  }
 
+  async function confirmAction() {
+    if (!pendingAction || working) return;
+    const { type, bookingId } = pendingAction;
+    const run = {
+      cancel: bookingService.cancelBooking,
+      release: bookingService.releaseEscrow,
+      refund: bookingService.refundEscrow,
+      unlock: bookingService.unlockPin,
+    }[type];
+
+    setWorking(true);
     try {
-      await bookingService.cancelBooking(cancelTargetId);
-
-      toast.success("Booking cancelled");
-
+      await run(bookingId);
+      toast.success(ACTION_COPY[type].done);
       await loadBookings();
-
-    } catch {
-      toast.error("Unable to cancel booking");
+    } catch (err: any) {
+      toast.error(typeof err?.message === "string" ? err.message : "Action failed");
+    } finally {
+      setWorking(false);
+      setPendingAction(null);
     }
-
-    setCancelTargetId(null);
   }
 
   return (
@@ -153,6 +216,7 @@ export default function AdminBookings() {
                   <th>Worker</th>
                   <th>Date</th>
                   <th>Amount</th>
+                  <th>Payment</th>
                   <th>Status</th>
                   <th className="w-10" />
                 </tr>
@@ -173,6 +237,18 @@ export default function AdminBookings() {
                     <td className="text-xs text-muted-foreground">{b.date} • {b.timeSlot}</td>
                     <td className="text-xs font-semibold">Rs. {b.total.toLocaleString()}</td>
                     <td>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className={`whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-bold uppercase ${(paymentStyles[b.paymentStatus ?? "unpaid"] ?? paymentStyles.unpaid).cls}`}>
+                          {(paymentStyles[b.paymentStatus ?? "unpaid"] ?? paymentStyles.unpaid).label}
+                        </span>
+                        {b.pinLocked && ESCROW_STATUSES.includes(b.status) && (
+                          <span title="Locked after 5 wrong PIN attempts" className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-orange-100 px-2 py-1 text-[10px] font-bold uppercase text-orange-700">
+                            <Lock className="h-3 w-3" /> PIN locked
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
                       <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${statusStyles[b.status]}`}>
                         {b.status.replace("_", " ")}
                       </span>
@@ -189,7 +265,7 @@ export default function AdminBookings() {
 
                           setMenuPosition({
                             top: rect.bottom + 6,
-                            left: rect.right - 145,
+                            left: Math.max(8, rect.right - 190),
                           });
                           setOpenMenuId(b.bookingId);
                         }}
@@ -202,7 +278,7 @@ export default function AdminBookings() {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={6} className="py-8 text-center text-xs text-muted-foreground">No bookings found.</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-xs text-muted-foreground">No bookings found.</td></tr>
                 )}
               </tbody>
             </table>
@@ -213,7 +289,7 @@ export default function AdminBookings() {
       {openMenuId && menuPosition && (
         <div
           ref={menuRef}
-          className="fixed z-[9999] w-40 rounded-xl border border-border bg-card shadow-xl"
+          className="fixed z-[9999] w-48 overflow-hidden rounded-xl border border-border bg-card shadow-xl"
           style={{
             top: menuPosition.top,
             left: menuPosition.left,
@@ -229,31 +305,52 @@ export default function AdminBookings() {
                 bookings.find((b) => b.bookingId === openMenuId)?.status as BookingStatus
               )
             }
-            onClick={() => {
-              setCancelTargetId(openMenuId);
-              setOpenMenuId(null);
-              setMenuPosition(null);
-            }}
+            onClick={() => chooseAction("cancel")}
             className="w-full px-4 py-2.5 text-left text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent"
           >
             Cancel booking
           </button>
+          {menuBooking && ESCROW_STATUSES.includes(menuBooking.status) && (
+            <div className="border-t border-border">
+              <p className="px-4 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Escrow</p>
+              <button
+                onClick={() => chooseAction("release")}
+                className="w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+              >
+                Release to worker
+              </button>
+              <button
+                onClick={() => chooseAction("refund")}
+                className="w-full px-4 py-2.5 text-left text-xs font-semibold text-red-600 transition hover:bg-red-50"
+              >
+                Refund to customer
+              </button>
+              {menuBooking.pinLocked && (
+                <button
+                  onClick={() => chooseAction("unlock")}
+                  className="w-full px-4 py-2.5 text-left text-xs font-semibold text-foreground transition hover:bg-secondary"
+                >
+                  Unlock PIN entry
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {cancelTarget && (
+      {pendingAction && actionTarget && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={() => setCancelTargetId(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+          onClick={() => setPendingAction(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-soft"
           >
             <div className="flex items-start justify-between">
-              <h2 className="text-lg font-bold">Cancel booking?</h2>
+              <h2 className="text-lg font-bold">{ACTION_COPY[pendingAction.type].title}</h2>
               <button
-                onClick={() => setCancelTargetId(null)}
+                onClick={() => setPendingAction(null)}
                 className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
                 aria-label="Close"
               >
@@ -261,21 +358,28 @@ export default function AdminBookings() {
               </button>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to cancel booking <span className="font-semibold text-foreground">{cancelTarget.bookingId}</span> with{" "}
-              <span className="font-semibold text-foreground">{cancelTarget.workerName}</span>? This action cannot be undone.
+              Booking <span className="font-semibold text-foreground">{actionTarget.bookingId}</span> with{" "}
+              <span className="font-semibold text-foreground">{actionTarget.workerName}</span>{" "}
+              (Rs. {actionTarget.total.toLocaleString()}).
             </p>
+            <p className="mt-2 text-sm text-muted-foreground">{ACTION_COPY[pendingAction.type].body}</p>
             <div className="mt-6 flex justify-end gap-2">
               <button
-                onClick={() => setCancelTargetId(null)}
+                onClick={() => setPendingAction(null)}
                 className="rounded-full bg-secondary px-4 py-2 text-xs font-bold text-foreground transition hover:opacity-80"
               >
-                Keep booking
+                Go back
               </button>
               <button
-                onClick={confirmCancel}
-                className="rounded-full bg-red-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-red-700"
+                onClick={confirmAction}
+                disabled={working}
+                className={`rounded-full px-4 py-2 text-xs font-bold text-white transition disabled:opacity-60 ${
+                  ACTION_COPY[pendingAction.type].danger
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
               >
-                Yes, cancel
+                {working ? "Working..." : ACTION_COPY[pendingAction.type].confirm}
               </button>
             </div>
           </div>

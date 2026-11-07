@@ -13,4 +13,14 @@ export const bookingService = {
 
   cancelBooking: (bookingId: string) =>
     api.patch(`/bookings/admin/${bookingId}/cancel`),
+
+  // Escrow overrides for disputes (e.g. customer won't share the PIN).
+  releaseEscrow: (bookingId: string) =>
+    api.patch(`/bookings/admin/${bookingId}/escrow/release`),
+
+  refundEscrow: (bookingId: string) =>
+    api.patch(`/bookings/admin/${bookingId}/escrow/refund`),
+
+  unlockPin: (bookingId: string) =>
+    api.patch(`/bookings/admin/${bookingId}/pin/unlock`),
 };

@@ -1,8 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
-from config.db import booking_collection, payment_collection, payment_card_collection
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from config.db import (
+    booking_collection,
+    customer_collection,
+    payment_collection,
+    payment_card_collection,
+)
 from model.payment_model import PaymentCreate
 from helper.auth_helper import get_current_customer
 from helper.id_helper import generate_transaction_id
+from helper.escrow_helper import generate_pin
+from helper.email_helper import send_completion_pin_email
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -14,6 +21,7 @@ METHOD_LABELS = {"card": "Card", "wallet": "Wallet", "bank": "Bank"}
 @router.post("/")
 def make_payment(
     payment: PaymentCreate,
+    background_tasks: BackgroundTasks,
     current_customer: dict = Depends(get_current_customer)
 ):
     # print("Received bookingId:", payment.bookingId)
@@ -80,16 +88,45 @@ def make_payment(
 
     "date": datetime.now(ZoneInfo("Asia/Karachi")).isoformat(),
 
-    "status": "successful",
+    # Escrow: HelpGhar holds the money until the worker completes the
+    # job with the customer's PIN (see helper/escrow_helper.py).
+    "status": "held",
 }
-    payment_collection.insert_one(payment_data)
-    booking_collection.update_one(
-        {"bookingId": payment.bookingId},
-        {"$set": {"status": "confirmed"}}
+
+    # Flip the booking first and only if it is still pending, so two
+    # simultaneous pay clicks can't both charge the customer.
+    pin = generate_pin()
+    claimed = booking_collection.update_one(
+        {"bookingId": payment.bookingId, "status": "pending"},
+        {"$set": {"status": "confirmed", "completionPin": pin, "pinAttempts": 0}}
     )
 
+    if claimed.modified_count == 0:
+        raise HTTPException(status_code=400, detail="This booking has already been paid for.")
+
+    payment_collection.insert_one(payment_data)
+
+    customer = customer_collection.find_one({"customerId": current_customer["customerId"]})
+    if customer and customer.get("email"):
+        background_tasks.add_task(
+            send_completion_pin_email,
+            customer["email"],
+            customer.get("fullName", "Customer"),
+            payment.bookingId,
+            booking.get("workerName", "your worker"),
+            booking.get("category", ""),
+            booking.get("date", ""),
+            booking.get("timeSlot", ""),
+            pin,
+        )
+
     payment_data.pop("_id", None)
-    return {"success": True, "message": "Payment successful", "payment": payment_data}
+    return {
+        "success": True,
+        "message": "Payment successful",
+        "payment": payment_data,
+        "completionPin": pin,
+    }
 
 @router.get("/receipt/{transaction_id}")
 def get_receipt(transaction_id: str, current_customer: dict = Depends(get_current_customer)):

@@ -154,7 +154,7 @@ def customer_dashboard(current_customer=Depends(get_current_customer)):
         sum(
             payment.get("total", 0)
             for payment in payments
-            if payment.get("status") == "successful"
+            if payment.get("status") in ("held", "released")
         )
     )
 
@@ -255,16 +255,23 @@ def _customer_notifications(customer_id: str, limit: int = 6):
 
     for payment in recent_payments:
 
-        refunded = payment.get("status") == "refunded"
+        status = payment.get("status")
+        refunded = status == "refunded"
+        held = status == "held"
 
         events.append({
             "id": f"payment-{payment.get('id')}",
             "type": "info" if refunded else "success",
-            "title": "Refund issued" if refunded else "Payment successful",
+            "title": (
+                "Refund issued" if refunded
+                else "Payment held in escrow" if held
+                else "Payment released to worker"
+            ),
             "message": (
                 f"Rs. {_money(payment.get('total')):,} "
                 f"{'refunded for' if refunded else 'paid for'} "
                 f"booking {payment.get('bookingId', '')}."
+                + (" Share your PIN with the worker once the job is done." if held else "")
             ),
             "at": _as_utc(payment.get("date")),
         })
@@ -341,6 +348,16 @@ def worker_dashboard(current_worker=Depends(get_current_worker)):
     # Summing `total` here overstated every worker's earnings.
     total_earnings = _money(sum(b.get("amount", 0) for b in completed_bookings))
 
+    # Paid by the customer but held in escrow until the worker
+    # completes the job with the customer's PIN.
+    pending_escrow = _money(
+        sum(
+            b.get("amount", 0)
+            for b in all_bookings
+            if b.get("status") in ("confirmed", "in_progress")
+        )
+    )
+
     # Active jobs: pending / confirmed / in_progress
     active_jobs = [
         {
@@ -384,6 +401,7 @@ def worker_dashboard(current_worker=Depends(get_current_worker)):
             "avgRating": avg_rating,
             "reviewsCount": reviews_count,
             "totalEarnings": total_earnings,
+            "pendingEscrow": pending_escrow,
             "activeGigs": len(active_gigs),
             "available": available,
             "pendingJobs": sum(
@@ -552,8 +570,17 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
 
     payments = list(
         payment_collection.find(
-            {"status": "successful"},
+            {"status": "released"},
             {"total": 1, "platformFee": 1, "date": 1},
+        )
+    )
+
+    held_in_escrow = _money(
+        sum(
+            payment.get("total", 0)
+            for payment in payment_collection.find(
+                {"status": "held"}, {"total": 1}
+            )
         )
     )
 
@@ -599,6 +626,7 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
             "completedBookings": completed_bookings,
             "grossRevenue": gross_revenue,
             "platformEarnings": platform_earnings,
+            "heldInEscrow": held_in_escrow,
             "openComplaints": open_complaints,
             "avgRating": avg_rating,
             "reviewsCount": len(reviews),

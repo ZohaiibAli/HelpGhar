@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { CreditCard, Wallet, Lock, CheckCircle2, Download } from "lucide-react";
+import { CreditCard, Wallet, Lock, CheckCircle2, Download, KeyRound } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
@@ -13,6 +13,7 @@ export default function PaymentPage() {
 
   const [booking, setBooking] = useState<any>(null);
   const [payment, setPayment] = useState<any>(null);
+  const [completionPin, setCompletionPin] = useState<string | null>(null);
   const [method, setMethod] = useState<"card" | "wallet" | "bank">("card");
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -61,6 +62,7 @@ export default function PaymentPage() {
         cvv,
       });
       setPayment(res.data.payment);
+      setCompletionPin(res.data.completionPin ?? null);
       setDone(true);
     } catch (err: any) {
       setAlertState({
@@ -262,6 +264,19 @@ const handleDownloadReceipt = () => {
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary-soft text-primary"><CheckCircle2 className="h-8 w-8" /></div>
             <h1 className="mt-5 text-2xl font-black">Payment successful</h1>
             <p className="mt-1 text-sm text-muted-foreground">Your booking is confirmed and the worker has been notified.</p>
+            {completionPin && (
+              <div className="mt-6 rounded-2xl border border-primary/20 bg-primary-soft p-5">
+                <p className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-primary-dark">
+                  <KeyRound className="h-3.5 w-3.5" /> Your completion PIN
+                </p>
+                <p className="mt-1 font-mono text-4xl font-black tracking-[0.4em] text-foreground">{completionPin}</p>
+                <p className="mt-2 text-xs text-primary-dark">
+                  Your payment is held safely by HelpGhar. Give this PIN to the worker
+                  <strong> only after the job is done</strong> — it releases the payment to them.
+                  You can see it anytime in My bookings, and we've emailed it to you.
+                </p>
+              </div>
+            )}
             <div className="mt-6 rounded-2xl bg-muted p-5 text-left text-sm">
               <Row label="Transaction ID" value={payment.id} />
               <Row label="Date" value={new Date(payment.date).toDateString()} />

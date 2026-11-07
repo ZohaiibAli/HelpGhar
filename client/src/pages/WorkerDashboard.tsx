@@ -1,18 +1,18 @@
 import { Link } from "react-router-dom";
-import { Briefcase, Star, Award, User, Timer, TrendingUp, X, Loader2 } from "lucide-react";
+import { Briefcase, Star, Award, User, Timer, TrendingUp, X, Loader2, ShieldCheck } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { categories } from "@/data/mock";
 import { useEffect, useState } from "react";
 import { WorkerCategory } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { CompletePinDialog } from "@/components/bookings/CompletePinDialog";
 
 import {
   uploadAvatar,
   createGig,
   getWorkerDashboard,
   startBooking,
-  completeBooking,
 } from "@/services/workerService";
 
 import { workerItems } from "@/data/workerMenu";
@@ -35,6 +35,7 @@ type DashboardStats = {
   avgRating: number;
   reviewsCount: number;
   totalEarnings: number;
+  pendingEscrow: number;
   activeGigs: number;
   available: boolean;
   pendingJobs: number;
@@ -62,6 +63,7 @@ export default function WorkerDashboard() {
 
   // Per-booking action loading + shared alert dialog
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
   const [alertState, setAlertState] = useState<AlertState>({
     open: false, type: "error", title: "", description: "",
   });
@@ -135,38 +137,15 @@ export default function WorkerDashboard() {
     }
   };
 
-  const confirmComplete = (bookingId: string) => {
+  const handleCompleted = async (message: string) => {
+    setCompletingId(null);
+    await loadDashboard();
     setAlertState({
       open: true,
-      type: "warning",
-      title: "Mark this job as completed?",
-      description: "Only do this once the service has actually been delivered.",
-      actionLabel: "Yes, mark completed",
-      onAction: () => doComplete(bookingId),
+      type: "success",
+      title: "Job completed",
+      description: message,
     });
-  };
-
-  const doComplete = async (bookingId: string) => {
-    setActionLoading(bookingId);
-    try {
-      await completeBooking(bookingId);
-      await loadDashboard();
-      setAlertState({
-        open: true,
-        type: "success",
-        title: "Job completed",
-        description: "This booking has been marked as completed.",
-      });
-    } catch (err: any) {
-      setAlertState({
-        open: true,
-        type: "server",
-        title: "Could not mark as completed",
-        description: err.message ?? "Something went wrong. Please try again.",
-      });
-    } finally {
-      setActionLoading(null);
-    }
   };
 
   function validate() {
@@ -304,11 +283,12 @@ export default function WorkerDashboard() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               <Stat label="Total jobs" value={String(stats?.totalJobs ?? 0)} hint={`${stats?.completedJobs ?? 0} completed`} icon={Briefcase} />
               <Stat label="Completed" value={String(stats?.completedJobs ?? 0)} hint={`${stats?.completionRate ?? 0}% rate`} icon={TrendingUp} />
               <Stat label="Avg rating" value={String(stats?.avgRating ?? 0)} hint={`From ${stats?.reviewsCount ?? 0} reviews`} icon={Star} />
-              <Stat label="Total earnings" value={`Rs. ${(stats?.totalEarnings ?? 0).toLocaleString()}`} hint="From completed jobs" icon={Award} />
+              <Stat label="Total earnings" value={`Rs. ${(stats?.totalEarnings ?? 0).toLocaleString()}`} hint="Released from completed jobs" icon={Award} />
+              <Stat label="Pending in escrow" value={`Rs. ${(stats?.pendingEscrow ?? 0).toLocaleString()}`} hint="Released when the customer's PIN is entered" icon={ShieldCheck} />
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -340,11 +320,11 @@ export default function WorkerDashboard() {
                         )}
                         {b.status === "in_progress" && (
                           <button
-                            onClick={() => confirmComplete(b.bookingId)}
+                            onClick={() => setCompletingId(b.bookingId)}
                             disabled={actionLoading === b.bookingId}
                             className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
                           >
-                            {actionLoading === b.bookingId ? "Completing..." : "Complete"}
+                            Mark as done
                           </button>
                         )}
                         <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground"><Timer className="h-3 w-3" /> {b.durationHours}h job</span>
@@ -577,6 +557,13 @@ export default function WorkerDashboard() {
           </div>
         </div>
       )}
+
+      <CompletePinDialog
+        bookingId={completingId}
+        customerName={activeJobs.find(j => j.bookingId === completingId)?.customerName}
+        onClose={() => { setCompletingId(null); loadDashboard(); }}
+        onCompleted={handleCompleted}
+      />
 
       <HgAlert
         open={alertState.open}
