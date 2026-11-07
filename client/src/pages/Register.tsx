@@ -79,10 +79,12 @@ export default function RegisterPage() {
 
     try {
 
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
       const api =
         role === "customer"
-          ? "http://127.0.0.1:8000/customer/register"
-          : "http://127.0.0.1:8000/worker/register";
+          ? `${API_BASE_URL}/customer/register`
+          : `${API_BASE_URL}/worker/register`;
 
       let response: Response;
 
