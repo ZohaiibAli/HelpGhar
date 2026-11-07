@@ -16,6 +16,7 @@ from bson.errors import InvalidId
 from pymongo.errors import DuplicateKeyError
 from pydantic import EmailStr
 from helper.password_helper import hash_password, verify_password
+from helper.account_helper import block_message, normalise_status, refresh
 from helper.cloudinary_helper import upload_image, delete_image
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
@@ -82,7 +83,7 @@ def register_worker(
 
     worker_data["workerId"] = generate_worker_id()
 
-    worker_data["status"] = "Active"
+    worker_data["status"] = "active"
 
     worker_data["cnicImage"] = cnic_image_url
 
@@ -142,6 +143,15 @@ def worker_login(worker: WorkerLogin):
             "message": "Invalid Email or Password"
         }
 
+    existing_worker = refresh("worker", existing_worker)
+    blocked = block_message(existing_worker)
+    if blocked:
+        return {
+            "success": False,
+            "code": "ACCOUNT_" + normalise_status(existing_worker.get("status")).upper(),
+            "message": blocked,
+        }
+
     # Credentials are right, but the account only becomes usable once an
     # admin has approved the CNIC. Workers registered before this feature
     # have no verificationStatus and are treated as pending, matching the
@@ -180,7 +190,7 @@ def worker_login(worker: WorkerLogin):
             "fullName": existing_worker["fullName"],
             "email": existing_worker["email"],
             "category": existing_worker["category"],
-            "status": existing_worker["status"],
+            "status": normalise_status(existing_worker.get("status")),
             "role": "worker"
         }
     }

@@ -1,10 +1,12 @@
 // import { useState, useRef, useEffect } from "react";
 import { useState, useEffect } from "react";
-import { Search, ShieldCheck, ShieldOff, Mail, Phone, MoreVertical, Trash2 } from "lucide-react";
+import { Search, ShieldCheck, ShieldOff, Mail, Phone, MoreVertical, Trash2, CheckCircle2, X } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 import { adminService } from "@/services/adminService";
 import DeleteConfirmModal from "@/components/modals/DeleteConfirmModal";
+import { ModerationDialog, formatUntil, type ModerationTarget } from "@/components/admin/ModerationDialog";
+import type { AccountStatus } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,9 +22,17 @@ interface PlatformUser {
   email: string;
   phone: string;
   role: "customer" | "worker";
-  status: "active" | "suspended";
+  status: AccountStatus;
+  suspendedUntil?: string | null;
+  moderationReason?: string | null;
   joined: string;
 }
+
+const accountStyles: Record<AccountStatus, string> = {
+  active: "bg-green-100 text-green-700",
+  suspended: "bg-orange-100 text-orange-700",
+  blocked: "bg-red-100 text-red-700",
+};
 
 
 
@@ -46,7 +56,7 @@ function UserActionsMenu({
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-40">
+      <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem
           onClick={() => onToggleStatus(user.id)}
           className="cursor-pointer"
@@ -54,12 +64,12 @@ function UserActionsMenu({
           {user.status === "active" ? (
             <>
               <ShieldOff className="mr-2 h-4 w-4" />
-              Suspend
+              Suspend / Block
             </>
           ) : (
             <>
               <ShieldCheck className="mr-2 h-4 w-4" />
-              Activate
+              Undo ({user.status})
             </>
           )}
         </DropdownMenuItem>
@@ -84,6 +94,14 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<PlatformUser[]>([]);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<PlatformUser | null>(null);
+  const [moderationTarget, setModerationTarget] = useState<ModerationTarget | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   // Fetch users from backend
   const fetchUsers = async () => {
@@ -107,21 +125,20 @@ export default function AdminUsers() {
   );
 
 
-  async function toggleStatus(id: string) {
+  function toggleStatus(id: string) {
     const selected = users.find((u) => u.id === id);
+    const code = selected?.role === "customer" ? selected?.customerId : selected?.workerId;
 
-    if (!selected) return;
+    if (!selected || !code) return;
 
-    try {
-      await adminService.toggleUserStatus(
-        selected.role,
-        selected.id
-      );
-
-      fetchUsers();
-    } catch (error) {
-      console.error(error);
-    }
+    setModerationTarget({
+      role: selected.role,
+      code,
+      name: selected.fullName,
+      status: selected.status,
+      suspendedUntil: selected.suspendedUntil,
+      reason: selected.moderationReason,
+    });
   }
 
   async function deleteUser(id: string) {
@@ -148,6 +165,18 @@ export default function AdminUsers() {
           <h1 className="text-2xl font-black md:text-3xl">Users</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage customer and worker accounts.</p>
         </div>
+
+        {notice && (
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary-soft px-4 py-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-primary-dark" />
+              <p className="text-sm font-semibold text-primary-dark">{notice}</p>
+            </div>
+            <button onClick={() => setNotice(null)} className="text-primary-dark/70 hover:text-primary-dark" aria-label="Dismiss">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
         <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -204,13 +233,14 @@ export default function AdminUsers() {
                     <td className="text-xs font-semibold capitalize text-muted-foreground">{u.role}</td>
                     <td>
                       <span
-                        className={`inline-flex w-24 justify-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${u.status === "active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                          }`}
+                        title={u.moderationReason ?? undefined}
+                        className={`inline-flex w-24 justify-center rounded-full px-2 py-1 text-[10px] font-bold uppercase ${accountStyles[u.status] ?? accountStyles.active}`}
                       >
                         {u.status}
                       </span>
+                      {u.status === "suspended" && u.suspendedUntil && (
+                        <p className="mt-1 text-[10px] text-muted-foreground">until {formatUntil(u.suspendedUntil)}</p>
+                      )}
                     </td>
                     <td className="text-right">
                       <UserActionsMenu
@@ -232,6 +262,16 @@ export default function AdminUsers() {
           </div>
         </div>
       </div>
+      <ModerationDialog
+        target={moderationTarget}
+        onClose={() => setModerationTarget(null)}
+        onDone={(message) => {
+          setModerationTarget(null);
+          setNotice(message);
+          fetchUsers();
+        }}
+      />
+
       <DeleteConfirmModal
         open={deleteModalOpen}
         userName={selectedUser?.fullName || ""}

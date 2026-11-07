@@ -108,6 +108,142 @@ HelpGhar
         print("Could not send worker rejection email:", str(e))
 
 
+async def send_plain_email(email: EmailStr, subject: str, body: str):
+    """Fire-and-forget plain-text email; failures are logged, never raised,
+    so a mail outage can't undo the action that triggered it."""
+
+    message = MessageSchema(
+        subject=subject,
+        recipients=[email],
+        body=body,
+        subtype="plain",
+    )
+
+    try:
+        await FastMail(conf).send_message(message)
+    except Exception as e:
+        print(f"Could not send email '{subject}':", str(e))
+
+
+def _sign(body: str) -> str:
+    return body.strip("\n") + "\n\nRegards,\nHelpGhar\n"
+
+
+def complaint_received_email(name, dispute_id, subject, against_name, booking_id):
+    return (
+        f"HelpGhar complaint {dispute_id} received",
+        _sign(f"""
+Hello {name or "there"},
+
+We have received your complaint and our team will review it within
+24 hours.
+
+Complaint ID : {dispute_id}
+Subject      : {subject}
+Against      : {against_name}
+Booking ID   : {booking_id}
+
+You can track the status of this complaint anytime on the Disputes page
+of your HelpGhar account. We will email you when there is an update.
+"""),
+    )
+
+
+def complaint_action_taken_email(name, dispute_id, subject):
+    return (
+        f"Update on your HelpGhar complaint {dispute_id}",
+        _sign(f"""
+Hello {name or "there"},
+
+The HelpGhar team has reviewed your complaint and taken action on it.
+
+Complaint ID : {dispute_id}
+Subject      : {subject}
+
+For privacy reasons we can't share the details of the action taken
+against the other account. Thank you for helping keep HelpGhar safe.
+"""),
+    )
+
+
+def complaint_resolved_email(name, dispute_id, subject):
+    return (
+        f"Your HelpGhar complaint {dispute_id} has been resolved",
+        _sign(f"""
+Hello {name or "there"},
+
+Your complaint has been marked as resolved by the HelpGhar team.
+
+Complaint ID : {dispute_id}
+Subject      : {subject}
+
+If the issue is still not sorted out, you can file a new complaint from
+the Disputes page of your HelpGhar account.
+"""),
+    )
+
+
+def account_moderated_email(name, action, reason, until_text):
+    if action == "suspended":
+        headline = f"Your HelpGhar account has been suspended until {until_text}."
+        subject = "Your HelpGhar account has been suspended"
+    else:
+        headline = "Your HelpGhar account has been blocked."
+        subject = "Your HelpGhar account has been blocked"
+
+    return (
+        subject,
+        _sign(f"""
+Hello {name or "there"},
+
+{headline}
+
+Reason: {reason}
+
+While your account is {action} you will not be able to log in or use
+HelpGhar. Any upcoming bookings have been cancelled and paid bookings
+have been refunded to the customer.
+
+If you believe this is a mistake, please reply to this email or contact
+HelpGhar support.
+"""),
+    )
+
+
+def account_restored_email(name):
+    return (
+        "Your HelpGhar account has been restored",
+        _sign(f"""
+Hello {name or "there"},
+
+Good news - your HelpGhar account has been restored. You can log in and
+use HelpGhar again as normal.
+"""),
+    )
+
+
+def booking_cancelled_by_admin_email(name, booking_id, worker_name, refunded):
+    refund_line = (
+        "Your payment for this booking has been refunded."
+        if refunded
+        else "No payment had been made for this booking, so nothing was charged."
+    )
+    return (
+        f"Your HelpGhar booking {booking_id} has been cancelled",
+        _sign(f"""
+Hello {name or "there"},
+
+Your booking {booking_id} with {worker_name} has been cancelled because
+the worker's account is no longer active on HelpGhar.
+
+{refund_line}
+
+We're sorry for the inconvenience. You can book another worker anytime
+from the Services page.
+"""),
+    )
+
+
 async def send_completion_pin_email(
     email: EmailStr,
     name: str,

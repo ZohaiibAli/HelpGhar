@@ -22,6 +22,9 @@ from routes.job_routes import router as job_router
 
 from helper.seed_helper import seed_default_card
 from helper.escrow_helper import migrate_legacy_payments
+from helper.account_helper import migrate_statuses, expire_suspensions
+from fastapi.concurrency import run_in_threadpool
+import asyncio
 
 app = FastAPI(
     title="HelpGhar API",
@@ -33,6 +36,24 @@ app = FastAPI(
 def on_startup():
     seed_default_card()
     migrate_legacy_payments()
+    migrate_statuses()
+    expire_suspensions()
+
+
+async def _suspension_sweeper():
+    # Suspensions also lift lazily on login/API use; this brings a
+    # suspended worker's gigs back even if they never log in.
+    while True:
+        await asyncio.sleep(600)
+        try:
+            await run_in_threadpool(expire_suspensions)
+        except Exception as e:
+            print("Suspension sweep failed:", str(e))
+
+
+@app.on_event("startup")
+async def start_suspension_sweeper():
+    asyncio.create_task(_suspension_sweeper())
 
 
 # ============================

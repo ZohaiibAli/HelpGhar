@@ -69,9 +69,21 @@ export const adminService = {
   // Get all customers + workers
   getUsers: () => api.get("/admin/users"),
 
-  // Suspend / Activate
+  // Suspend / Activate (legacy toggle)
   toggleUserStatus: (role: string, id: string) =>
     api.patch(`/admin/users/${role}/${id}/status`),
+
+  // Suspend (3/7/30 days), block, or restore. userCode is CUS-.../WRK-...
+  moderateUser: (
+    role: "customer" | "worker",
+    userCode: string,
+    body: {
+      action: "suspend" | "block" | "restore";
+      days?: 3 | 7 | 30;
+      reason?: string;
+      disputeId?: string;
+    }
+  ) => api.patch(`/admin/users/${role}/${userCode}/moderation`, body),
 
   // Delete user
   deleteUser: (role: string, id: string) =>

@@ -83,7 +83,11 @@ export default function WorkerLoginForm() {
           open: true,
           type: "error",
           title:
-            result.code === "VERIFICATION_PENDING"
+            result.code === "ACCOUNT_SUSPENDED"
+              ? "Account suspended"
+              : result.code === "ACCOUNT_BLOCKED"
+              ? "Account blocked"
+              : result.code === "VERIFICATION_PENDING"
               ? "Verification pending"
               : result.code === "VERIFICATION_REJECTED"
               ? "Verification rejected"
