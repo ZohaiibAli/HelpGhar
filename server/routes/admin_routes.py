@@ -19,7 +19,12 @@ from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from helper.password_helper import verify_password
 from helper.auth_helper import get_current_admin
-from helper.email_helper import send_reset_email
+from helper.email_helper import (
+    send_reset_email,
+    send_worker_approved_email,
+    send_worker_rejected_email,
+)
+from fastapi import BackgroundTasks
 import secrets
 from datetime import datetime, timedelta
 import os
@@ -537,6 +542,7 @@ def delete_user(
 def set_worker_verification(
     worker_id: str,
     payload: WorkerVerification,
+    background_tasks: BackgroundTasks,
     current_admin=Depends(get_current_admin)
 ):
     """
@@ -570,6 +576,15 @@ def set_worker_verification(
         {"workerId": worker_id},
         {"$set": {"cnicVerified": approved}}
     )
+
+    # Tell the worker about the decision. Sent in the background so the
+    # admin's click returns immediately and an SMTP error can't fail it.
+    if worker.get("email"):
+        background_tasks.add_task(
+            send_worker_approved_email if approved else send_worker_rejected_email,
+            worker["email"],
+            worker.get("fullName") or "worker",
+        )
 
     return {
         "success": True,
