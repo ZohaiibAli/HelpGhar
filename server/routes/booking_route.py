@@ -1,5 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from config.db import booking_collection, customer_collection, gig_collection, payment_collection
+from config.db import (
+    booking_collection,
+    customer_collection,
+    gig_collection,
+    payment_collection,
+    review_collection,
+    worker_collection,
+)
 from model.booking_model import BookingCreate, BookingReschedule, BookingComplete
 from helper.auth_helper import get_current_customer, get_current_worker
 from helper.id_helper import generate_booking_id
@@ -131,6 +138,89 @@ def get_my_bookings(current_customer: dict = Depends(get_current_customer)):
     for b in bookings:
         del b["_id"]
     return {"success": True, "bookings": bookings}
+
+
+@router.get("/my-workers")
+def get_my_workers(current_customer: dict = Depends(get_current_customer)):
+    """
+    Every worker this customer has completed a booking with, one entry per
+    worker + service, so they can re-book someone they already trust.
+
+    Declared before `/{booking_id}` so "my-workers" isn't swallowed as an id.
+    """
+    customer_id = current_customer["customerId"]
+
+    groups = list(booking_collection.aggregate([
+        {"$match": {"customerId": customer_id, "status": "completed"}},
+        {"$sort": {"createdAt": -1}},
+        {"$group": {
+            "_id": {"workerId": "$workerId", "category": "$category"},
+            "timesBooked": {"$sum": 1},
+            # Sorted newest-first above, so $first is the latest booking.
+            "lastBookedAt": {"$first": "$createdAt"},
+            "lastBookingDate": {"$first": "$date"},
+            "workerName": {"$first": "$workerName"},
+            "workerAvatar": {"$first": "$workerAvatar"},
+        }},
+        {"$sort": {"lastBookedAt": -1}},
+    ]))
+
+    if not groups:
+        return {"success": True, "workers": []}
+
+    worker_ids = list({g["_id"]["workerId"] for g in groups})
+
+    # Bulk lookups instead of one query per card.
+    gigs_by_key = {}
+    for gig in gig_collection.find({"workerId": {"$in": worker_ids}}):
+        key = (gig.get("workerId"), gig.get("category"))
+        existing = gigs_by_key.get(key)
+        # Prefer an Active listing when a worker has several for a category.
+        if existing is None or (existing.get("status") != "Active" and gig.get("status") == "Active"):
+            gigs_by_key[key] = gig
+
+    workers_by_id = {
+        w["workerId"]: w
+        for w in worker_collection.find(
+            {"workerId": {"$in": worker_ids}},
+            {"workerId": 1, "rating": 1, "reviewsCount": 1},
+        )
+    }
+
+    my_ratings = {}
+    for r in review_collection.find(
+        {"customerId": customer_id, "workerId": {"$in": worker_ids}}
+    ).sort("createdAt", -1):
+        my_ratings.setdefault(r["workerId"], r.get("rating"))
+
+    result = []
+    for g in groups:
+        worker_id = g["_id"]["workerId"]
+        category = g["_id"]["category"]
+        gig = gigs_by_key.get((worker_id, category)) or {}
+        worker = workers_by_id.get(worker_id) or {}
+        available = gig.get("status") == "Active"
+
+        result.append({
+            "workerId": worker_id,
+            "gigId": str(gig["_id"]) if available else None,
+            "workerName": gig.get("fullName") or g.get("workerName"),
+            "workerAvatar": gig.get("avatar") or g.get("workerAvatar"),
+            "category": category,
+            "city": gig.get("city"),
+            "priceMin": gig.get("priceMin"),
+            "priceMax": gig.get("priceMax"),
+            "priceUnit": gig.get("priceUnit"),
+            "timesBooked": g["timesBooked"],
+            "lastBookedAt": g.get("lastBookedAt"),
+            "lastBookingDate": g.get("lastBookingDate"),
+            "rating": worker.get("rating", 0),
+            "reviewsCount": worker.get("reviewsCount", 0),
+            "myRating": my_ratings.get(worker_id),
+            "available": available,
+        })
+
+    return {"success": True, "workers": result}
 
 
 @router.get("/worker/my")
