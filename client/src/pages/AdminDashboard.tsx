@@ -1,14 +1,13 @@
 import { Link } from "react-router-dom";
-import { Users, ShieldCheck, Calendar, MessageSquareWarning, TrendingUp, DollarSign, Loader2, Star } from "lucide-react";
+import { Users, ShieldCheck, Calendar, MessageSquareWarning, DollarSign, Loader2, Star, PiggyBank } from "lucide-react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { adminItems } from "@/data/adminMenu";
-import { HgAlert } from "@/components/ui/HgAlert";
 import {
   adminService,
   type AdminOverview,
-  type PendingWorker,
   type SeriesPoint,
 } from "@/services/adminService";
 import type { Complaint } from "@/types";
@@ -28,26 +27,14 @@ const formatTrend = (value: number | null) => {
   return `${value > 0 ? "+" : ""}${value}% vs last week`;
 };
 
-const formatDate = (value: string) => {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "—" : parsed.toLocaleDateString();
-};
+const sum = (points: SeriesPoint[] | undefined) =>
+  (points ?? []).reduce((total, p) => total + p.value, 0);
 
 export default function AdminDashboard() {
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [queue, setQueue] = useState<PendingWorker[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [verifying, setVerifying] = useState<string | null>(null);
-  const [alertState, setAlertState] = useState<{
-    open: boolean;
-    type: "success" | "error" | "server";
-    title: string;
-    description: string;
-  }>({ open: false, type: "success", title: "", description: "" });
-
-  const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
 
   const loadOverview = async () => {
     setLoading(true);
@@ -55,7 +42,6 @@ export default function AdminDashboard() {
     try {
       const { data } = await adminService.getOverview();
       setOverview(data);
-      setQueue(data.verificationQueue);
     } catch (error: any) {
       setLoadError(error?.message ?? "Failed to load platform overview");
     } finally {
@@ -90,51 +76,8 @@ export default function AdminDashboard() {
     fetchComplaints();
   }, []);
 
-  const decideVerification = async (
-    worker: PendingWorker,
-    action: "approve" | "reject"
-  ) => {
-    setVerifying(worker.workerId);
-    try {
-      await adminService.setWorkerVerification(worker.workerId, action);
-
-      // Decided workers leave the queue; keep the headline count in step
-      // so the card and the list can't disagree.
-      setQueue((list) => list.filter((w) => w.workerId !== worker.workerId));
-      setOverview((prev) =>
-        prev
-          ? {
-              ...prev,
-              stats: {
-                ...prev.stats,
-                pendingVerifications: Math.max(prev.stats.pendingVerifications - 1, 0),
-              },
-            }
-          : prev
-      );
-
-      setAlertState({
-        open: true,
-        type: "success",
-        title: action === "approve" ? "Worker verified" : "Verification rejected",
-        description:
-          action === "approve"
-            ? `${worker.fullName} is now a verified worker.`
-            : `${worker.fullName}'s verification was rejected.`,
-      });
-    } catch (error: any) {
-      setAlertState({
-        open: true,
-        type: "server",
-        title: "Action failed",
-        description: error?.message ?? "Could not update this worker. Please try again.",
-      });
-    } finally {
-      setVerifying(null);
-    }
-  };
-
   const stats = overview?.stats;
+  const series = overview?.series;
 
   return (
     <DashboardLayout title="Admin" items={adminItems}>
@@ -159,281 +102,228 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Stat
                 label="Total users"
                 value={formatNumber(stats?.totalUsers ?? 0)}
                 trend={`${formatNumber(stats?.totalCustomers ?? 0)} customers`}
+                caption={`+${sum(series?.users)} new this week`}
+                points={series?.users ?? []}
+                color="#3b82f6"
+                name="New users"
                 icon={Users}
               />
               <Stat
                 label="Total workers"
                 value={formatNumber(stats?.totalWorkers ?? 0)}
                 trend={`${formatNumber(stats?.pendingVerifications ?? 0)} unverified`}
+                caption={`+${sum(series?.workers)} new this week`}
+                points={series?.workers ?? []}
+                color="#8b5cf6"
+                name="New workers"
                 icon={ShieldCheck}
               />
               <Stat
                 label="Pending verifications"
                 value={formatNumber(stats?.pendingVerifications ?? 0)}
                 trend={stats?.pendingVerifications ? "needs review" : "all clear"}
+                caption={`${sum(series?.verifications)} applied this week`}
                 warn={!!stats?.pendingVerifications}
+                points={series?.verifications ?? []}
+                color="#f59e0b"
+                name="Applications"
                 icon={ShieldCheck}
               />
               <Stat
                 label="Total bookings"
                 value={formatNumber(stats?.totalBookings ?? 0)}
                 trend={formatTrend(overview?.trends.bookings ?? null)}
+                caption={`${sum(series?.bookings)} this week`}
+                points={series?.bookings ?? []}
+                color="#16a34a"
+                name="Bookings"
                 icon={Calendar}
               />
               <Stat
                 label="Revenue"
                 value={formatMoney(stats?.grossRevenue ?? 0)}
                 trend={formatTrend(overview?.trends.revenue ?? null)}
+                caption={`Profit ${formatMoney(stats?.platformEarnings ?? 0)} (5% cut)`}
+                points={series?.revenue ?? []}
+                color="#0ea5e9"
+                name="Revenue"
+                money
                 icon={DollarSign}
               />
               <Stat
                 label="Open complaints"
                 value={formatNumber(complaints.length)}
                 trend={complaints.length > 0 ? "needs review" : "all clear"}
+                caption={`${sum(series?.complaints)} filed this week`}
                 warn={complaints.length > 0}
+                points={series?.complaints ?? []}
+                color="#ef4444"
+                name="Complaints"
                 icon={MessageSquareWarning}
               />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold">Worker verification queue</h2>
-                  <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-[10px] font-bold uppercase text-yellow-800">
-                    {formatNumber(stats?.pendingVerifications ?? 0)} pending
-                  </span>
-                </div>
-
-                {queue.length === 0 ? (
-                  <p className="py-10 text-center text-xs text-muted-foreground">
-                    No workers awaiting verification.
-                  </p>
-                ) : (
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="text-left text-xs uppercase text-muted-foreground">
-                        <tr><th className="py-2">Worker</th><th>CNIC</th><th>Payout</th><th>Applied</th><th></th></tr>
-                      </thead>
-                      <tbody>
-                        {queue.map((w) => (
-                          <tr key={w.workerId} className="border-t border-border">
-                            <td className="py-3">
-                              <div className="flex items-center gap-2">
-                                <Avatar src={w.avatar} name={w.fullName} />
-                                <div className="min-w-0">
-                                  <p className="truncate text-xs font-bold">{w.fullName}</p>
-                                  <p className="truncate text-[10px] text-muted-foreground">
-                                    {w.category || w.workerId}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="text-xs text-muted-foreground">
-                              <div>{w.cnic || "—"}</div>
-                              {w.cnicImage ? (
-                                <a href={w.cnicImage} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">View CNIC photo</a>
-                              ) : (
-                                <span className="text-[10px]">No photo</span>
-                              )}
-                            </td>
-                            <td className="text-xs text-muted-foreground">
-                              {w.payout ? (
-                                <>
-                                  <div className="font-semibold text-foreground">{w.payout.methodLabel}{w.payout.bankName ? ` • ${w.payout.bankName}` : ""}</div>
-                                  <div className="font-mono text-[10px]">{w.payout.account}</div>
-                                  <div className="text-[10px]">{w.payout.accountTitle}</div>
-                                  {w.payoutTitleMatchesName === false && (
-                                    <div className="text-[10px] font-semibold text-orange-700">⚠ Title doesn't match name</div>
-                                  )}
-                                </>
-                              ) : (
-                                <span className="text-[10px]">Not provided</span>
-                              )}
-                            </td>
-                            <td className="text-xs text-muted-foreground">{formatDate(w.appliedAt)}</td>
-                            <td className="space-x-1 whitespace-nowrap text-right">
-                              <button
-                                onClick={() => decideVerification(w, "approve")}
-                                disabled={verifying === w.workerId}
-                                className="rounded-lg bg-primary px-2.5 py-1.5 text-[10px] font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
-                              >
-                                {verifying === w.workerId ? "…" : "Approve"}
-                              </button>
-                              <button
-                                onClick={() => decideVerification(w, "reject")}
-                                disabled={verifying === w.workerId}
-                                className="rounded-lg border border-border px-2.5 py-1.5 text-[10px] font-bold hover:border-destructive hover:text-destructive disabled:opacity-60"
-                              >
-                                Reject
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold">Open complaints</h2>
+                <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-[10px] font-bold uppercase text-yellow-800">{complaints.length} total</span>
               </div>
-
-              <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold">Open complaints</h2>
-                  <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-[10px] font-bold uppercase text-yellow-800">{complaints.length} total</span>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {complaints.length === 0 && (
-                    <p className="py-6 text-center text-xs text-muted-foreground">No open complaints.</p>
-                  )}
-                  {complaints.slice(0, 4).map((c) => (
-                    <div key={c.id} className="rounded-2xl border border-border bg-background p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold">#{c.id} • {c.subject}</p>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {c.customerName} ({c.customerId}) vs {c.workerName} ({c.workerId})
-                          </p>
-                        </div>
-                        <span className="rounded-full bg-yellow-100 px-2 py-1 text-[10px] font-bold uppercase text-yellow-800">{c.status.replace("_", " ")}</span>
+              <div className="mt-4 space-y-3">
+                {complaints.length === 0 && (
+                  <p className="py-6 text-center text-xs text-muted-foreground">No open complaints.</p>
+                )}
+                {complaints.slice(0, 4).map((c) => (
+                  <div key={c.id} className="rounded-2xl border border-border bg-background p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold">#{c.id} • {c.subject}</p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {c.customerName} ({c.customerId}) vs {c.workerName} ({c.workerId})
+                        </p>
                       </div>
-                      <p className="mt-2 text-xs text-muted-foreground">{c.description}</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Button asChild size="sm" className="rounded-lg bg-primary hover:bg-primary-dark">
-                          <Link to="/dashboard/admin/complaints">Review & resolve</Link>
-                        </Button>
-                        <Button asChild size="sm" variant="outline" className="rounded-lg">
-                          <Link to="/dashboard/admin/bookings">View booking</Link>
-                        </Button>
-                      </div>
+                      <span className="rounded-full bg-yellow-100 px-2 py-1 text-[10px] font-bold uppercase text-yellow-800">{c.status.replace("_", " ")}</span>
                     </div>
-                  ))}
-                  {complaints.length > 4 && (
-                    <Link
-                      to="/dashboard/admin/complaints"
-                      className="inline-block text-xs font-semibold text-primary hover:underline"
-                    >
-                      View all {complaints.length} complaints →
-                    </Link>
-                  )}
-                </div>
+                    <p className="mt-2 text-xs text-muted-foreground">{c.description}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button asChild size="sm" className="rounded-lg bg-primary hover:bg-primary-dark">
+                        <Link to="/dashboard/admin/complaints">Review & resolve</Link>
+                      </Button>
+                      <Button asChild size="sm" variant="outline" className="rounded-lg">
+                        <Link to="/dashboard/admin/bookings">View booking</Link>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {complaints.length > 4 && (
+                  <Link
+                    to="/dashboard/admin/complaints"
+                    className="inline-block text-xs font-semibold text-primary hover:underline"
+                  >
+                    View all {complaints.length} complaints →
+                  </Link>
+                )}
               </div>
             </div>
 
             <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-              <h2 className="text-base font-bold">Platform analytics</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Last 7 days.</p>
-              <div className="mt-6 grid gap-6 sm:grid-cols-3">
-                <MiniChart
-                  label="Bookings"
-                  value={formatNumber(
-                    (overview?.series.bookings ?? []).reduce((sum, p) => sum + p.value, 0)
-                  )}
-                  points={overview?.series.bookings ?? []}
-                />
-                <MiniChart
-                  label="Revenue"
-                  value={formatMoney(
-                    (overview?.series.revenue ?? []).reduce((sum, p) => sum + p.value, 0)
-                  )}
-                  points={overview?.series.revenue ?? []}
-                />
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs text-muted-foreground">Avg rating</p>
-                  <div className="mt-1 flex items-baseline gap-2">
-                    <p className="text-2xl font-black">{stats?.avgRating ?? 0}</p>
-                    <span className="inline-flex items-center text-xs font-semibold text-primary">
-                      <Star className="mr-0.5 h-3 w-3" /> {formatNumber(stats?.reviewsCount ?? 0)} reviews
-                    </span>
+                  <h2 className="text-base font-bold">Platform analytics</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">Last 7 days.</p>
+                </div>
+                <Link to="/dashboard/admin/earnings" className="inline-flex items-center text-xs font-semibold text-primary hover:underline">
+                  <PiggyBank className="mr-1 h-3.5 w-3.5" /> Month-by-month earnings →
+                </Link>
+              </div>
+              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Bookings</p>
+                  <p className="text-2xl font-black">{formatNumber(sum(series?.bookings))}</p>
+                  <div className="mt-2 h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={series?.bookings ?? []} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.4} />
+                        <XAxis dataKey="day" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12 }} formatter={(v: number) => [v, "Bookings"]} />
+                        <Bar dataKey="value" fill="#16a34a" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                  <div className="mt-3 flex h-20 items-end gap-1.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <div key={star} className="flex flex-1 flex-col items-center gap-1">
-                        <div
-                          className={`w-full rounded-t-md ${
-                            star <= Math.round(stats?.avgRating ?? 0) ? "bg-primary" : "bg-primary/20"
-                          }`}
-                          style={{ height: `${star * 18}%` }}
-                        />
-                        <span className="text-[9px] text-muted-foreground">{star}</span>
-                      </div>
-                    ))}
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Revenue vs profit</p>
+                  <p className="text-2xl font-black">
+                    {formatMoney(sum(series?.revenue))}{" "}
+                    <span className="text-sm font-bold text-primary">/ {formatMoney(sum(series?.profit))} profit</span>
+                  </p>
+                  <div className="mt-2 h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={(series?.revenue ?? []).map((p, i) => ({ ...p, profit: series?.profit[i]?.value ?? 0 }))}
+                        margin={{ top: 8, right: 8, left: -10, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.4} />
+                        <XAxis dataKey="day" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                        <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ borderRadius: 12, fontSize: 12 }} formatter={(v: number, n: string) => [`Rs. ${v.toLocaleString()}`, n === "value" ? "Revenue" : "Profit"]} />
+                        <Area type="monotone" dataKey="value" stroke="#0ea5e9" fill="#0ea5e9" fillOpacity={0.15} strokeWidth={2} />
+                        <Area type="monotone" dataKey="profit" stroke="#16a34a" fill="#16a34a" fillOpacity={0.3} strokeWidth={2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </div>
+              <p className="mt-4 inline-flex items-center text-xs font-semibold text-primary">
+                <Star className="mr-1 h-3 w-3" /> Avg rating {stats?.avgRating ?? 0} from {formatNumber(stats?.reviewsCount ?? 0)} reviews
+              </p>
             </div>
           </>
         )}
       </div>
-
-      <HgAlert
-        open={alertState.open}
-        onClose={closeAlert}
-        type={alertState.type}
-        title={alertState.title}
-        description={alertState.description}
-      />
     </DashboardLayout>
   );
 }
 
-function Avatar({ src, name }: { src: string; name: string }) {
-  if (src) {
-    return <img src={src} className="h-8 w-8 rounded-full object-cover object-top" alt="" />;
-  }
+function Stat({
+  label,
+  value,
+  trend,
+  caption,
+  warn,
+  points,
+  color,
+  name,
+  money,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  trend: string;
+  caption: string;
+  warn?: boolean;
+  points: SeriesPoint[];
+  color: string;
+  name: string;
+  money?: boolean;
+  icon: typeof Users;
+}) {
+  const gradientId = `grad-${label.replace(/\W/g, "")}`;
 
-  // Workers apply before they ever publish a gig, so most of the queue
-  // has no photo yet -- an initial beats a broken image icon.
-  return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[11px] font-bold text-primary-dark">
-      {name.trim().charAt(0).toUpperCase() || "?"}
-    </span>
-  );
-}
-
-function Stat({ label, value, trend, warn, icon: Icon }: { label: string; value: string; trend: string; warn?: boolean; icon: typeof Users }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
         <Icon className="h-3.5 w-3.5 text-primary" />
       </div>
-      <p className="mt-2 text-xl font-black">{value}</p>
+      <p className="mt-2 text-2xl font-black">{value}</p>
       <p className={`mt-1 text-[10px] font-bold uppercase ${warn ? "text-destructive" : "text-primary"}`}>{trend}</p>
-    </div>
-  );
-}
 
-function MiniChart({ label, value, points }: { label: string; value: string; points: SeriesPoint[] }) {
-  const peak = Math.max(...points.map((p) => p.value), 0);
-
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <div className="mt-1 flex items-baseline gap-2">
-        <p className="text-2xl font-black">{value}</p>
-        <span className="inline-flex items-center text-xs font-semibold text-primary"><TrendingUp className="mr-0.5 h-3 w-3" /> 7 days</span>
-      </div>
-      <div className="mt-3 flex h-20 items-end gap-1.5">
-        {points.length === 0 && (
-          <p className="w-full self-center text-center text-[10px] text-muted-foreground">No activity</p>
-        )}
-        {points.map((point) => (
-          <div key={point.date} className="flex flex-1 flex-col items-center gap-1">
-            <div
-              className="w-full rounded-t-md bg-primary/30"
-              title={`${point.date}: ${point.value}`}
-              // Bars are scaled against the week's peak; a flat 4% keeps
-              // an empty day visible instead of collapsing it to nothing.
-              style={{ height: peak > 0 ? `${Math.max((point.value / peak) * 100, 4)}%` : "4%" }}
+      <div className="mt-3 h-20">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={points} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.4} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="day" hide />
+            <YAxis hide domain={[0, (max: number) => Math.max(max, 1)]} />
+            <Tooltip
+              contentStyle={{ borderRadius: 10, fontSize: 11, padding: "4px 8px" }}
+              formatter={(v: number) => [money ? `Rs. ${v.toLocaleString()}` : v, name]}
             />
-            <span className="text-[9px] text-muted-foreground">{point.day}</span>
-          </div>
-        ))}
+            <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={`url(#${gradientId})`} />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
+      <p className="mt-1 text-[10px] text-muted-foreground">{caption} · last 7 days</p>
     </div>
   );
 }

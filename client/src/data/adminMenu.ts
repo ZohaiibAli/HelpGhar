@@ -7,12 +7,16 @@ import {
   Settings,
   BarChart3,
   Wallet,
+  BadgeCheck,
+  TrendingUp,
 } from "lucide-react";
 
 export const adminItems = [
   { label: "Profile", to: "/dashboard/admin/profile", icon: Users },
   { label: "Dashboard", to: "/dashboard/admin", icon: LayoutDashboard },
   { label: "Analytics", to: "/dashboard/admin/analytics", icon: BarChart3 },
+  { label: "Earnings", to: "/dashboard/admin/earnings", icon: TrendingUp },
+  { label: "Worker verification", to: "/dashboard/admin/verification", icon: BadgeCheck },
   { label: "Users", to: "/dashboard/admin/users", icon: Users },
   { label: "Bookings", to: "/dashboard/admin/bookings", icon: Calendar },
   { label: "Payouts", to: "/dashboard/admin/payouts", icon: Wallet },

@@ -658,10 +658,149 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
         "series": {
             "bookings": _daily_series(bookings, "createdAt", one, now),
             "revenue": _daily_series(payments, "date", revenue_of, now),
+            "profit": _daily_series(
+                payments, "date", lambda p: _money(p.get("platformFee")), now
+            ),
+            **_signup_series(now),
+            "complaints": _daily_series(
+                list(dispute_collection.find({}, {"createdAt": 1})),
+                "createdAt",
+                one,
+                now,
+            ),
         },
         "categories": _category_breakdown(),
         "statusBreakdown": _status_breakdown(),
         "verificationQueue": _verification_queue(),
+    }
+
+
+def _signup_series(now):
+    """
+    Customers and workers have no createdAt field, but every Mongo
+    ObjectId embeds the moment it was created -- good enough to chart
+    daily signups without a migration.
+    """
+
+    def stamped(collection, query=None):
+        return [
+            {"createdAt": doc["_id"].generation_time}
+            for doc in collection.find(query or {}, {"_id": 1})
+        ]
+
+    customers = stamped(customer_collection)
+    workers = stamped(worker_collection)
+    pending = stamped(worker_collection, PENDING_VERIFICATION_QUERY)
+    one = lambda _: 1
+
+    return {
+        "users": _daily_series(customers + workers, "createdAt", one, now),
+        "workers": _daily_series(workers, "createdAt", one, now),
+        "verifications": _daily_series(pending, "createdAt", one, now),
+    }
+
+
+def _month_key(moment):
+    # Month boundaries follow Pakistan time, same zone payments are stamped in.
+    local = moment + timedelta(hours=5)
+    return local.year, local.month
+
+
+@router.get("/admin/earnings")
+def admin_earnings(
+    months: int = 12, current_admin=Depends(get_current_admin)
+):
+    """
+    Month-by-month money picture. For every released booking the customer
+    paid `total` = worker `amount` + 5% `platformFee`; the worker gets the
+    amount and HelpGhar keeps the fee, so the fee is the platform profit.
+    """
+
+    months = max(1, min(months, 36))
+    now = datetime.utcnow() + timedelta(hours=5)
+
+    # Oldest -> newest list of (year, month) ending at the current month.
+    keys = []
+    year, month = now.year, now.month
+    for _ in range(months):
+        keys.append((year, month))
+        month -= 1
+        if month == 0:
+            year, month = year - 1, 12
+    keys.reverse()
+
+    buckets = {
+        key: {"bookings": 0, "gross": 0, "workerShare": 0, "profit": 0}
+        for key in keys
+    }
+
+    released = list(
+        payment_collection.find(
+            {"status": "released"},
+            {"total": 1, "amount": 1, "platformFee": 1, "date": 1},
+        )
+    )
+
+    life = {"bookings": 0, "gross": 0, "workerShare": 0, "profit": 0}
+
+    for payment in released:
+        gross = _money(payment.get("total"))
+        fee = _money(payment.get("platformFee"))
+        share = _money(payment.get("amount")) or max(gross - fee, 0)
+
+        life["bookings"] += 1
+        life["gross"] += gross
+        life["workerShare"] += share
+        life["profit"] += fee
+
+        moment = _as_utc(payment.get("date"))
+        if moment is None:
+            continue
+
+        bucket = buckets.get(_month_key(moment))
+        if bucket is not None:
+            bucket["bookings"] += 1
+            bucket["gross"] += gross
+            bucket["workerShare"] += share
+            bucket["profit"] += fee
+
+    held = list(
+        payment_collection.find(
+            {"status": "held"}, {"total": 1, "platformFee": 1}
+        )
+    )
+
+    rows = []
+    previous_profit = None
+    for key in keys:
+        data = buckets[key]
+        rows.append(
+            {
+                "month": datetime(key[0], key[1], 1).strftime("%b %Y"),
+                "label": datetime(key[0], key[1], 1).strftime("%b"),
+                **data,
+                # None = nothing last month to compare against.
+                "growth": _trend(data["profit"], previous_profit)
+                if previous_profit is not None
+                else None,
+            }
+        )
+        previous_profit = data["profit"]
+
+    current = rows[-1] if rows else None
+    last = rows[-2] if len(rows) > 1 else None
+
+    return {
+        "success": True,
+        "feeRate": 5,
+        "lifetime": life,
+        "thisMonth": current,
+        "growth": _trend(current["profit"], last["profit"]) if current and last else None,
+        "pending": {
+            "heldInEscrow": sum(_money(p.get("total")) for p in held),
+            "profitInEscrow": sum(_money(p.get("platformFee")) for p in held),
+        },
+        "monthly": rows,
     }
 
 
@@ -670,7 +809,7 @@ def _admin_payout_view(payout):
     return full_view(payout)
 
 
-def _verification_queue(limit: int = 8):
+def _verification_queue(limit: int = 50):
     """
     Workers still awaiting a verification decision. The admin page used
     to list *gigs* here and print a CNIC generated with Math.random()

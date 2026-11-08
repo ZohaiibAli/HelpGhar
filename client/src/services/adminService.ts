@@ -54,10 +54,41 @@ export interface AdminOverview {
   // null means "no previous week to compare against" -- the UI shows a
   // dash instead of inventing a percentage.
   trends: { bookings: number | null; revenue: number | null };
-  series: { bookings: SeriesPoint[]; revenue: SeriesPoint[] };
+  series: {
+    bookings: SeriesPoint[];
+    revenue: SeriesPoint[];
+    profit: SeriesPoint[];
+    users: SeriesPoint[];
+    workers: SeriesPoint[];
+    verifications: SeriesPoint[];
+    complaints: SeriesPoint[];
+  };
   categories: CategoryBreakdown[];
   statusBreakdown: BookingStatusBreakdown;
   verificationQueue: PendingWorker[];
+}
+
+export interface EarningsMonth {
+  month: string;
+  label: string;
+  bookings: number;
+  /** What customers paid (worker amount + 5% fee). */
+  gross: number;
+  /** What workers receive. */
+  workerShare: number;
+  /** The 5% platform cut -- HelpGhar's profit. */
+  profit: number;
+  growth: number | null;
+}
+
+export interface AdminEarnings {
+  success: boolean;
+  feeRate: number;
+  lifetime: { bookings: number; gross: number; workerShare: number; profit: number };
+  thisMonth: EarningsMonth | null;
+  growth: number | null;
+  pending: { heldInEscrow: number; profitInEscrow: number };
+  monthly: EarningsMonth[];
 }
 
 export interface PayoutDetailsView {
@@ -90,6 +121,10 @@ export interface AdminPayout {
 export const adminService = {
   // Platform overview (real stats, trends, charts, verification queue)
   getOverview: () => api.get<AdminOverview>("/dashboard/admin"),
+
+  // Month-by-month earnings after the 5% platform cut
+  getEarnings: (months = 12) =>
+    api.get<AdminEarnings>("/dashboard/admin/earnings", { params: { months } }),
 
   // Approve / reject a worker's CNIC verification
   setWorkerVerification: (workerId: string, action: "approve" | "reject") =>
