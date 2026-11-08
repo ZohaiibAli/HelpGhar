@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HelpGhar — Trusted Home Services at Your Doorstep</title>
     <meta name="description" content="Pakistan's trusted marketplace for verified home service workers — maids, drivers, cooks, electricians and more." />
+    <script>
+      // Apply saved color mode + text direction before first paint (no flash).
+      try {
+        var m = localStorage.getItem("hg-color-mode");
+        if (!m) m = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        if (m === "dark") document.documentElement.classList.add("dark");
+        if (localStorage.getItem("hg-lang") === "ur") {
+          document.documentElement.dir = "rtl";
+          document.documentElement.lang = "ur";
+        }
+      } catch (e) {}
+    </script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

@@ -6,7 +6,12 @@ import { Toaster } from "@/components/ui/sonner";
 import App from "./App";
 import "./styles.css";
 
+import "./i18n/rtl-dark.css";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
+import { initI18n } from "@/i18n/engine";
+import { applyMode, readMode } from "@/components/PreferencesBar";
+
+applyMode(readMode());
 
 const savedTheme = getStoredTheme();
 if (savedTheme) {
@@ -25,3 +30,6 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+// After the first render so the DOM exists; the observer keeps it translated.
+initI18n();

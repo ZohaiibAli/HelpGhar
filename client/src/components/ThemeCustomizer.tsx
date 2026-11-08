@@ -136,10 +136,10 @@ export function ThemeCustomizer() {
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       } else {
-        toast.error(data.message || t("adminSettings.toast.generic"));
+        toast.error(data.message || t("adminSettings.toast.generic", { defaultValue: "Something went wrong" }));
       }
     } catch {
-      toast.error(t("adminSettings.toast.generic"));
+      toast.error(t("adminSettings.toast.generic", { defaultValue: "Something went wrong" }));
     } finally {
       setIsApplying(false);
     }

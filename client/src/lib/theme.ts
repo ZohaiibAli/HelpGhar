@@ -34,16 +34,30 @@ function hsl(h: number, s: number, l: number) {
  * Derives every theme-dependent CSS variable from the four base sliders
  * and writes them onto :root (document.documentElement).
  */
+let lastTheme: WebsiteTheme | null = null;
+
+/** Re-derives the palette after light/dark mode flips (accent colors differ). */
+export function reapplyTheme() {
+  if (lastTheme) applyTheme(lastTheme);
+}
+
 export function applyTheme(theme: WebsiteTheme) {
   if (typeof document === "undefined") return; // SSR guard
+
+  lastTheme = theme;
+  const dark = document.documentElement.classList.contains("dark");
 
   const { hue, saturation, lightness, corner_radius } = theme;
 
   const primary = hsl(hue, saturation, lightness);
   const primaryDark = hsl(hue, saturation, lightness - 12);
-  const primarySoft = hsl(hue, clamp(saturation - 30, 15, 100), 95);
+  const primarySoft = dark
+    ? hsl(hue, clamp(saturation - 20, 15, 60), 22)
+    : hsl(hue, clamp(saturation - 30, 15, 100), 95);
   const primaryForeground = lightness > 62 ? "oklch(0.205 0.024 264)" : "#ffffff";
-  const accentForeground = hsl(hue, clamp(saturation - 10, 15, 100), 28);
+  const accentForeground = dark
+    ? hsl(hue, clamp(saturation - 10, 15, 60), 88)
+    : hsl(hue, clamp(saturation - 10, 15, 100), 28);
   const ring = primary;
 
   const root = document.documentElement.style;

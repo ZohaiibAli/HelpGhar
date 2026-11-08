@@ -1,0 +1,93 @@
+/* ------------------------------------------------------------------ *
+ * Urdu (RTL) support
+ * ------------------------------------------------------------------ */
+html[data-lang="ur"] body,
+html[data-lang="ur"] .font-display,
+html[data-lang="ur"] h1,
+html[data-lang="ur"] h2,
+html[data-lang="ur"] h3,
+html[data-lang="ur"] h4,
+html[data-lang="ur"] button,
+html[data-lang="ur"] input,
+html[data-lang="ur"] textarea,
+html[data-lang="ur"] select {
+  font-family: "Noto Naskh Arabic", "Noto Nastaliq Urdu", var(--font-sans);
+  letter-spacing: 0;
+}
+html[data-lang="ur"] body { line-height: 1.75; }
+
+/* Physical spacing/alignment utilities don't flip on their own. */
+[dir="rtl"] .text-left { text-align: right; }
+[dir="rtl"] .text-right { text-align: left; }
+[dir="rtl"] .ml-auto { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .mr-auto { margin-right: 0; margin-left: auto; }
+[dir="rtl"] .mr-0\.5 { margin-right: 0; margin-left: 0.125rem; }
+[dir="rtl"] .mr-1 { margin-right: 0; margin-left: 0.25rem; }
+[dir="rtl"] .mr-1\.5 { margin-right: 0; margin-left: 0.375rem; }
+[dir="rtl"] .mr-2 { margin-right: 0; margin-left: 0.5rem; }
+[dir="rtl"] .mr-3 { margin-right: 0; margin-left: 0.75rem; }
+[dir="rtl"] .mr-4 { margin-right: 0; margin-left: 1rem; }
+[dir="rtl"] .ml-1 { margin-left: 0; margin-right: 0.25rem; }
+[dir="rtl"] .ml-1\.5 { margin-left: 0; margin-right: 0.375rem; }
+[dir="rtl"] .ml-2 { margin-left: 0; margin-right: 0.5rem; }
+[dir="rtl"] .ml-3 { margin-left: 0; margin-right: 0.75rem; }
+[dir="rtl"] .ml-4 { margin-left: 0; margin-right: 1rem; }
+[dir="rtl"] .pl-3 { padding-left: 0; padding-right: 0.75rem; }
+[dir="rtl"] .pl-4 { padding-left: 0; padding-right: 1rem; }
+[dir="rtl"] .pl-9 { padding-left: 0; padding-right: 2.25rem; }
+[dir="rtl"] .pl-10 { padding-left: 0; padding-right: 2.5rem; }
+[dir="rtl"] .pr-2 { padding-right: 0; padding-left: 0.5rem; }
+[dir="rtl"] .pr-3 { padding-right: 0; padding-left: 0.75rem; }
+[dir="rtl"] .pr-4 { padding-right: 0; padding-left: 1rem; }
+[dir="rtl"] .left-3 { left: auto; right: 0.75rem; }
+[dir="rtl"] .right-3 { right: auto; left: 0.75rem; }
+[dir="rtl"] .left-0 { left: auto; right: 0; }
+[dir="rtl"] .right-0 { right: auto; left: 0; }
+[dir="rtl"] .lucide-chevron-right,
+[dir="rtl"] .lucide-arrow-right,
+[dir="rtl"] .lucide-chevron-left,
+[dir="rtl"] .lucide-arrow-left { transform: scaleX(-1); }
+/* Emails, phone numbers and passwords stay left-to-right while typing. */
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="tel"],
+[dir="rtl"] input[type="number"],
+[dir="rtl"] input[type="password"] { direction: ltr; text-align: right; }
+
+/* ------------------------------------------------------------------ *
+ * Dark mode: hard-coded light utility colors used across the pages
+ * ------------------------------------------------------------------ */
+.dark .bg-white { background-color: var(--card); }
+.dark .bg-gray-50, .dark .bg-slate-50, .dark .bg-gray-100, .dark .bg-slate-100 { background-color: var(--muted); }
+.dark .text-gray-900, .dark .text-slate-900, .dark .text-gray-800, .dark .text-slate-800 { color: var(--foreground); }
+.dark .text-gray-500, .dark .text-gray-600, .dark .text-slate-500, .dark .text-slate-600 { color: var(--muted-foreground); }
+.dark .border-gray-200, .dark .border-slate-200, .dark .border-gray-100 { border-color: var(--border); }
+.dark [class*="bg-red-50"] { background-color: oklch(0.3 0.08 27); }
+.dark [class*="bg-red-100"] { background-color: oklch(0.34 0.1 27); }
+.dark [class*="border-red-200"] { border-color: oklch(0.45 0.12 27); }
+.dark [class*="text-red-600"], .dark [class*="text-red-700"] { color: oklch(0.8 0.12 27); }
+.dark [class*="bg-yellow-100"], .dark [class*="bg-amber-100"], .dark [class*="bg-yellow-50"], .dark [class*="bg-amber-50"] { background-color: oklch(0.34 0.07 85); }
+.dark [class*="text-yellow-800"], .dark [class*="text-yellow-700"], .dark [class*="text-amber-800"], .dark [class*="text-amber-700"] { color: oklch(0.9 0.12 90); }
+.dark [class*="bg-green-50"], .dark [class*="bg-green-100"], .dark [class*="bg-emerald-50"], .dark [class*="bg-emerald-100"] { background-color: oklch(0.32 0.07 160); }
+.dark [class*="text-green-700"], .dark [class*="text-green-800"], .dark [class*="text-emerald-700"], .dark [class*="text-emerald-800"] { color: oklch(0.88 0.13 160); }
+.dark [class*="bg-blue-50"], .dark [class*="bg-blue-100"], .dark [class*="bg-sky-50"], .dark [class*="bg-sky-100"] { background-color: oklch(0.32 0.07 250); }
+.dark [class*="text-blue-700"], .dark [class*="text-blue-800"], .dark [class*="text-sky-700"] { color: oklch(0.85 0.1 250); }
+.dark [class*="bg-orange-50"], .dark [class*="bg-orange-100"] { background-color: oklch(0.33 0.08 55); }
+.dark [class*="text-orange-700"], .dark [class*="text-orange-800"] { color: oklch(0.88 0.12 60); }
+.dark .bg-hero-gradient {
+  background-image:
+    radial-gradient(1200px 600px at 90% -10%, color-mix(in oklch, var(--primary) 18%, transparent), transparent 60%),
+    radial-gradient(800px 400px at -10% 110%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--background) 0%, var(--card) 100%);
+}
+
+/* Landing hero has its own palette (.hg-root variables) */
+.dark .hg-root { --bg: #0d1a16; --ink: #e8f3ee; --muted: #a3b8b0; --line: rgba(255, 255, 255, 0.14); --em: #34d399; --em2: #10b981; }
+.dark .hg-pill, .dark .hg-search, .dark .hg-pick { background: #16241f; }
+.dark .hg-pick.on { background: var(--c); }
+.dark .hg-card { background: rgba(22, 36, 31, 0.92); }
+.dark .hg-btn { color: #04231a; }
+.dark .hg-btn.ghost { color: var(--ink); }
+.dark .hg-btn.saf { color: #2a1900; }
+.dark .hg-blob { opacity: 0.25; }
+/* The hero's decorative Urdu line is redundant (and clashes) once the whole UI is Urdu */
+html[data-lang="ur"] .hg-ur { display: none; }
