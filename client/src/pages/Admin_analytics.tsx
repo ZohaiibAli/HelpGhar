@@ -243,7 +243,7 @@ export default function AdminAnalytics() {
               <Stat
                 label="Gross revenue"
                 value={formatMoney(stats?.grossRevenue ?? 0)}
-                hint={`${formatMoney(stats?.platformEarnings ?? 0)} platform fees`}
+                hint={`${formatMoney(stats?.platformEarnings ?? 0)} fees • ${formatMoney(stats?.heldInEscrow ?? 0)} in escrow`}
                 icon={DollarSign}
               />
               <Stat

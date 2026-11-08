@@ -64,6 +64,7 @@ export async function getWorkerDashboard() {
       avgRating: number;
       reviewsCount: number;
       totalEarnings: number;
+      pendingEscrow: number;
       activeGigs: number;
       available: boolean;
       pendingJobs: number;
@@ -90,9 +91,10 @@ export async function startBooking(bookingId: string) {
 }
 
 /**
- * Complete a booking
+ * Complete a booking with the customer's 4-digit completion PIN.
+ * Releases the escrowed payment to the worker on success.
  */
-export async function completeBooking(bookingId: string) {
-  const { data } = await api.patch(`/bookings/${bookingId}/complete`);
+export async function completeBooking(bookingId: string, pin: string) {
+  const { data } = await api.patch(`/bookings/${bookingId}/complete`, { pin });
   return data as { success: boolean; message: string };
 }

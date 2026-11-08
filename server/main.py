@@ -21,6 +21,7 @@ from routes.recommendation_routes import router as recommendation_router
 from routes.job_routes import router as job_router
 
 from helper.seed_helper import seed_default_card
+from helper.escrow_helper import migrate_legacy_payments
 
 app = FastAPI(
     title="HelpGhar API",
@@ -31,6 +32,7 @@ app = FastAPI(
 @app.on_event("startup")
 def on_startup():
     seed_default_card()
+    migrate_legacy_payments()
 
 
 # ============================

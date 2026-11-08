@@ -17,3 +17,9 @@ class BookingCreate(BaseModel):
 class BookingReschedule(BaseModel):
     date: str
     timeSlot: str
+
+
+class BookingComplete(BaseModel):
+    # The 4-digit completion PIN the customer gives the worker once the
+    # job is done. Kept as a string so leading zeros ("0042") survive.
+    pin: str = Field(min_length=4, max_length=4, pattern=r"^\d{4}$")

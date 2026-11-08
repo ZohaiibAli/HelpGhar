@@ -149,9 +149,17 @@ export interface Booking {
 
   customerId: string;
   createdAt: string;
+
+  // Escrow (admin list only). paymentStatus is "unpaid" before payment.
+  paymentStatus?: PaymentStatus | "unpaid";
+  pinLocked?: boolean;
+  // Only ever sent to the customer who owns the booking.
+  completionPin?: string;
 }
 
-export type PaymentStatus = "successful" | "pending" | "refunded";
+// Escrow: "held" until the worker completes the job with the customer's
+// PIN, then "released" to the worker; "refunded" if the booking is cancelled.
+export type PaymentStatus = "held" | "released" | "pending" | "refunded";
 export interface Transaction {
   id: string;
   bookingId: string;

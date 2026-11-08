@@ -8,8 +8,8 @@ import jsPDF from "jspdf";
 import { api } from "@/services/api";
 
 const filters: { id: "all" | PaymentStatus; label: string }[] = [
-  { id: "all", label: "All" }, { id: "successful", label: "Successful" },
-  { id: "pending", label: "Pending" }, { id: "refunded", label: "Refunded" },
+  { id: "all", label: "All" }, { id: "held", label: "In escrow" },
+  { id: "released", label: "Released" }, { id: "refunded", label: "Refunded" },
 ];
 
 export default function TransactionsPage() {
@@ -303,9 +303,16 @@ function Th({ children }: { children: React.ReactNode }) {
 }
 function StatusPill({ s }: { s: PaymentStatus }) {
   const map: Record<PaymentStatus, string> = {
-    successful: "bg-primary-soft text-primary-dark",
+    held: "bg-blue-100 text-blue-800",
+    released: "bg-primary-soft text-primary-dark",
     pending: "bg-yellow-100 text-yellow-800",
     refunded: "bg-red-100 text-red-700",
   };
-  return <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${map[s]}`}>{s}</span>;
+  const label: Record<PaymentStatus, string> = {
+    held: "In escrow",
+    released: "Released",
+    pending: "Pending",
+    refunded: "Refunded",
+  };
+  return <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${map[s] ?? "bg-muted text-muted-foreground"}`}>{label[s] ?? s}</span>;
 }

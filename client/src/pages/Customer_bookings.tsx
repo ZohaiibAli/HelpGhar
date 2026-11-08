@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, MapPin, MessageSquare, X } from "lucide-react";
+import { Calendar, MapPin, MessageSquare, X, KeyRound, ShieldCheck } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { customerItems } from "@/data/customerMenu";
 import { Button } from "@/components/ui/button";
@@ -209,6 +209,25 @@ function BookingRow({
           <p className="text-base font-black">Rs. {booking.total.toLocaleString()}</p>
         </div>
       </div>
+
+      {(booking.status === "confirmed" || booking.status === "in_progress") && booking.completionPin && (
+        <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-primary/20 bg-primary-soft p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-card text-primary-dark">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary-dark">Completion PIN</p>
+              <p className="font-mono text-2xl font-black tracking-[0.35em] text-foreground">{booking.completionPin}</p>
+            </div>
+          </div>
+          <p className="min-w-0 flex-1 basis-56 text-xs text-primary-dark">
+            <ShieldCheck className="mr-1 inline h-3 w-3" />
+            Your payment is held safely by HelpGhar. Share this PIN with the worker
+            <strong> only after the job is done</strong> — it releases the payment to them.
+          </p>
+        </div>
+      )}
 
       {isRescheduling ? (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
