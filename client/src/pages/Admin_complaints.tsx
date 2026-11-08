@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Ban, CheckCircle2, ShieldCheck, Timer, Trash2, X } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, ShieldCheck, Timer, Trash2, X } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 import { Button } from "@/components/ui/button";
 import { authHeaders, handleAuthFailure } from "@/lib/session";
 import type { AccountStatus, Complaint } from "@/types";
 import { ModerationDialog, formatUntil, type ModerationTarget } from "@/components/admin/ModerationDialog";
+import { PaymentDisputeSection } from "@/components/admin/PaymentDisputeSection";
 
 const statusStyles: Record<Complaint["status"], string> = {
   open: "bg-red-100 text-red-700",
@@ -23,7 +24,7 @@ const accountStyles: Record<AccountStatus, string> = {
 type ModerationRequest = {
   target: ModerationTarget;
   disputeId: string;
-  action: "suspend" | "block" | "restore";
+  action: "warn" | "suspend" | "block" | "restore";
 };
 
 function ComplaintSection({
@@ -114,6 +115,14 @@ function ComplaintSection({
 
                 {target && target.status === "active" && (
                   <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="rounded-lg text-amber-700 hover:border-amber-500"
+                      onClick={() => onModerate({ target, disputeId: c.id, action: "warn" })}
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" /> Warn {target.role}
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -272,6 +281,14 @@ export default function AdminComplaints() {
           </div>
         )}
 
+        <PaymentDisputeSection
+          disputes={workerComplaints.filter((c) => c.type === "payment")}
+          onDecided={(message) => {
+            setSuccessMessage(message);
+            refresh();
+          }}
+        />
+
         <div className="grid gap-6 lg:grid-cols-2">
           <ComplaintSection
             title="Customer Disputes"
@@ -282,7 +299,7 @@ export default function AdminComplaints() {
           />
           <ComplaintSection
             title="Worker Disputes"
-            complaints={workerComplaints}
+            complaints={workerComplaints.filter((c) => c.type !== "payment")}
             onResolve={(id) => resolve(id, "worker")}
             onDelete={(id) => remove(id, "worker")}
             onModerate={setModeration}

@@ -12,6 +12,8 @@ from config.db import (
 )
 from model.admin_model import AdminLogin,ForgotPasswordRequest,ResetPasswordRequest
 from model.admin_model import WorkerVerification, ModerationAction
+from model.dispute_model import PaymentDisputeDecision
+from helper.payment_dispute_helper import PAYMENT_DISPUTE, decide_payment_dispute
 from helper.account_helper import (
     ACTIVE,
     BLOCKED,
@@ -19,6 +21,7 @@ from helper.account_helper import (
     ROLE_COLLECTION,
     ROLE_ID_FIELD,
     apply_moderation,
+    warn_account,
     normalise_status,
     refresh,
     restore_account,
@@ -39,6 +42,7 @@ from helper.email_helper import (
     complaint_resolved_email,
     account_moderated_email,
     account_restored_email,
+    account_warning_email,
     booking_cancelled_by_admin_email,
 )
 from fastapi import BackgroundTasks
@@ -366,6 +370,9 @@ def _admin_disputes(filed_by: str):
             "status": dispute["status"].lower(),
             "createdAt": dispute["createdAt"],
             "actionTaken": dispute.get("actionTaken"),
+            "type": dispute.get("type", "complaint"),
+            "amount": dispute.get("amount"),
+            "resolution": dispute.get("resolution"),
             "against": {
                 "role": against_role,
                 "id": dispute.get(against_field),
@@ -425,6 +432,12 @@ def resolve_dispute(
     if not dispute:
         raise HTTPException(status_code=404, detail="Dispute not found")
 
+    if dispute.get("type") == PAYMENT_DISPUTE:
+        raise HTTPException(
+            status_code=400,
+            detail="Decide a payment dispute with Release to worker or Refund customer."
+        )
+
     already_resolved = dispute.get("status", "").lower() == "resolved"
 
     dispute_collection.update_one(
@@ -448,11 +461,43 @@ def resolve_dispute(
     }
 
 
+@router.patch("/payment-dispute/{dispute_id}/decide")
+def decide_payment_dispute_route(
+    dispute_id: str,
+    payload: PaymentDisputeDecision,
+    background_tasks: BackgroundTasks,
+    current_admin=Depends(get_current_admin)
+):
+    """Release the held payment to the worker, or refund the customer."""
+
+    dispute = dispute_collection.find_one({"disputeId": dispute_id})
+    if not dispute:
+        raise HTTPException(status_code=404, detail="Dispute not found")
+
+    message = decide_payment_dispute(
+        dispute,
+        payload.decision,
+        str(current_admin["_id"]),
+        (payload.note or "").strip() or None,
+        background_tasks,
+    )
+    return {"success": True, "message": message}
+
+
 @router.delete("/dispute/{dispute_id}")
 def delete_dispute(dispute_id: str, user=Depends(verify_token)):
 
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin Only")
+
+    pending_payment = dispute_collection.find_one({
+        "disputeId": dispute_id, "type": PAYMENT_DISPUTE, "status": {"$ne": "Resolved"},
+    })
+    if pending_payment:
+        raise HTTPException(
+            status_code=400,
+            detail="Decide this payment dispute (release or refund) before deleting it."
+        )
 
     result = dispute_collection.delete_one({"disputeId": dispute_id})
 
@@ -573,6 +618,34 @@ def _until_text(until_iso):
         return "further notice"
 
 
+def _record_dispute_action(dispute, action, days, admin_id, background_tasks):
+    """Stamp the complaint with the action taken and, the first time, tell
+    the person who filed it that something was done."""
+    if not dispute:
+        return
+
+    first_action = not dispute.get("actionTaken")
+    dispute_collection.update_one(
+        {"disputeId": dispute["disputeId"]},
+        {"$set": {"actionTaken": {
+            "action": action,
+            "days": days,
+            "at": datetime.utcnow().isoformat(),
+            "by": admin_id,
+        }}}
+    )
+
+    complainant = _complainant(dispute)
+    if first_action and complainant and complainant.get("email"):
+        background_tasks.add_task(
+            send_plain_email,
+            complainant["email"],
+            *complaint_action_taken_email(
+                complainant.get("fullName"), dispute["disputeId"], dispute.get("subject", "")
+            ),
+        )
+
+
 def _moderate(role, user, payload: ModerationAction, current_admin, background_tasks):
     """Shared by the moderation endpoint and the legacy toggle."""
 
@@ -591,6 +664,33 @@ def _moderate(role, user, payload: ModerationAction, current_admin, background_t
             or dispute.get(ROLE_ID_FIELD[role]) != user.get(ROLE_ID_FIELD[role])
         ):
             raise HTTPException(status_code=400, detail="This complaint is not about that user")
+
+    if payload.action == "warn":
+        if status != ACTIVE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"This account is already {status} -- a warning isn't needed",
+            )
+
+        note = (payload.reason or "").strip() or None
+        warn_account(role, user, note, admin_id, payload.disputeId)
+
+        if user.get("email"):
+            background_tasks.add_task(
+                send_plain_email,
+                user["email"],
+                *account_warning_email(
+                    user.get("fullName"),
+                    role,
+                    dispute["disputeId"] if dispute else None,
+                    dispute.get("subject") if dispute else None,
+                    note,
+                ),
+            )
+
+        _record_dispute_action(dispute, "warned", None, admin_id, background_tasks)
+
+        return {"status": ACTIVE, "warned": True, "cancelledBookings": 0}
 
     if payload.action == "restore":
         if status == ACTIVE:
@@ -645,27 +745,9 @@ def _moderate(role, user, payload: ModerationAction, current_admin, background_t
                 ),
             )
 
-    if dispute:
-        first_action = not dispute.get("actionTaken")
-        dispute_collection.update_one(
-            {"disputeId": dispute["disputeId"]},
-            {"$set": {"actionTaken": {
-                "action": action,
-                "days": payload.days if action == SUSPENDED else None,
-                "at": datetime.utcnow().isoformat(),
-                "by": admin_id,
-            }}}
-        )
-
-        complainant = _complainant(dispute)
-        if first_action and complainant and complainant.get("email"):
-            background_tasks.add_task(
-                send_plain_email,
-                complainant["email"],
-                *complaint_action_taken_email(
-                    complainant.get("fullName"), dispute["disputeId"], dispute.get("subject", "")
-                ),
-            )
+    _record_dispute_action(
+        dispute, action, payload.days if action == SUSPENDED else None, admin_id, background_tasks
+    )
 
     return {
         "status": action,
@@ -702,7 +784,9 @@ def moderate_user(
         SUSPENDED: f"Account suspended for {payload.days} days",
         BLOCKED: "Account blocked",
     }
-    message = messages[result["status"]]
+    message = (
+        "Warning email sent" if result.get("warned") else messages[result["status"]]
+    )
     if result.get("cancelledBookings"):
         message += f" • {result['cancelledBookings']} open booking(s) cancelled and refunded"
 

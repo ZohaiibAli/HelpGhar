@@ -210,6 +210,14 @@ function BookingRow({
         </div>
       </div>
 
+      {booking.paymentDisputeId && !booking.paymentDisputeOutcome && (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          {booking.workerName ?? "Your worker"} raised payment dispute {booking.paymentDisputeId}, saying the job is done
+          but they didn't get the completion PIN. HelpGhar is reviewing it and will email you the decision. If the job
+          was done, you can still share the PIN.
+        </p>
+      )}
+
       {(booking.status === "confirmed" || booking.status === "in_progress") && booking.completionPin && (
         <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-primary/20 bg-primary-soft p-4">
           <div className="flex items-center gap-3">
@@ -250,7 +258,7 @@ function BookingRow({
         </div>
       ) : (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
-          {booking.status === "confirmed" && (
+          {booking.status === "confirmed" && !(booking.paymentDisputeId && !booking.paymentDisputeOutcome) && (
             <>
               <Button size="sm" variant="outline" className="rounded-xl" onClick={onStartReschedule}>Reschedule</Button>
               <Button size="sm" variant="outline" className="rounded-xl text-destructive" onClick={onCancelBooking}>

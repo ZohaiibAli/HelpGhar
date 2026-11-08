@@ -13,6 +13,7 @@ from helper.payout_helper import (
     PayoutError,
     full_view,
     masked,
+    pay_pending_payouts,
     payout_collection,
     serialize_payout,
     title_matches_name,
@@ -116,7 +117,33 @@ contact HelpGhar support so we can hold your payouts.
 """),
         )
 
-    return {"success": True, "message": "Payout details updated", "payout": masked(payout)}
+    # Anything that was waiting for these details goes out now.
+    paid_now = pay_pending_payouts({**worker, "payout": payout})
+    message = "Payout details updated"
+
+    if paid_now:
+        total = sum(p.get("amount", 0) for p in paid_now)
+        message += f" • Rs. {total:,} in pending earnings sent to this account"
+        if worker.get("email"):
+            view = masked(payout)
+            lines = "\n".join(
+                f"  {p['bookingId']}  Rs. {p.get('amount', 0):,}  ref {p['reference']}" for p in paid_now
+            )
+            background_tasks.add_task(
+                send_plain_email,
+                worker["email"],
+                f"HelpGhar: Rs. {total:,} in pending earnings sent",
+                _sign(
+                    f"Hello {worker.get('fullName') or 'there'},\n\n"
+                    "Thanks for adding your payout details. The earnings we were holding\n"
+                    f"for you have now been sent to {view['methodLabel']} - {view['account']}:\n\n"
+                    f"{lines}\n\n"
+                    f"Total: Rs. {total:,}\n\n"
+                    "Depending on your bank or wallet it can take a little while to show up."
+                ),
+            )
+
+    return {"success": True, "message": message, "payout": masked(payout)}
 
 
 @worker_router.get("/payouts")

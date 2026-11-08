@@ -138,6 +138,27 @@ def apply_moderation(role: str, user: dict, action: str, reason: str,
     return cancelled
 
 
+def warn_account(role: str, user: dict, reason: str | None, admin_id: str,
+                 dispute_id: str | None) -> None:
+    """Record an official warning. The account stays active."""
+
+    now = _now().isoformat()
+    ROLE_COLLECTION[role].update_one(
+        {"_id": user["_id"]},
+        {
+            "$inc": {"warningsCount": 1},
+            "$set": {"lastWarnedAt": now},
+            "$push": {"moderationHistory": {
+                "action": "warned",
+                "reason": reason,
+                "by": admin_id,
+                "at": now,
+                "disputeId": dispute_id,
+            }},
+        },
+    )
+
+
 def restore_account(role: str, user: dict, by: str) -> None:
     collection = ROLE_COLLECTION[role]
     now = _now().isoformat()
