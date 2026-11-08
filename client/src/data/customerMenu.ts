@@ -9,6 +9,7 @@ import {
   Settings,
   ClipboardList,
   FilePlus2,
+  Users,
 } from "lucide-react";
 
 export const customerItems = [
@@ -17,6 +18,7 @@ export const customerItems = [
   { label: "Post a Job", to: "/post-job", icon: FilePlus2 },
   { label: "My Job Posts", to: "/my-jobs", icon: ClipboardList },
   { label: "My Bookings", to: "/my-bookings", icon: Calendar },
+  { label: "My Workers", to: "/my-workers", icon: Users },
   { label: "Transactions", to: "/transactions", icon: CreditCard },
   { label: "Reviews", to: "/reviews", icon: Star },
   { label: "Disputes", to: "/disputes", icon: MessageSquareWarning },

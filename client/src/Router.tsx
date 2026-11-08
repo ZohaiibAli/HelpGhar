@@ -15,6 +15,7 @@ import ProfilePage from "@/pages/Customer_profile";
 import WorkerProfilePage from "@/pages/Worker_profile";
 import SettingsPage from "@/pages/Customer_settings";
 import MyBookingsPage from "@/pages/Customer_bookings";
+import MyWorkersPage from "@/pages/Customer_MyWorkers";
 import TransactionsPage from "@/pages/Transactions";
 import ReviewsPage from "@/pages/Customer_review";
 import DisputePage from "@/pages/Customer_Dispute_Page";
@@ -115,6 +116,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={["customer"]}>
               <MyBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-workers"
+          element={
+            <ProtectedRoute allowedRoles={["customer"]}>
+              <MyWorkersPage />
             </ProtectedRoute>
           }
         />
