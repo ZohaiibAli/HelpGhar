@@ -5,6 +5,7 @@ Converts workers and customers
 into ML feature vectors.
 """
 
+from helper.price_helper import gig_price
 from config.db import (
     booking_collection,
     gig_collection,
@@ -59,12 +60,7 @@ class FeatureEngineering:
             ),
 
             normalize(
-                worker.get("priceMin", 0),
-                50000
-            ),
-
-            normalize(
-                worker.get("priceMax", 0),
+                gig_price(worker),
                 50000
             ),
 
@@ -130,8 +126,7 @@ class FeatureEngineering:
             "marketplaceScore": 0,
             "rating": 0,
             "reviewsCount": 0,
-            "priceMin": 0,
-            "priceMax": 0,
+            "price": 0,
         }
 
         workers_used = 0
@@ -160,8 +155,7 @@ class FeatureEngineering:
             totals["marketplaceScore"] += gig.get("marketplaceScore", 0)
             totals["rating"] += gig.get("rating", 0)
             totals["reviewsCount"] += gig.get("reviewsCount", 0)
-            totals["priceMin"] += gig.get("priceMin", 0)
-            totals["priceMax"] += gig.get("priceMax", 0)
+            totals["price"] += gig_price(gig)
 
             workers_used += 1
 
@@ -200,9 +194,7 @@ class FeatureEngineering:
 
             normalize(averages["reviewsCount"], 200),
 
-            normalize(averages["priceMin"], 50000),
-
-            normalize(averages["priceMax"], 50000),
+            normalize(averages["price"], 50000),
 
             # A customer always prefers an available, verified
             # worker -- these two dimensions anchor the vector

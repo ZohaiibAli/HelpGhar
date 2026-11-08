@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { Briefcase, Star, Award, User, Timer, TrendingUp, X, Loader2, ShieldCheck, Wallet, AlertTriangle } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { categories } from "@/data/mock";
 import { useEffect, useState } from "react";
 import { WorkerCategory } from "@/types";
 import { useAuthStore } from "@/store/authStore";
@@ -17,6 +16,7 @@ import {
 } from "@/services/workerService";
 
 import { workerItems } from "@/data/workerMenu";
+import { formatDuration } from "@/lib/pricing";
 
 type ActiveJob = {
   bookingId: string;
@@ -24,7 +24,9 @@ type ActiveJob = {
   address: string;
   date: string;
   timeSlot: string;
-  durationHours: number;
+  durationHours?: number;
+  duration?: number;
+  durationUnit?: "hour" | "day" | "month";
   customerName: string;
   status: string;
 };
@@ -82,16 +84,28 @@ export default function WorkerDashboard() {
   });
   const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
 
+  // A gig is always for the service the worker registered under -- read it
+  // fresh from the profile (the cached login user goes stale if they change
+  // it there). The server enforces the same rule.
+  const [registeredCategory, setRegisteredCategory] = useState<WorkerCategory | "">(
+    (user?.category as WorkerCategory) || ""
+  );
+
+  useEffect(() => {
+    api
+      .get("/worker/profile")
+      .then(({ data }) => data?.category && setRegisteredCategory(data.category))
+      .catch(() => {});
+  }, []);
+
   const [form, setForm] = useState({
     fullName: user?.fullName || "",
-    category: "" as WorkerCategory,
     city: "",
     gender: "Female" as "Male" | "Female",
     age: "",
     experience: "",
     since: "",
-    priceMin: "",
-    priceMax: "",
+    price: "",
     priceUnit: "month" as "month" | "hour" | "day",
     avatar: "",
     avatarFile: null as File | null,
@@ -166,11 +180,10 @@ export default function WorkerDashboard() {
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!form.category) e.category = "Required";
+    if (!registeredCategory) e.category = "No service on your profile. Add one from your Profile page first.";
     if (!form.city.trim()) e.city = "Required";
-    if (!form.priceMin) e.priceMin = "Required";
-    if (!form.priceMax) e.priceMax = "Required";
-    if (Number(form.priceMin) >= Number(form.priceMax)) e.priceMax = "Must be greater than min";
+    if (!form.price) e.price = "Required";
+    else if (Number(form.price) <= 0) e.price = "Must be greater than 0";
     return e;
   }
 
@@ -192,14 +205,13 @@ export default function WorkerDashboard() {
       await createGig({
         fullName: form.fullName,
         avatar: avatarUrl,
-        category: form.category,
+        category: registeredCategory as WorkerCategory,
         city: form.city,
         gender: form.gender,
         age: Number(form.age),
         experienceYears: Number(form.experience),
         memberSince: form.since || String(new Date().getFullYear()),
-        priceMin: Number(form.priceMin),
-        priceMax: Number(form.priceMax),
+        price: Number(form.price),
         priceUnit: form.priceUnit,
         available: true,
         // rating, reviewsCount, cnicVerified and badges are not sent: the
@@ -217,14 +229,12 @@ export default function WorkerDashboard() {
 
       setForm({
         fullName: user?.fullName || "",
-        category: "" as WorkerCategory,
         city: "",
         gender: "Female",
         age: "",
         experience: "",
         since: "",
-        priceMin: "",
-        priceMax: "",
+        price: "",
         priceUnit: "month",
         avatar: "",
         avatarFile: null,
@@ -355,7 +365,7 @@ export default function WorkerDashboard() {
                             Mark as done
                           </button>
                         )}
-                        <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground"><Timer className="h-3 w-3" /> {b.durationHours}h job</span>
+                        <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground"><Timer className="h-3 w-3" /> {formatDuration(b)} job</span>
                       </div>
                     </div>
                   ))}
@@ -454,15 +464,13 @@ export default function WorkerDashboard() {
                 </div>
               </Field>
 
-              <Field label="Category" error={errors.category}>
-                <select
-                  value={form.category}
-                  onChange={e => setForm(f => ({ ...f, category: e.target.value as WorkerCategory }))}
-                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-                >
-                  <option value="">Select a category</option>
-                  {categories.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
-                </select>
+              <Field label="Service" error={errors.category}>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-input bg-muted/40 px-3 py-2 text-sm">
+                  <span className="font-semibold">{registeredCategory || "Not set"}</span>
+                  <Link to="/worker/profile" className="text-xs font-semibold text-primary hover:underline">
+                    Change in profile
+                  </Link>
+                </div>
               </Field>
 
               <Field label="City" error={errors.city}>
@@ -523,25 +531,15 @@ export default function WorkerDashboard() {
               </div>
 
               <div>
-                <p className="mb-1 text-xs font-semibold text-muted-foreground">Price Range (Rs.)</p>
-                <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-start">
-                  <Field label="Min" error={errors.priceMin}>
+                <p className="mb-1 text-xs font-semibold text-muted-foreground">Price (Rs.)</p>
+                <div className="grid grid-cols-[1fr_auto] gap-3 items-start">
+                  <Field label="Price" error={errors.price}>
                     <input
                       type="number"
-                      min={0}
-                      value={form.priceMin}
-                      onChange={e => setForm(f => ({ ...f, priceMin: e.target.value }))}
-                      placeholder="e.g. 15000"
-                      className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-                    />
-                  </Field>
-                  <Field label="Max" error={errors.priceMax}>
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.priceMax}
-                      onChange={e => setForm(f => ({ ...f, priceMax: e.target.value }))}
-                      placeholder="e.g. 25000"
+                      min={1}
+                      value={form.price}
+                      onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+                      placeholder={form.priceUnit === "month" ? "e.g. 20000" : form.priceUnit === "day" ? "e.g. 2000" : "e.g. 500"}
                       className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                     />
                   </Field>
@@ -557,6 +555,9 @@ export default function WorkerDashboard() {
                     </select>
                   </Field>
                 </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Customers will book you by the {form.priceUnit} and pay Rs. {Number(form.price || 0).toLocaleString()} per {form.priceUnit}.
+                </p>
               </div>
             </div>
 

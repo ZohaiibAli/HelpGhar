@@ -1,3 +1,4 @@
+from helper.price_helper import gig_price, gig_unit
 import logging
 
 from fastapi import APIRouter, Depends
@@ -59,6 +60,11 @@ def _enrich_with_worker_data(gigs):
                 gig.get("reviewsCount", 0)
             )
             gig["badges"] = worker.get("badges", [])
+
+        gig["price"] = gig_price(gig)
+        gig["priceUnit"] = gig_unit(gig)
+        gig.pop("priceMin", None)
+        gig.pop("priceMax", None)
 
         enriched.append(gig)
 

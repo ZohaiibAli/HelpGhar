@@ -35,8 +35,7 @@ interface WorkerCard {
   city: string;
   rating: number;
   experience: number;
-  priceMin: number;
-  priceMax: number;
+  price: number;
   priceUnit: string;
   available: boolean;
   verified: boolean;
@@ -253,7 +252,7 @@ function WorkerCardTile({ worker }: { worker: WorkerCard }) {
 
       <div className="mt-1 flex items-center justify-between border-t border-border/50 pt-3">
         <span className="text-sm font-bold text-foreground">
-          Rs. {worker.priceMin} - {worker.priceMax} / {worker.priceUnit}
+          Rs. {(worker.price ?? 0).toLocaleString()} / {worker.priceUnit}
         </span>
         <Link
           to={`/workers/${worker.id}`}

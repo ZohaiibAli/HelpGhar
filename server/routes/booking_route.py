@@ -10,6 +10,12 @@ from config.db import (
 from model.booking_model import BookingCreate, BookingReschedule, BookingComplete
 from helper.auth_helper import get_current_customer, get_current_worker
 from helper.id_helper import generate_booking_id
+from helper.price_helper import (
+    DURATION_LIMITS,
+    calculate_booking_price,
+    gig_price,
+    gig_unit,
+)
 from datetime import datetime
 from pymongo import ReturnDocument
 from helper.auth_helper import get_current_admin
@@ -24,7 +30,6 @@ from helper.escrow_helper import (
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
-PLATFORM_FEE_RATE = 0.05
 
 # Statuses that occupy a worker's slot / still owe (or already hold)
 # money -- used for both the double-booking check and to decide which
@@ -32,27 +37,26 @@ PLATFORM_FEE_RATE = 0.05
 ACTIVE_STATUSES = ("pending", "confirmed", "in_progress")
 
 
-def _price_booking(gig: dict, duration_hours: int):
+def _price_booking(gig: dict, duration: int):
     """
     Mirrors the estimate shown in client/src/pages/BookingPage.tsx, but
     computed from the worker's actual gig listing in the database
-    instead of trusting a client-supplied amount/platformFee/total --
-    those were previously taken straight from the request body, which
-    let a customer submit any price they wanted.
+    instead of trusting a client-supplied amount/platformFee/total.
+
+    The duration is in the gig's own unit: an hourly gig is booked by
+    hours, a monthly gig by months. amount = price x duration, plus a 5%
+    platform fee.
     """
+    unit = gig_unit(gig)
+    low, high = DURATION_LIMITS[unit]
 
-    price_min = gig.get("priceMin", 0)
-    price_max = gig.get("priceMax", 0)
-    price_unit = gig.get("priceUnit", "hour")
+    if not (low <= duration <= high):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Duration must be between {low} and {high} {unit}s for this service."
+        )
 
-    average_price = (price_min + price_max) / 2
-    hourly_rate = average_price / 30 if price_unit == "month" else average_price
-
-    amount = round(hourly_rate * duration_hours)
-    platform_fee = round(amount * PLATFORM_FEE_RATE)
-    total = amount + platform_fee
-
-    return amount, platform_fee, total
+    return unit, *calculate_booking_price(gig, duration)
 
 
 def _refund_paid_booking(booking_id: str, refunded_by: str = "system"):
@@ -89,7 +93,7 @@ def create_booking(
             detail="This worker's listing is no longer available for that service."
         )
 
-    amount, platform_fee, total = _price_booking(gig, booking.durationHours)
+    unit, amount, platform_fee, total = _price_booking(gig, booking.duration)
 
     conflict = booking_collection.find_one({
         "workerId": booking.workerId,
@@ -112,6 +116,12 @@ def create_booking(
 
     booking_data["workerName"] = gig.get("fullName", booking.workerName)
     booking_data["workerAvatar"] = gig.get("avatar", booking.workerAvatar)
+
+    booking_data["durationUnit"] = unit
+    booking_data["unitPrice"] = gig_price(gig)
+    # Kept for screens/reports that still read hours.
+    if unit == "hour":
+        booking_data["durationHours"] = booking.duration
 
     booking_data["amount"] = amount
     booking_data["platformFee"] = platform_fee
@@ -208,9 +218,8 @@ def get_my_workers(current_customer: dict = Depends(get_current_customer)):
             "workerAvatar": gig.get("avatar") or g.get("workerAvatar"),
             "category": category,
             "city": gig.get("city"),
-            "priceMin": gig.get("priceMin"),
-            "priceMax": gig.get("priceMax"),
-            "priceUnit": gig.get("priceUnit"),
+            "price": gig_price(gig) if gig else None,
+            "priceUnit": gig_unit(gig) if gig else None,
             "timesBooked": g["timesBooked"],
             "lastBookedAt": g.get("lastBookedAt"),
             "lastBookingDate": g.get("lastBookingDate"),
