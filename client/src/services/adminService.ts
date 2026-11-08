@@ -31,6 +31,8 @@ export interface PendingWorker {
   cnicImage?: string;
   avatar: string;
   appliedAt: string;
+  payout?: PayoutDetailsView | null;
+  payoutTitleMatchesName?: boolean | null;
 }
 
 export interface CategoryBreakdown {
@@ -56,6 +58,33 @@ export interface AdminOverview {
   categories: CategoryBreakdown[];
   statusBreakdown: BookingStatusBreakdown;
   verificationQueue: PendingWorker[];
+}
+
+export interface PayoutDetailsView {
+  method: "bank" | "jazzcash" | "easypaisa";
+  methodLabel: string;
+  accountTitle: string;
+  bankName?: string;
+  iban?: string;
+  mobileNumber?: string;
+  account: string;
+}
+
+export interface AdminPayout {
+  payoutId: string;
+  bookingId: string;
+  workerId: string;
+  workerName: string;
+  workerPhone?: string;
+  category: string;
+  amount: number;
+  status: "pending" | "paid";
+  createdAt: string;
+  paidAt?: string;
+  reference?: string;
+  note?: string;
+  payoutDetails: PayoutDetailsView | null;
+  payoutTitleMatchesName?: boolean | null;
 }
 
 export const adminService = {
@@ -88,6 +117,14 @@ export const adminService = {
   // Delete user
   deleteUser: (role: string, id: string) =>
     api.delete(`/admin/users/${role}/${id}`),
+
+  // Worker payouts (one per completed job). Admin transfers manually,
+  // then records the reference here.
+  getPayouts: (status: "pending" | "paid" | "all") =>
+    api.get<{ success: boolean; payouts: AdminPayout[]; pendingTotal: number }>("/admin/payouts", { params: { status } }),
+
+  markPayoutPaid: (payoutId: string, reference: string, note?: string) =>
+    api.patch(`/admin/payouts/${payoutId}/paid`, { reference, note }),
 
   // Existing complaint APIs
   getCustomerComplaints: () =>

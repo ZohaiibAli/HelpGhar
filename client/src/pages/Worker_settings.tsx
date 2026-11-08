@@ -1,15 +1,22 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HgAlert } from "@/components/ui/HgAlert";
 import ChangePasswordSection from "@/components/workers/ChangePasswordSection";
+import PayoutDetailsSection from "@/components/workers/PayoutDetailsSection";
 import { api } from "@/services/api";
 import { logout } from "@/lib/session";
 
 export default function WorkerSettingsPage() {
   
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    if (window.location.hash === "#payout") {
+      document.getElementById("payout")?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
   const [errorOpen, setErrorOpen] = useState(false);
 
   const handleDeleteAccount = async () => {
@@ -41,7 +48,16 @@ export default function WorkerSettingsPage() {
     >
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-black md:text-4xl">Settings</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Manage security of your account.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Manage your payout account and the security of your account.</p>
+
+        <div id="payout" className="mt-8 scroll-mt-24">
+          <Card title="Payout details">
+            <p className="mb-4 text-sm text-muted-foreground">
+              After each completed job, HelpGhar sends your earnings to this account.
+            </p>
+            <PayoutDetailsSection />
+          </Card>
+        </div>
 
         <div className="mt-8">
           <Card title="Security">

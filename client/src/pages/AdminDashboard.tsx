@@ -217,7 +217,7 @@ export default function AdminDashboard() {
                   <div className="mt-4 overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead className="text-left text-xs uppercase text-muted-foreground">
-                        <tr><th className="py-2">Worker</th><th>CNIC</th><th>Applied</th><th></th></tr>
+                        <tr><th className="py-2">Worker</th><th>CNIC</th><th>Payout</th><th>Applied</th><th></th></tr>
                       </thead>
                       <tbody>
                         {queue.map((w) => (
@@ -239,6 +239,20 @@ export default function AdminDashboard() {
                                 <a href={w.cnicImage} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">View CNIC photo</a>
                               ) : (
                                 <span className="text-[10px]">No photo</span>
+                              )}
+                            </td>
+                            <td className="text-xs text-muted-foreground">
+                              {w.payout ? (
+                                <>
+                                  <div className="font-semibold text-foreground">{w.payout.methodLabel}{w.payout.bankName ? ` • ${w.payout.bankName}` : ""}</div>
+                                  <div className="font-mono text-[10px]">{w.payout.account}</div>
+                                  <div className="text-[10px]">{w.payout.accountTitle}</div>
+                                  {w.payoutTitleMatchesName === false && (
+                                    <div className="text-[10px] font-semibold text-orange-700">⚠ Title doesn't match name</div>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-[10px]">Not provided</span>
                               )}
                             </td>
                             <td className="text-xs text-muted-foreground">{formatDate(w.appliedAt)}</td>

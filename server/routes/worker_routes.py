@@ -22,6 +22,7 @@ from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
 from helper.id_helper import generate_worker_id
+from helper.payout_helper import PayoutError, title_matches_name, validate_payout
 from config.db import review_collection
 
 from helper.email_helper import send_reset_email
@@ -52,7 +53,21 @@ def register_worker(
     pricing: str = Form(...),
     skills: str = Form(...),
     cnicImage: UploadFile = File(...),
+    # Where HelpGhar sends this worker's earnings. Mandatory: released
+    # escrow can't reach a worker who has no payout account.
+    payoutMethod: str = Form(...),
+    payoutAccountTitle: str = Form(...),
+    payoutBankName: str = Form(""),
+    payoutIban: str = Form(""),
+    payoutMobile: str = Form(""),
 ):
+
+    try:
+        payout = validate_payout(
+            payoutMethod, payoutAccountTitle, payoutBankName, payoutIban, payoutMobile
+        )
+    except PayoutError as e:
+        return {"success": False, "code": "INVALID_PAYOUT", "message": str(e)}
 
     worker = WorkerRegister(
         fullName=fullName, email=email, phone=phone, address=address,
@@ -70,6 +85,7 @@ def register_worker(
     if existing:
         return {
             "success": False,
+            "code": "EMAIL_EXISTS",
             "message": "Email already exists"
         }
 
@@ -89,6 +105,13 @@ def register_worker(
 
     # The worker can't log in until an admin approves this.
     worker_data["verificationStatus"] = "pending"
+
+    payout["updatedAt"] = datetime.utcnow().isoformat()
+    worker_data["payout"] = payout
+    # Shown to the admin next to the CNIC: does the account look like theirs?
+    worker_data["payoutTitleMatchesName"] = title_matches_name(
+        payout["accountTitle"], worker.fullName
+    )
 
     try:
         result = worker_collection.insert_one(worker_data)

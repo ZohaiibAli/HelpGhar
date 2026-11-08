@@ -45,7 +45,7 @@ def strip_private(booking: dict) -> dict:
 
 
 def release_escrow(booking_id: str, released_by: str) -> None:
-    payment_collection.update_one(
+    result = payment_collection.update_one(
         {"bookingId": booking_id, "status": "held"},
         {
             "$set": {
@@ -55,6 +55,11 @@ def release_escrow(booking_id: str, released_by: str) -> None:
             }
         },
     )
+
+    # Released money is owed to the worker: queue it for the admin to pay.
+    if result.modified_count:
+        from helper.payout_helper import create_payout_for_booking
+        create_payout_for_booking(booking_id)
 
 
 def refund_escrow(booking_id: str, refunded_by: str = "system") -> None:

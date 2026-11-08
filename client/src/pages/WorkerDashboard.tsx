@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Briefcase, Star, Award, User, Timer, TrendingUp, X, Loader2, ShieldCheck } from "lucide-react";
+import { Briefcase, Star, Award, User, Timer, TrendingUp, X, Loader2, ShieldCheck, Wallet, AlertTriangle } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { categories } from "@/data/mock";
 import { useEffect, useState } from "react";
@@ -7,6 +7,7 @@ import { WorkerCategory } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { CompletePinDialog } from "@/components/bookings/CompletePinDialog";
+import { api } from "@/services/api";
 
 import {
   uploadAvatar,
@@ -28,6 +29,14 @@ type ActiveJob = {
   status: string;
 };
 
+type PayoutRow = {
+  payoutId: string;
+  bookingId: string;
+  amount: number;
+  status: "pending" | "paid";
+  reference?: string;
+};
+
 type DashboardStats = {
   totalJobs: number;
   completedJobs: number;
@@ -36,6 +45,9 @@ type DashboardStats = {
   reviewsCount: number;
   totalEarnings: number;
   pendingEscrow: number;
+  awaitingPayout: number;
+  paidOut: number;
+  hasPayoutDetails: boolean;
   activeGigs: number;
   available: boolean;
   pendingJobs: number;
@@ -64,6 +76,7 @@ export default function WorkerDashboard() {
   // Per-booking action loading + shared alert dialog
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [payouts, setPayouts] = useState<PayoutRow[]>([]);
   const [alertState, setAlertState] = useState<AlertState>({
     open: false, type: "error", title: "", description: "",
   });
@@ -92,6 +105,9 @@ export default function WorkerDashboard() {
       const data = await getWorkerDashboard();
       setStats(data.stats);
       setActiveJobs(data.activeJobs);
+      api.get("/worker/payouts")
+        .then(({ data: p }) => setPayouts((p.payouts ?? []).slice(0, 5)))
+        .catch(() => setPayouts([]));
     } catch (err: any) {
       setLoadError(err?.message ?? "Failed to load dashboard");
     } finally {
@@ -268,6 +284,18 @@ export default function WorkerDashboard() {
           </div>
         </div>
 
+        {!loading && stats && !stats.hasPayoutDetails && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-yellow-300 bg-yellow-50 p-4">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold text-yellow-900">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              Add your payout details (bank, JazzCash or Easypaisa) so HelpGhar can send you your earnings.
+            </p>
+            <Link to="/worker/settings#payout" className="rounded-xl bg-yellow-600 px-4 py-2 text-xs font-bold text-white hover:bg-yellow-700">
+              Add payout details
+            </Link>
+          </div>
+        )}
+
         {loadError && (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
             {loadError}{" "}
@@ -335,6 +363,39 @@ export default function WorkerDashboard() {
               </div>
 
               <div className="space-y-4">
+                <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
+                  <h2 className="inline-flex items-center gap-2 text-base font-bold"><Wallet className="h-4 w-4" /> Payouts</h2>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-muted/50 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Awaiting payout</p>
+                      <p className="mt-1 text-base font-black">Rs. {(stats?.awaitingPayout ?? 0).toLocaleString()}</p>
+                    </div>
+                    <div className="rounded-xl bg-muted/50 p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Paid out</p>
+                      <p className="mt-1 text-base font-black">Rs. {(stats?.paidOut ?? 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                  <ul className="mt-3 space-y-2">
+                    {payouts.length === 0 && (
+                      <li className="text-xs text-muted-foreground">Payouts appear here after you complete a job.</li>
+                    )}
+                    {payouts.map((p) => (
+                      <li key={p.payoutId} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="min-w-0 truncate">
+                          <span className="font-semibold">{p.bookingId}</span>
+                          {p.status === "paid" && p.reference ? <span className="text-muted-foreground"> • ref {p.reference}</span> : null}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2">
+                          <span className="font-bold">Rs. {p.amount.toLocaleString()}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${p.status === "paid" ? "bg-primary-soft text-primary-dark" : "bg-yellow-100 text-yellow-800"}`}>
+                            {p.status === "paid" ? "Paid" : "Awaiting"}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/worker/settings#payout" className="mt-3 inline-block text-xs font-semibold text-primary hover:underline">Payout account →</Link>
+                </div>
                 <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
                   <h2 className="text-base font-bold">Performance</h2>
                   <PerfBar label="Completion rate" value={stats?.completionRate ?? 0} />
