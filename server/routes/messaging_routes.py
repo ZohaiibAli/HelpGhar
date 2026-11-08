@@ -39,7 +39,7 @@ from jose import JWTError, jwt
 import os
 from dotenv import load_dotenv
 
-from helper.auth_helper import verify_token
+from helper.auth_helper import verify_token, _ensure_account_usable
 from helper.cloudinary_helper import upload_chat_attachment
 from helper.ws_manager import manager
 from model.message_model import MessageSend, ThreadStart
@@ -434,9 +434,17 @@ def _decode_ws_token(token: Optional[str]):
         return None
 
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         return None
+
+    # Suspended / blocked accounts can't open a live chat socket either.
+    try:
+        _ensure_account_usable(payload)
+    except HTTPException:
+        return None
+
+    return payload
 
 
 async def _announce_presence(role: str, user_id: str, online: bool):

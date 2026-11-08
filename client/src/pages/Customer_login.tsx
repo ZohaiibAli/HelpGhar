@@ -70,8 +70,13 @@ export default function CustomerLoginForm() {
         setAlertState({
           open: true,
           type: "error",
-          title: "Invalid credentials",
-          description: "The email or password you entered is incorrect. Please try again.",
+          title:
+            result.code === "ACCOUNT_SUSPENDED"
+              ? "Account suspended"
+              : result.code === "ACCOUNT_BLOCKED"
+              ? "Account blocked"
+              : "Invalid credentials",
+          description: result.message || "The email or password you entered is incorrect. Please try again.",
         });
 
       }

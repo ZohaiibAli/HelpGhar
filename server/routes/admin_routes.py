@@ -2,7 +2,7 @@ from bson import ObjectId
 from fastapi import UploadFile, File
 from helper.cloudinary_helper import upload_image, delete_image
 from bson.errors import InvalidId
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from config.db import (
     admin_collection,
     dispute_collection,
@@ -11,7 +11,18 @@ from config.db import (
     gig_collection,
 )
 from model.admin_model import AdminLogin,ForgotPasswordRequest,ResetPasswordRequest
-from model.admin_model import WorkerVerification
+from model.admin_model import WorkerVerification, ModerationAction
+from helper.account_helper import (
+    ACTIVE,
+    BLOCKED,
+    SUSPENDED,
+    ROLE_COLLECTION,
+    ROLE_ID_FIELD,
+    apply_moderation,
+    normalise_status,
+    refresh,
+    restore_account,
+)
 from pydantic import BaseModel
 from datetime import datetime
 from helper.password_helper import hash_password
@@ -23,6 +34,12 @@ from helper.email_helper import (
     send_reset_email,
     send_worker_approved_email,
     send_worker_rejected_email,
+    send_plain_email,
+    complaint_action_taken_email,
+    complaint_resolved_email,
+    account_moderated_email,
+    account_restored_email,
+    booking_cancelled_by_admin_email,
 )
 from fastapi import BackgroundTasks
 import secrets
@@ -311,20 +328,35 @@ def change_password(
         "message": "Password updated successfully"
     }
 
-@router.get("/disputes/customer")
-def get_customer_disputes_admin(user=Depends(verify_token)):
+def _admin_disputes(filed_by: str):
+    """
+    Complaints filed by one side, newest first, each carrying the live
+    account status of the person complained about so the admin can see
+    at a glance whether action has already been taken.
+    """
 
-    if user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Admin Only")
+    against_role = "worker" if filed_by == "customer" else "customer"
+    against_field = ROLE_ID_FIELD[against_role]
 
-    disputes = dispute_collection.find({"filedBy": "customer"})
+    disputes = list(
+        dispute_collection.find({"filedBy": filed_by}).sort("createdAt", -1)
+    )
+
+    accused = {
+        doc[against_field]: refresh(against_role, doc)
+        for doc in ROLE_COLLECTION[against_role].find(
+            {against_field: {"$in": [d.get(against_field) for d in disputes]}}
+        )
+    }
 
     result = []
 
     for dispute in disputes:
+        target = accused.get(dispute.get(against_field)) or {}
 
         result.append({
             "id": dispute["disputeId"],
+            "bookingId": dispute.get("bookingId"),
             "customerId": dispute["customerId"],
             "customerName": dispute.get("customerName", "Unknown Customer"),
             "workerId": dispute["workerId"],
@@ -332,12 +364,37 @@ def get_customer_disputes_admin(user=Depends(verify_token)):
             "subject": dispute["subject"],
             "description": dispute["description"],
             "status": dispute["status"].lower(),
-            "createdAt": dispute["createdAt"]
+            "createdAt": dispute["createdAt"],
+            "actionTaken": dispute.get("actionTaken"),
+            "against": {
+                "role": against_role,
+                "id": dispute.get(against_field),
+                "name": dispute.get(f"{against_role}Name"),
+                "status": normalise_status(target.get("status")) if target else None,
+                "suspendedUntil": target.get("suspendedUntil"),
+                "reason": target.get("moderationReason"),
+            },
         })
+
+    return result
+
+
+def _complainant(dispute: dict):
+    role = dispute.get("filedBy")
+    if role not in ROLE_COLLECTION:
+        return None
+    return ROLE_COLLECTION[role].find_one({ROLE_ID_FIELD[role]: dispute.get(ROLE_ID_FIELD[role])})
+
+
+@router.get("/disputes/customer")
+def get_customer_disputes_admin(user=Depends(verify_token)):
+
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin Only")
 
     return {
         "success": True,
-        "complaints": result
+        "complaints": _admin_disputes("customer")
     }
 
 
@@ -347,43 +404,43 @@ def get_worker_disputes_admin(user=Depends(verify_token)):
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin Only")
 
-    disputes = dispute_collection.find({"filedBy": "worker"})
-
-    result = []
-
-    for dispute in disputes:
-
-        result.append({
-            "id": dispute["disputeId"],
-            "customerId": dispute["customerId"],
-            "customerName": dispute.get("customerName", "Unknown Customer"),
-            "workerId": dispute["workerId"],
-            "workerName": dispute.get("workerName", "Unknown Worker"),
-            "subject": dispute["subject"],
-            "description": dispute["description"],
-            "status": dispute["status"].lower(),
-            "createdAt": dispute["createdAt"]
-        })
-
     return {
         "success": True,
-        "complaints": result
+        "complaints": _admin_disputes("worker")
     }
 
 
 @router.patch("/dispute/{dispute_id}/resolve")
-def resolve_dispute(dispute_id: str, user=Depends(verify_token)):
+def resolve_dispute(
+    dispute_id: str,
+    background_tasks: BackgroundTasks,
+    user=Depends(verify_token)
+):
 
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin Only")
 
-    result = dispute_collection.update_one(
+    dispute = dispute_collection.find_one({"disputeId": dispute_id})
+
+    if not dispute:
+        raise HTTPException(status_code=404, detail="Dispute not found")
+
+    already_resolved = dispute.get("status", "").lower() == "resolved"
+
+    dispute_collection.update_one(
         {"disputeId": dispute_id},
-        {"$set": {"status": "Resolved"}}
+        {"$set": {"status": "Resolved", "resolvedAt": datetime.utcnow()}}
     )
 
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Dispute not found")
+    complainant = _complainant(dispute)
+    if not already_resolved and complainant and complainant.get("email"):
+        background_tasks.add_task(
+            send_plain_email,
+            complainant["email"],
+            *complaint_resolved_email(
+                complainant.get("fullName"), dispute_id, dispute.get("subject", "")
+            ),
+        )
 
     return {
         "success": True,
@@ -407,6 +464,15 @@ def delete_dispute(dispute_id: str, user=Depends(verify_token)):
         "message": "Dispute deleted"
     }
 
+def _moderation_view(role: str, user: dict) -> dict:
+    user = refresh(role, user)
+    return {
+        "status": normalise_status(user.get("status")),
+        "suspendedUntil": user.get("suspendedUntil"),
+        "moderationReason": user.get("moderationReason"),
+    }
+
+
 @router.get("/users")
 def get_users(current_admin=Depends(get_current_admin)):
 
@@ -420,7 +486,7 @@ def get_users(current_admin=Depends(get_current_admin)):
             "email": customer["email"],
             "phone": customer["phone"],
             "role": "customer",
-            "status": customer.get("status", "active"),
+            **_moderation_view("customer", customer),
             "joined": customer.get("createdAt", "")
         })
 
@@ -432,7 +498,7 @@ def get_users(current_admin=Depends(get_current_admin)):
             "email": worker["email"],
             "phone": worker["phone"],
             "role": "worker",
-            "status": worker.get("status", "active"),
+            **_moderation_view("worker", worker),
             "joined": worker.get("createdAt", "")
         })
 
@@ -473,6 +539,7 @@ def _parse_object_id(id: str) -> ObjectId:
 def toggle_user_status(
     role: str,
     id: str,
+    background_tasks: BackgroundTasks,
     current_admin=Depends(get_current_admin)
 ):
 
@@ -483,28 +550,164 @@ def toggle_user_status(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    new_status = "suspended" if user.get("status", "active") == "active" else "active"
+    # Kept for older clients. Same rules as /moderation: blocking an
+    # active account, restoring anything else.
+    user = refresh(role, user)
+    action = "block" if normalise_status(user.get("status")) == ACTIVE else "restore"
 
-    collection.update_one(
-        {"_id": user["_id"]},
-        {"$set": {"status": new_status}}
+    _moderate(
+        role, user,
+        ModerationAction(action=action, reason="Blocked by admin" if action == "block" else None),
+        current_admin, background_tasks,
     )
-
-    # A suspended worker's existing gigs must stop being bookable --
-    # otherwise their listings stay live and customers can keep
-    # hiring someone the admin just suspended. Reactivating flips
-    # them back; gigs currently have no independent "worker turned
-    # this one off" state of their own, so this is safe to do in bulk.
-    if role == "worker":
-        gig_collection.update_many(
-            {"workerId": user.get("workerId")},
-            {"$set": {"status": "Active" if new_status == "active" else "Suspended"}}
-        )
 
     return {
         "success": True,
-        "status": new_status
+        "status": BLOCKED if action == "block" else ACTIVE
     }
+
+def _until_text(until_iso):
+    try:
+        return datetime.fromisoformat(until_iso).strftime("%d %b %Y, %H:%M UTC")
+    except (TypeError, ValueError):
+        return "further notice"
+
+
+def _moderate(role, user, payload: ModerationAction, current_admin, background_tasks):
+    """Shared by the moderation endpoint and the legacy toggle."""
+
+    admin_id = str(current_admin["_id"])
+    status = normalise_status(user.get("status"))
+
+    dispute = None
+    if payload.disputeId:
+        dispute = dispute_collection.find_one({"disputeId": payload.disputeId})
+        if not dispute:
+            raise HTTPException(status_code=404, detail="Dispute not found")
+        # Only the person complained ABOUT can be actioned from a
+        # complaint -- never the one who filed it.
+        if (
+            dispute.get("filedBy") == role
+            or dispute.get(ROLE_ID_FIELD[role]) != user.get(ROLE_ID_FIELD[role])
+        ):
+            raise HTTPException(status_code=400, detail="This complaint is not about that user")
+
+    if payload.action == "restore":
+        if status == ACTIVE:
+            raise HTTPException(status_code=400, detail="This account is already active")
+
+        restore_account(role, user, f"admin:{admin_id}")
+
+        if user.get("email"):
+            background_tasks.add_task(
+                send_plain_email, user["email"], *account_restored_email(user.get("fullName"))
+            )
+
+        return {"status": ACTIVE, "cancelledBookings": 0}
+
+    action = SUSPENDED if payload.action == "suspend" else BLOCKED
+
+    if action == SUSPENDED and payload.days is None:
+        raise HTTPException(status_code=400, detail="Choose a suspension length: 3, 7 or 30 days")
+
+    reason = (payload.reason or "").strip()
+    if not reason:
+        raise HTTPException(status_code=400, detail="Please give a reason")
+
+    cancelled = apply_moderation(
+        role, user, action, reason, payload.days, admin_id, payload.disputeId
+    )
+
+    updated = ROLE_COLLECTION[role].find_one({"_id": user["_id"]})
+
+    if user.get("email"):
+        background_tasks.add_task(
+            send_plain_email,
+            user["email"],
+            *account_moderated_email(
+                user.get("fullName"), action, reason, _until_text(updated.get("suspendedUntil"))
+            ),
+        )
+
+    # Tell every customer whose booking was cancelled, and whether they
+    # were refunded (only paid bookings had money in escrow).
+    for booking in cancelled:
+        customer = customer_collection.find_one({"customerId": booking.get("customerId")})
+        if customer and customer.get("email"):
+            background_tasks.add_task(
+                send_plain_email,
+                customer["email"],
+                *booking_cancelled_by_admin_email(
+                    customer.get("fullName"),
+                    booking["bookingId"],
+                    booking.get("workerName", "your worker"),
+                    booking.get("status") in ("confirmed", "in_progress"),
+                ),
+            )
+
+    if dispute:
+        first_action = not dispute.get("actionTaken")
+        dispute_collection.update_one(
+            {"disputeId": dispute["disputeId"]},
+            {"$set": {"actionTaken": {
+                "action": action,
+                "days": payload.days if action == SUSPENDED else None,
+                "at": datetime.utcnow().isoformat(),
+                "by": admin_id,
+            }}}
+        )
+
+        complainant = _complainant(dispute)
+        if first_action and complainant and complainant.get("email"):
+            background_tasks.add_task(
+                send_plain_email,
+                complainant["email"],
+                *complaint_action_taken_email(
+                    complainant.get("fullName"), dispute["disputeId"], dispute.get("subject", "")
+                ),
+            )
+
+    return {
+        "status": action,
+        "suspendedUntil": updated.get("suspendedUntil"),
+        "cancelledBookings": len(cancelled),
+    }
+
+
+@router.patch("/users/{role}/{user_code}/moderation")
+def moderate_user(
+    role: str,
+    user_code: str,
+    payload: ModerationAction,
+    background_tasks: BackgroundTasks,
+    current_admin=Depends(get_current_admin)
+):
+    """
+    Suspend (3/7/30 days), block (until restored) or restore a customer
+    or worker. user_code is the public ID (CUS-.../WRK-...), which is
+    what complaints carry. Suspending/blocking a worker also hides their
+    gigs and cancels their open bookings with a full refund.
+    """
+
+    collection = _resolve_user_collection(role)
+    user = collection.find_one({ROLE_ID_FIELD[role]: user_code})
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    result = _moderate(role, refresh(role, user), payload, current_admin, background_tasks)
+
+    messages = {
+        ACTIVE: "Account restored",
+        SUSPENDED: f"Account suspended for {payload.days} days",
+        BLOCKED: "Account blocked",
+    }
+    message = messages[result["status"]]
+    if result.get("cancelledBookings"):
+        message += f" • {result['cancelledBookings']} open booking(s) cancelled and refunded"
+
+    return {"success": True, "message": message, **result}
+
 
 @router.delete("/users/{role}/{id}")
 def delete_user(

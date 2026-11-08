@@ -191,6 +191,37 @@ export interface Complaint {
   status: "open" | "in_review" | "resolved" | "closed";
   date?: string;
   createdAt: string;
+  bookingId?: string;
+  // Customer/worker view: true once an admin acted on the complaint.
+  // Admin view: the action itself.
+  actionTaken?: boolean | { action: AccountStatus; days?: number | null; at: string };
+  // Admin view only: the account being complained about, live.
+  against?: {
+    role: "customer" | "worker";
+    id: string;
+    name?: string;
+    status: AccountStatus | null;
+    suspendedUntil?: string | null;
+    reason?: string | null;
+  };
+}
+
+export type AccountStatus = "active" | "suspended" | "blocked";
+
+// One person you've had bookings with, for the complaint picker.
+export interface BookedCounterpart {
+  workerId?: string;
+  customerId?: string;
+  fullName: string;
+  lastBookedAt?: string;
+  lastCategory?: string;
+  bookings: {
+    bookingId: string;
+    category?: string;
+    date?: string;
+    timeSlot?: string;
+    status?: string;
+  }[];
 }
 
 export type JobStatus = "open" | "assigned" | "completed" | "cancelled";

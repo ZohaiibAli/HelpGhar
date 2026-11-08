@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from config.db import (
     booking_collection,
     dispute_collection,
@@ -9,6 +9,8 @@ from model.dispute_model import WorkerDisputeCreate
 from helper.auth_helper import get_current_worker
 from helper.id_helper import generate_worker_dispute_id
 from datetime import datetime
+from helper.dispute_helper import booked_counterparts
+from helper.email_helper import send_plain_email, complaint_received_email
 
 router = APIRouter(
     prefix="/worker",
@@ -19,6 +21,7 @@ router = APIRouter(
 @router.post("/dispute")
 def create_worker_dispute(
     dispute: WorkerDisputeCreate,
+    background_tasks: BackgroundTasks,
     user=Depends(get_current_worker)
 ):
 
@@ -55,9 +58,11 @@ def create_worker_dispute(
         }
     )
 
+    dispute_id = generate_worker_dispute_id()
+
     dispute_collection.insert_one({
 
-        "disputeId": generate_worker_dispute_id(),
+        "disputeId": dispute_id,
 
         "bookingId": booking["bookingId"],
 
@@ -81,12 +86,20 @@ def create_worker_dispute(
 
     })
 
+    if worker and worker.get("email"):
+        background_tasks.add_task(
+            send_plain_email,
+            worker["email"],
+            *complaint_received_email(
+                worker.get("fullName"), dispute_id, dispute.subject,
+                customer["fullName"], booking["bookingId"],
+            ),
+        )
+
     return {
-
         "success": True,
-
-        "message": "Dispute Submitted Successfully"
-
+        "message": f"Complaint {dispute_id} submitted. We've emailed you a confirmation.",
+        "disputeId": dispute_id,
     }
 
 
@@ -112,11 +125,15 @@ def get_worker_disputes(user=Depends(get_current_worker)):
 
             "customerName": dispute["customerName"],
 
+            "bookingId": dispute.get("bookingId"),
+
             "subject": dispute["subject"],
 
             "description": dispute["description"],
 
             "status": dispute["status"].lower(),
+
+            "actionTaken": bool(dispute.get("actionTaken")),
 
             "createdAt": dispute["createdAt"]
 
@@ -132,26 +149,14 @@ def get_worker_disputes(user=Depends(get_current_worker)):
 
 
 @router.get("/customers")
-def get_customers():
-
-    customers = customer_collection.find()
-
-    result = []
-
-    for customer in customers:
-
-        result.append({
-
-            "customerId": customer["customerId"],
-
-            "fullName": customer["fullName"]
-
-        })
+def get_customers(user=Depends(get_current_worker)):
+    """
+    Only customers who have booked this worker, most recent. This
+    endpoint used to need no login at all and returned the name of every
+    customer on the platform.
+    """
 
     return {
-
         "success": True,
-
-        "customers": result
-
+        "customers": booked_counterparts("worker", user["workerId"]),
     }

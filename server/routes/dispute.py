@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from config.db import (
     booking_collection,
     dispute_collection,
@@ -9,6 +9,8 @@ from model.dispute_model import DisputeCreate
 from helper.auth_helper import get_current_customer
 from helper.id_helper import generate_customer_dispute_id
 from datetime import datetime
+from helper.dispute_helper import booked_counterparts
+from helper.email_helper import send_plain_email, complaint_received_email
 
 router = APIRouter(
     prefix="/customer",
@@ -19,6 +21,7 @@ router = APIRouter(
 @router.post("/dispute")
 def create_dispute(
     dispute: DisputeCreate,
+    background_tasks: BackgroundTasks,
     user=Depends(get_current_customer)
 ):
 
@@ -55,8 +58,10 @@ def create_dispute(
         }
     )
 
+    dispute_id = generate_customer_dispute_id()
+
     dispute_collection.insert_one({
-        "disputeId": generate_customer_dispute_id(),
+        "disputeId": dispute_id,
         "bookingId": booking["bookingId"],
         "customerId": user["customerId"],
         "customerName": customer.get("fullName", "Customer") if customer else "Customer",
@@ -69,9 +74,20 @@ def create_dispute(
         "createdAt": datetime.utcnow()
     })
 
+    if customer and customer.get("email"):
+        background_tasks.add_task(
+            send_plain_email,
+            customer["email"],
+            *complaint_received_email(
+                customer.get("fullName"), dispute_id, dispute.subject,
+                worker["fullName"], booking["bookingId"],
+            ),
+        )
+
     return {
         "success": True,
-        "message": "Dispute Submitted Successfully"
+        "message": f"Complaint {dispute_id} submitted. We've emailed you a confirmation.",
+        "disputeId": dispute_id,
     }
 
 
@@ -92,9 +108,11 @@ def get_customer_disputes(user=Depends(get_current_customer)):
             "id": dispute["disputeId"],
             "workerId": dispute["workerId"],
             "workerName": dispute["workerName"],
+            "bookingId": dispute.get("bookingId"),
             "subject": dispute["subject"],
             "description": dispute["description"],
             "status": dispute["status"].lower(),
+            "actionTaken": bool(dispute.get("actionTaken")),
             "createdAt": dispute["createdAt"]
         })
 
@@ -105,20 +123,10 @@ def get_customer_disputes(user=Depends(get_current_customer)):
 
 
 @router.get("/workers")
-def get_workers():
-
-    workers = worker_collection.find()
-
-    result = []
-
-    for worker in workers:
-
-        result.append({
-            "workerId": worker["workerId"],
-            "fullName": worker["fullName"]
-        })
+def get_workers(user=Depends(get_current_customer)):
+    """Only workers this customer has booked, most recent first."""
 
     return {
         "success": True,
-        "workers": result
+        "workers": booked_counterparts("customer", user["customerId"]),
     }

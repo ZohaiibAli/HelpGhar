@@ -26,6 +26,7 @@ import AdminAnalytics from "@/pages/Admin_analytics";
 import AdminUsers from "@/pages/Admin_users";
 import AdminBookings from "@/pages/Admin_bookings";
 import AdminComplaints from "@/pages/Admin_complaints";
+import AdminPayouts from "@/pages/Admin_payouts";
 import AdminReviews from "@/pages/Admin_reviews";
 import AdminSettings from "@/pages/Admin_settings";
 import AdminProfile from "@/pages/Admin_profile";
@@ -191,6 +192,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminBookings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/payouts"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminPayouts />
             </ProtectedRoute>
           }
         />

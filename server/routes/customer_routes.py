@@ -10,6 +10,7 @@ from model.customer_model import (
     ResetPasswordRequest
 )
 from helper.password_helper import hash_password, verify_password
+from helper.account_helper import block_message, normalise_status, refresh
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
@@ -48,7 +49,7 @@ def register_customer(customer: CustomerRegister):
     customer_data = customer.dict()
     customer_data["customerId"] = generate_customer_id()
 
-    customer_data["status"] = "Active"
+    customer_data["status"] = "active"
 
     customer_data["password"] = hash_password(customer.password)
 
@@ -99,6 +100,17 @@ def login_customer(customer: CustomerLogin):
             "message": "Invalid Email or Password"
     }
 
+    # Only after the password checks out, so this can't be used to probe
+    # which emails belong to suspended accounts.
+    existing = refresh("customer", existing)
+    blocked = block_message(existing)
+    if blocked:
+        return {
+            "success": False,
+            "code": "ACCOUNT_" + normalise_status(existing.get("status")).upper(),
+            "message": blocked,
+        }
+
     token = create_access_token({
 
     "id": str(existing["_id"]),
@@ -128,7 +140,7 @@ def login_customer(customer: CustomerLogin):
 
 "address":existing["address"],
 
-"status":existing["status"],
+"status":normalise_status(existing.get("status")),
 "role":"customer"
 
 }
@@ -267,7 +279,7 @@ def get_profile(user=Depends(verify_token)):
 
     "id": str(customer["_id"]),
     "customerId": customer["customerId"],
-    "status": customer["status"],
+    "status": normalise_status(customer.get("status")),
 
     "fullName": customer["fullName"],
     "email": customer["email"],

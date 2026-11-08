@@ -6,6 +6,7 @@ import {
   Star,
   Settings,
   BarChart3,
+  Wallet,
 } from "lucide-react";
 
 export const adminItems = [
@@ -14,6 +15,7 @@ export const adminItems = [
   { label: "Analytics", to: "/dashboard/admin/analytics", icon: BarChart3 },
   { label: "Users", to: "/dashboard/admin/users", icon: Users },
   { label: "Bookings", to: "/dashboard/admin/bookings", icon: Calendar },
+  { label: "Payouts", to: "/dashboard/admin/payouts", icon: Wallet },
   { label: "Complaints", to: "/dashboard/admin/complaints", icon: MessageSquareWarning },
   { label: "Reviews", to: "/dashboard/admin/reviews", icon: Star },
   { label: "Settings", to: "/dashboard/admin/settings", icon: Settings },

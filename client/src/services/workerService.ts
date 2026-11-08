@@ -65,6 +65,9 @@ export async function getWorkerDashboard() {
       reviewsCount: number;
       totalEarnings: number;
       pendingEscrow: number;
+      awaitingPayout: number;
+      paidOut: number;
+      hasPayoutDetails: boolean;
       activeGigs: number;
       available: boolean;
       pendingJobs: number;

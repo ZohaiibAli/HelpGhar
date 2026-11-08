@@ -33,6 +33,16 @@ const customerSchema = baseCustomerSchema.refine(
   }
 );
 
+// Kept in step with server/helper/payout_helper.py.
+const ibanRegex = /^PK\d{2}[A-Z]{4}\d{16}$/;
+const mobileRegex = /^03\d{9}$/;
+const cleanIban = (v: string) => (v ?? "").replace(/\s+/g, "").toUpperCase();
+const cleanMobile = (v: string) => {
+  let d = (v ?? "").replace(/\D/g, "");
+  if (d.startsWith("92") && d.length === 12) d = "0" + d.slice(2);
+  return d;
+};
+
 const workerSchema = baseCustomerSchema.extend({
   cnic: z.string().regex(cnicRegex, "Format: 12345-1234567-1"),
   dob: z.string().min(1, "Required"),
@@ -41,7 +51,23 @@ const workerSchema = baseCustomerSchema.extend({
   experience: z.string().min(1, "Required"),
   pricing: z.string().min(1, "Required"),
   skills: z.string().min(10, "Tell us a bit more"),
-}).refine((d) => d.password === d.confirmPassword, { message: "Passwords don't match", path: ["confirmPassword"] });
+  payoutMethod: z.enum(["bank", "jazzcash", "easypaisa"], { message: "Choose how you want to be paid" }),
+  payoutAccountTitle: z.string().trim().min(3, "Enter the name on the account").max(100),
+  payoutBankName: z.string().trim().optional(),
+  payoutIban: z.string().optional(),
+  payoutMobile: z.string().optional(),
+})
+  .refine((d) => d.password === d.confirmPassword, { message: "Passwords don't match", path: ["confirmPassword"] })
+  .superRefine((d, ctx) => {
+    if (d.payoutMethod === "bank") {
+      if (!d.payoutBankName || d.payoutBankName.length < 2)
+        ctx.addIssue({ code: "custom", path: ["payoutBankName"], message: "Enter your bank's name" });
+      if (!ibanRegex.test(cleanIban(d.payoutIban ?? "")))
+        ctx.addIssue({ code: "custom", path: ["payoutIban"], message: "PK + 22 characters, e.g. PK36SCBL0000001123456702" });
+    } else if (d.payoutMethod && !mobileRegex.test(cleanMobile(d.payoutMobile ?? ""))) {
+      ctx.addIssue({ code: "custom", path: ["payoutMobile"], message: "e.g. 03001234567" });
+    }
+  });
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -64,9 +90,10 @@ export default function RegisterPage() {
   }>({ open: false, type: "error", title: "", description: "" });
 
   const schema = role === "worker" ? workerSchema : customerSchema;
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<any>({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting }, reset } = useForm<any>({
     resolver: zodResolver(schema as any),
   });
+  const payoutMethod = watch("payoutMethod");
 
   const onSubmit = async (data: any) => {
 
@@ -91,7 +118,12 @@ export default function RegisterPage() {
       if (role === "worker") {
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
-          if (key !== "confirmPassword") formData.append(key, String(value ?? ""));
+          if (key === "confirmPassword") return;
+          // Only send the fields that belong to the chosen payout method.
+          if (key === "payoutIban") value = data.payoutMethod === "bank" ? cleanIban(String(value ?? "")) : "";
+          if (key === "payoutBankName" && data.payoutMethod !== "bank") value = "";
+          if (key === "payoutMobile") value = data.payoutMethod === "bank" ? "" : cleanMobile(String(value ?? ""));
+          formData.append(key, String(value ?? ""));
         });
         formData.append("cnicImage", cnicFile as File);
 
@@ -119,6 +151,15 @@ export default function RegisterPage() {
         setSubmitted(true);
         setCnicFile(null);
         reset();
+      } else if (result.code === "INVALID_PAYOUT") {
+
+        setAlertState({
+          open: true,
+          type: "error",
+          title: "Check your payout details",
+          description: result.message,
+        });
+
       } else {
 
         setAlertState({
@@ -280,6 +321,51 @@ export default function RegisterPage() {
                 <F label="Skills & description" error={errors.skills?.message as any}>
                   <textarea rows={4} className="hg-input !h-auto py-3" {...register("skills")} />
                 </F>
+              </Section>
+
+              <Section title="Payout details">
+                <p className="-mt-2 text-xs text-muted-foreground">
+                  Where HelpGhar sends your earnings after each completed job. The account title should match the
+                  name on your CNIC. Our team checks it during verification.
+                </p>
+                <F label="Payout method" error={errors.payoutMethod?.message as any}>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      ["bank", "Bank account"],
+                      ["jazzcash", "JazzCash"],
+                      ["easypaisa", "Easypaisa"],
+                    ] as const).map(([value, label]) => (
+                      <label
+                        key={value}
+                        className={`flex cursor-pointer items-center justify-center rounded-xl border px-2 py-3 text-xs font-bold transition ${payoutMethod === value ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
+                      >
+                        <input type="radio" value={value} className="sr-only" {...register("payoutMethod")} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </F>
+                {payoutMethod && (
+                  <Grid>
+                    <F label="Account title" error={errors.payoutAccountTitle?.message as any}>
+                      <input className="hg-input" placeholder="Name on the account" {...register("payoutAccountTitle")} />
+                    </F>
+                    {payoutMethod === "bank" ? (
+                      <>
+                        <F label="Bank name" error={errors.payoutBankName?.message as any}>
+                          <input className="hg-input" placeholder="e.g. Meezan Bank" {...register("payoutBankName")} />
+                        </F>
+                        <F label="IBAN" error={errors.payoutIban?.message as any}>
+                          <input className="hg-input uppercase" placeholder="PK36 SCBL 0000 0011 2345 6702" autoComplete="off" {...register("payoutIban")} />
+                        </F>
+                      </>
+                    ) : (
+                      <F label={`${payoutMethod === "jazzcash" ? "JazzCash" : "Easypaisa"} mobile number`} error={errors.payoutMobile?.message as any}>
+                        <input className="hg-input" inputMode="numeric" placeholder="03001234567" autoComplete="off" {...register("payoutMobile")} />
+                      </F>
+                    )}
+                  </Grid>
+                )}
               </Section>
             </>
           )}

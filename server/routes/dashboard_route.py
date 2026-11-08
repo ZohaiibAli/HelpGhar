@@ -325,6 +325,25 @@ def _customer_notifications(customer_id: str, limit: int = 6):
     ]
 
 
+def _payout_summary(worker_id: str) -> dict:
+    from helper.payout_helper import payout_collection
+
+    totals = {"pending": 0, "paid": 0}
+    for row in payout_collection.aggregate([
+        {"$match": {"workerId": worker_id}},
+        {"$group": {"_id": "$status", "sum": {"$sum": "$amount"}}},
+    ]):
+        totals[row["_id"]] = row["sum"]
+
+    worker = worker_collection.find_one({"workerId": worker_id}, {"payout": 1}) or {}
+
+    return {
+        "awaitingPayout": _money(totals.get("pending", 0)),
+        "paidOut": _money(totals.get("paid", 0)),
+        "hasPayoutDetails": bool(worker.get("payout")),
+    }
+
+
 @router.get("/worker")
 def worker_dashboard(current_worker=Depends(get_current_worker)):
     worker_id = current_worker["workerId"]  # human-readable code, e.g. "WRK-0001"
@@ -402,6 +421,7 @@ def worker_dashboard(current_worker=Depends(get_current_worker)):
             "reviewsCount": reviews_count,
             "totalEarnings": total_earnings,
             "pendingEscrow": pending_escrow,
+            **_payout_summary(worker_id),
             "activeGigs": len(active_gigs),
             "available": available,
             "pendingJobs": sum(
@@ -645,6 +665,11 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
     }
 
 
+def _admin_payout_view(payout):
+    from helper.payout_helper import full_view
+    return full_view(payout)
+
+
 def _verification_queue(limit: int = 8):
     """
     Workers still awaiting a verification decision. The admin page used
@@ -678,6 +703,9 @@ def _verification_queue(limit: int = 8):
             "email": worker.get("email", ""),
             "category": worker.get("category", ""),
             "cnic": worker.get("cnic", ""),
+            # Admin verifies the payout account together with the CNIC.
+            "payout": _admin_payout_view(worker.get("payout")),
+            "payoutTitleMatchesName": worker.get("payoutTitleMatchesName"),
             "cnicImage": worker.get("cnicImage", ""),
             "avatar": avatars.get(worker.get("workerId"), ""),
             # No createdAt is stored at registration, but an ObjectId
