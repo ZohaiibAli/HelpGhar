@@ -18,6 +18,7 @@ from pydantic import EmailStr
 from helper.password_helper import hash_password, verify_password
 from helper.account_helper import block_message, normalise_status, refresh
 from helper.cloudinary_helper import upload_image, delete_image
+from helper.price_helper import gig_price, gig_unit
 from helper.jwt_helper import create_access_token
 from helper.auth_helper import verify_token
 from fastapi import HTTPException, Depends
@@ -573,6 +574,7 @@ def create_gig(
     gig_data = gig.dict()
 
     gig_data["workerId"] = user["workerId"]
+    gig_data["category"] = _registered_category(worker)
 
     gig_data["status"] = "Active"
 
@@ -583,6 +585,17 @@ def create_gig(
         "message": "Gig created successfully",
         "id": str(result.inserted_id)
     }
+
+
+def _registered_category(worker: dict) -> str:
+    """The one service a worker may list gigs for: their registered category."""
+    category = (worker.get("category") or "").strip()
+    if not category:
+        raise HTTPException(
+            status_code=400,
+            detail="Add your service category in your profile before creating a gig."
+        )
+    return category
 
 
 def _parse_gig_id(gig_id: str) -> ObjectId:
@@ -619,11 +632,15 @@ def update_gig(
 
     update_data = gig.dict()
     update_data["workerId"] = user["workerId"]
+    update_data["category"] = _registered_category(
+        worker_collection.find_one({"workerId": user["workerId"]}) or {}
+    )
     update_data["status"] = existing.get("status", "Active")
 
     gig_collection.update_one(
         {"_id": existing["_id"]},
-        {"$set": update_data}
+        # Drop the legacy min/max range so it can't outlive the new price.
+        {"$set": update_data, "$unset": {"priceMin": "", "priceMax": ""}}
     )
 
     return {
@@ -716,6 +733,13 @@ def get_gigs():
         gig["aiSummary"] = worker.get("aiSummary", {})
 
         gig["badges"] = worker.get("badges", [])
+
+        # Legacy range gigs get their midpoint, so the client only ever
+        # needs `price`.
+        gig["price"] = gig_price(gig)
+        gig["priceUnit"] = gig_unit(gig)
+        gig.pop("priceMin", None)
+        gig.pop("priceMax", None)
 
         gig["id"] = str(gig["_id"])
 

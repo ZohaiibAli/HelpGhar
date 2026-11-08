@@ -1,3 +1,4 @@
+from helper.price_helper import gig_price
 class RecommendationReasonService:
 
     def build(
@@ -15,7 +16,7 @@ class RecommendationReasonService:
 
             budget = preferences.get("averageBudget", 0)
 
-            if budget and abs(worker.get("priceMax", 0) - budget) < 5000:
+            if budget and abs(gig_price(worker) - budget) < 5000:
                 reasons.append("Within your usual budget")
 
             if worker.get("city") in preferences.get("preferredCities", []):

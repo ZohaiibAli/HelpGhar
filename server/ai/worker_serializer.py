@@ -17,6 +17,7 @@ Readable AI Context
 ========================================================
 """
 
+from helper.price_helper import format_price
 from typing import Dict, List
 
 
@@ -31,13 +32,7 @@ class WorkerSerializer:
         worker: Dict
     ) -> str:
 
-        minimum = worker.get("priceMin", 0)
-
-        maximum = worker.get("priceMax", 0)
-
-        unit = worker.get("priceUnit", "")
-
-        return f"Rs. {minimum:,} - Rs. {maximum:,} / {unit}"
+        return format_price(worker)
 
     # ======================================================
     # EXPERIENCE

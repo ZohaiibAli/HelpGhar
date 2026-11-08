@@ -78,7 +78,9 @@ export async function getWorkerDashboard() {
       address: string;
       date: string;
       timeSlot: string;
-      durationHours: number;
+      durationHours?: number;
+      duration?: number;
+      durationUnit?: "hour" | "day" | "month";
       customerName: string;
       status: string;
     }[];

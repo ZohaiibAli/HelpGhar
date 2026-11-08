@@ -25,6 +25,7 @@ Those responsibilities belong to other services.
 ==========================================================
 """
 
+from helper.price_helper import format_price, gig_price, gig_unit
 from typing import List, Dict, Any, Optional
 
 import re
@@ -192,21 +193,25 @@ class WorkerService:
         # Price
         # -----------------------------
 
-        if filters.min_price:
+        # New gigs carry a single `price`; legacy ones only a min/max
+        # range. Match either shape so old listings don't vanish.
+        if filters.min_price or filters.max_price:
 
-            query["priceMax"] = {
+            price_range = {}
+            legacy_range = {}
 
-                "$gte": filters.min_price
+            if filters.min_price:
+                price_range["$gte"] = filters.min_price
+                legacy_range["priceMax"] = {"$gte": filters.min_price}
 
-            }
+            if filters.max_price:
+                price_range["$lte"] = filters.max_price
+                legacy_range["priceMin"] = {"$lte": filters.max_price}
 
-        if filters.max_price:
-
-            query["priceMin"] = {
-
-                "$lte": filters.max_price
-
-            }
+            query["$or"] = [
+                {"price": price_range},
+                {"price": {"$exists": False}, **legacy_range},
+            ]
 
         return query
 
@@ -237,6 +242,8 @@ class WorkerService:
             "experienceYears": 1,
 
             "memberSince": 1,
+
+            "price": 1,
 
             "priceMin": 1,
 
@@ -339,13 +346,7 @@ class WorkerService:
         worker: Dict
     ) -> str:
 
-        minimum = worker.get("priceMin", 0)
-
-        maximum = worker.get("priceMax", 0)
-
-        unit = worker.get("priceUnit", "")
-
-        return f"Rs. {minimum:,} - Rs. {maximum:,} / {unit}"
+        return format_price(worker)
 
     # ==========================================================
     # NORMALIZE SKILLS
@@ -410,11 +411,9 @@ class WorkerService:
 
             "memberSince": worker.get("memberSince"),
 
-            "priceMin": worker.get("priceMin"),
+            "price": gig_price(worker),
 
-            "priceMax": worker.get("priceMax"),
-
-            "priceUnit": worker.get("priceUnit"),
+            "priceUnit": gig_unit(worker),
 
             "priceDisplay": self.normalize_price(worker),
 

@@ -232,7 +232,7 @@ ${r.sentiment === "Positive"
           <aside className="lg:sticky lg:top-24 lg:self-start">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-card">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Pricing</p>
-              <p className="mt-1 text-2xl font-black">Rs. {worker.priceMin.toLocaleString()} – {worker.priceMax.toLocaleString()}<span className="text-sm font-medium text-muted-foreground">/{worker.priceUnit}</span></p>
+              <p className="mt-1 text-2xl font-black">Rs. {(worker.price ?? 0).toLocaleString()}<span className="text-sm font-medium text-muted-foreground">/{worker.priceUnit}</span></p>
               {worker.available ? (
                 <p className="mt-3 inline-flex items-center gap-1 rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary-dark"><CheckCircle2 className="h-3.5 w-3.5" /> Available now</p>
               ) : (

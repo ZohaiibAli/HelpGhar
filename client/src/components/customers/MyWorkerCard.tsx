@@ -10,9 +10,8 @@ export type MyWorker = {
   workerAvatar?: string;
   category: string;
   city?: string;
-  priceMin?: number;
-  priceMax?: number;
-  priceUnit?: "month" | "hour" | "day";
+  price?: number | null;
+  priceUnit?: "month" | "hour" | "day" | null;
   timesBooked: number;
   lastBookedAt?: string;
   lastBookingDate?: string;

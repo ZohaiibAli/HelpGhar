@@ -8,10 +8,11 @@ class BookingCreate(BaseModel):
     category: str
     date: str
     timeSlot: str
-    # Bounded to a sane range -- this feeds directly into the
-    # server-side price calculation in booking_route.py, so an
-    # unbounded value could be used to inflate/underflow the charge.
-    durationHours: int = Field(ge=1, le=24)
+    # How many units of the gig's priceUnit (hours / days / months) are
+    # being booked. The unit itself is taken from the gig server-side, and
+    # the exact per-unit bound is enforced in booking_route.py -- this is
+    # just the outer sanity limit since it feeds the price calculation.
+    duration: int = Field(ge=1, le=30)
     address: str
 
 class BookingReschedule(BaseModel):

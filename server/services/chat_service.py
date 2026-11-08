@@ -28,6 +28,7 @@ Response
 =========================================================
 """
 
+from helper.price_helper import gig_price, gig_unit
 import logging
 
 from ai.intent import classify, Intent
@@ -430,9 +431,8 @@ Current Search Context
                     "city": worker.get("city"),
                     "rating": worker.get("rating"),
                     "experience": worker.get("experienceYears"),
-                    "priceMin": worker.get("priceMin"),
-                    "priceMax": worker.get("priceMax"),
-                    "priceUnit": worker.get("priceUnit"),
+                    "price": gig_price(worker),
+                    "priceUnit": gig_unit(worker),
                     "available": worker.get("available"),
                     "verified": worker.get("cnicVerified")
                 }

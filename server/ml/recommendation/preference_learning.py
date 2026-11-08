@@ -12,6 +12,7 @@ bonus is scaled by a confidence value that grows with the number
 of completed bookings behind the stored preferences.
 """
 
+from helper.price_helper import gig_price
 from .constants import (
     BUDGET_TOLERANCE,
     PREFERENCE_CONFIDENCE_BOOKINGS,
@@ -56,7 +57,7 @@ class PreferenceLearning:
             raw_bonus += PREFERRED_CITY_BONUS
 
         budget = preferences.get("averageBudget", 0)
-        worker_budget = worker.get("priceMax", 0)
+        worker_budget = gig_price(worker)
 
         if budget and abs(worker_budget - budget) <= BUDGET_TOLERANCE:
             raw_bonus += PREFERRED_BUDGET_BONUS

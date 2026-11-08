@@ -83,7 +83,7 @@ export default function ServicesPage() {
       if (activeCat !== "All" && w.category !== activeCat) return false;
       if (query && !`${w.fullName} ${w.category} ${w.city}`.toLowerCase().includes(query.toLowerCase())) return false;
       if (w.rating < minRating) return false;
-      if (w.priceMin > maxPrice) return false;
+      if (w.price > maxPrice) return false;
       if (onlyAvailable && !w.available) return false;
       return true;
     });
@@ -91,8 +91,8 @@ export default function ServicesPage() {
     // The sort dropdown was previously an uncontrolled <select> with no
     // handler -- picking an option changed the label and nothing else.
     return [...matches].sort((a, b) => {
-      if (sort === "price-asc") return a.priceMin - b.priceMin;
-      if (sort === "price-desc") return b.priceMax - a.priceMax;
+      if (sort === "price-asc") return a.price - b.price;
+      if (sort === "price-desc") return b.price - a.price;
       return b.rating - a.rating;
     });
   }, [query, activeCat, minRating, maxPrice, onlyAvailable, allWorkers, sort]);
