@@ -386,6 +386,8 @@ def worker_dashboard(current_worker=Depends(get_current_worker)):
             "date": b.get("date"),
             "timeSlot": b.get("timeSlot"),
             "durationHours": b.get("durationHours"),
+            "duration": b.get("duration"),
+            "durationUnit": b.get("durationUnit"),
             "customerName": b.get("customerName"),
             "status": b.get("status"),
         }

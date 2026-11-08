@@ -1,3 +1,4 @@
+from helper.price_helper import gig_price
 from config.db import (
     booking_collection,
     gig_collection,
@@ -78,7 +79,7 @@ class CustomerPreferenceService:
             categories[category] = categories.get(category, 0) + 1
             cities[city] = cities.get(city, 0) + 1
 
-            total_budget += gig.get("priceMax", 0)
+            total_budget += gig_price(gig)
 
         reviews = list(
             review_collection.find(

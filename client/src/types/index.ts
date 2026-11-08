@@ -52,8 +52,7 @@ export interface Worker {
   memberSince: string;
   rating: number;
   reviewsCount: number;
-  priceMin: number;
-  priceMax: number;
+  price: number;
   priceUnit: "month" | "hour" | "day";
   available: boolean;
   cnicVerified: boolean;

@@ -103,8 +103,7 @@ export function WorkerCard({
         </div>
 
         <p className="mt-4 text-base font-semibold">
-          Rs. {worker.priceMin.toLocaleString()} –{" "}
-          {worker.priceMax.toLocaleString()}
+          Rs. {(worker.price ?? 0).toLocaleString()}
           <span className="text-sm font-normal text-muted-foreground">
             {priceUnit}
           </span>

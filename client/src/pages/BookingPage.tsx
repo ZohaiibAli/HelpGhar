@@ -7,6 +7,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
 import { HgAlert } from "@/components/ui/HgAlert";
+import { DURATION_LIMITS, calculateBookingPrice, unitLabel, type PriceUnit } from "@/lib/pricing";
 
 const slots = ["08:00 – 10:00", "10:00 – 12:00", "12:00 – 14:00", "14:00 – 16:00", "16:00 – 18:00", "18:00 – 20:00"];
 
@@ -30,7 +31,15 @@ export default function BookingPage() {
   const todayStr = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(todayStr);
   const [slot, setSlot] = useState(slots[1]);
-  const [durationHours, setDurationHours] = useState(2);
+  // Duration is counted in the gig's own unit: hours for an hourly gig,
+  // days for a daily one, months for a monthly one.
+  const unit: PriceUnit = (worker?.priceUnit as PriceUnit) ?? "hour";
+  const limits = DURATION_LIMITS[unit] ?? DURATION_LIMITS.hour;
+  const [duration, setDuration] = useState(1);
+
+  useEffect(() => {
+    setDuration(unit === "hour" ? 2 : 1);
+  }, [unit, worker?.id]);
   const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [alertState, setAlertState] = useState<{
@@ -42,12 +51,10 @@ export default function BookingPage() {
 
 const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
 
-  const amount = useMemo(() => {
-  if (!worker) return 0;
-  return Math.round(((worker.priceMin + worker.priceMax) / 2) / (worker.priceUnit === "month" ? 30 : 1) * durationHours);
-  }, [worker, durationHours]);
-  const platformFee = Math.round(amount * 0.05);
-  const total = amount + platformFee;
+  const { amount, platformFee, total } = useMemo(
+    () => calculateBookingPrice(worker?.price ?? 0, duration),
+    [worker, duration]
+  );
 
   if (!worker) {
     return (
@@ -83,11 +90,10 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
       category: worker.category,
       date,
       timeSlot: slot,
-      durationHours,
+      // Price is recalculated server-side from the gig; only the
+      // duration (in the gig's unit) is sent.
+      duration,
       address,
-      amount,
-      platformFee,
-      total,
     });
     navigate(`/payment?bookingId=${res.data.bookingId}`);
   } catch (err: any) {
@@ -121,7 +127,7 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
               </div>
             </Card>
 
-            <Card title="Select date" icon={Calendar}>
+            <Card title={unit === "hour" ? "Select date" : "Start date"} icon={Calendar}>
               <input type="date" min={todayStr} value={date} onChange={(e) => setDate(e.target.value)}
                 className="h-12 w-full rounded-xl border border-input bg-background px-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
             </Card>
@@ -137,11 +143,39 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
               </div>
             </Card>
 
-            <Card title="Duration">
+            <Card title={`Duration (${unitLabel(unit, 2)})`}>
               <div className="flex items-center gap-3">
-                <input type="range" min={1} max={8} value={durationHours} onChange={(e) => setDurationHours(+e.target.value)} className="flex-1 accent-primary" />
-                <span className="w-20 text-right text-sm font-bold">{durationHours} hours</span>
+                <button
+                  type="button"
+                  aria-label={`Fewer ${unitLabel(unit, 2)}`}
+                  onClick={() => setDuration((d) => Math.max(limits.min, d - 1))}
+                  disabled={duration <= limits.min}
+                  className="h-10 w-10 shrink-0 rounded-xl border border-input bg-background text-lg font-bold hover:border-primary/40 disabled:opacity-40"
+                >
+                  −
+                </button>
+                <input
+                  type="range"
+                  min={limits.min}
+                  max={limits.max}
+                  value={duration}
+                  onChange={(e) => setDuration(+e.target.value)}
+                  className="min-w-0 flex-1 accent-primary"
+                />
+                <button
+                  type="button"
+                  aria-label={`More ${unitLabel(unit, 2)}`}
+                  onClick={() => setDuration((d) => Math.min(limits.max, d + 1))}
+                  disabled={duration >= limits.max}
+                  className="h-10 w-10 shrink-0 rounded-xl border border-input bg-background text-lg font-bold hover:border-primary/40 disabled:opacity-40"
+                >
+                  +
+                </button>
+                <span className="w-24 text-right text-sm font-bold">{duration} {unitLabel(unit, duration)}</span>
               </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Rs. {(worker.price ?? 0).toLocaleString()} per {unit} × {duration} {unitLabel(unit, duration)}
+              </p>
             </Card>
 
             <Card title="Service address">
@@ -159,7 +193,8 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
                 <Row label="Service" value={worker.category} />
                 <Row label="Date" value={date} />
                 <Row label="Time" value={slot} />
-                <Row label="Duration" value={`${durationHours}h`} />
+                <Row label="Rate" value={`Rs. ${(worker.price ?? 0).toLocaleString()}/${unit}`} />
+                <Row label="Duration" value={`${duration} ${unitLabel(unit, duration)}`} />
               </div>
               <div className="my-4 h-px bg-border" />
               <div className="space-y-2 text-sm">
