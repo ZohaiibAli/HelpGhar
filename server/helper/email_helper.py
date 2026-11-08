@@ -210,6 +210,164 @@ HelpGhar support.
     )
 
 
+def account_warning_email(name, role, dispute_id=None, subject=None, note=None):
+    """Official warning: no change to the account, just a heads-up."""
+    other_side = "customer" if role == "worker" else "worker"
+
+    if dispute_id:
+        intro = f"""A complaint was filed against you and the HelpGhar team has reviewed it.
+
+Complaint ID : {dispute_id}
+Subject      : {subject or "-"}"""
+    else:
+        intro = "The HelpGhar team has reviewed recent activity on your account."
+
+    note_block = f"\nNote from the HelpGhar team: {note}\n" if note else ""
+
+    return (
+        "Official warning from HelpGhar",
+        _sign(f"""
+Hello {name or role},
+
+{intro}
+{note_block}
+This is an official warning. If we receive another complaint against you,
+your account will be suspended.
+
+Please make sure you treat every {other_side} with respect and follow the
+HelpGhar guidelines.
+"""),
+    )
+
+
+def payment_released_email(name, booking_id, category, amount, sent_to=None,
+                           reference=None, after_dispute=None):
+    """sent_to: masked payout view if the money was sent, else None.
+    after_dispute: dispute ID when an admin released it after a review."""
+
+    if after_dispute:
+        intro = (
+            f"The HelpGhar team has reviewed your payment dispute {after_dispute}\n"
+            "and released the payment for this job to you."
+        )
+    else:
+        intro = (
+            "Great work! The customer confirmed the job with the completion PIN\n"
+            "and your payment has been released."
+        )
+
+    if sent_to:
+        payout_block = (
+            f"Sent to       : {sent_to['methodLabel']} - {sent_to['account']} ({sent_to['accountTitle']})\n"
+            f"Reference     : {reference}\n\n"
+            "Depending on your bank or wallet it can take a little while to show up."
+        )
+    else:
+        payout_block = (
+            "You haven't added payout details yet, so we're holding this for you.\n"
+            "Add your bank / JazzCash / Easypaisa details in Settings > Payout\n"
+            "details and it will be sent to that account straight away."
+        )
+
+    return (
+        f"Payment of Rs. {amount:,} released for booking {booking_id}",
+        _sign(f"""
+Hello {name or "there"},
+
+{intro}
+
+Booking ID    : {booking_id}
+Service       : {category or "-"}
+Your earnings : Rs. {amount:,}
+{payout_block}
+
+You can see all your earnings and payouts on your HelpGhar dashboard.
+"""),
+    )
+
+
+def payment_dispute_received_email(name, dispute_id, booking_id, customer_name, amount):
+    return (
+        f"HelpGhar payment dispute {dispute_id} received",
+        _sign(f"""
+Hello {name or "there"},
+
+We have received your payment dispute and our team will review it.
+
+Dispute ID : {dispute_id}
+Booking ID : {booking_id}
+Customer   : {customer_name}
+Amount     : Rs. {amount:,}
+
+The payment stays safely held by HelpGhar until we decide. We'll email
+you as soon as the payment is released to you or refunded to the
+customer.
+"""),
+    )
+
+
+def payment_dispute_opened_customer_email(name, dispute_id, booking_id, worker_name):
+    return (
+        f"Payment dispute opened for your booking {booking_id}",
+        _sign(f"""
+Hello {name or "there"},
+
+{worker_name} says they completed your booking {booking_id} but did
+not receive the completion PIN, and has asked HelpGhar to review the
+payment.
+
+Dispute ID : {dispute_id}
+
+Your payment stays held by HelpGhar while we review it. If the job was
+done, you can still share the completion PIN with {worker_name}. If it
+wasn't, please reply to this email with the details so we can refund you.
+"""),
+    )
+
+
+def payment_dispute_refunded_worker_email(name, dispute_id, booking_id, amount, note=None):
+    note_block = f"\nNote from the HelpGhar team: {note}\n" if note else ""
+    return (
+        f"Decision on your HelpGhar payment dispute {dispute_id}",
+        _sign(f"""
+Hello {name or "there"},
+
+The HelpGhar team has reviewed your payment dispute and decided to
+refund the payment to the customer.
+
+Dispute ID : {dispute_id}
+Booking ID : {booking_id}
+Amount     : Rs. {amount:,}
+{note_block}
+If you think this decision is wrong, please reply to this email or contact
+HelpGhar support.
+"""),
+    )
+
+
+def payment_dispute_customer_outcome_email(name, dispute_id, booking_id, worker_name,
+                                           refunded, total, note=None):
+    note_block = f"\nNote from the HelpGhar team: {note}\n" if note else ""
+    if refunded:
+        headline = f"we have refunded Rs. {total:,} for this booking to you."
+    else:
+        headline = f"we have released the payment for this booking to {worker_name}."
+    return (
+        f"Decision on the payment dispute for booking {booking_id}",
+        _sign(f"""
+Hello {name or "there"},
+
+The HelpGhar team has reviewed payment dispute {dispute_id}, and
+{headline}
+
+Booking ID : {booking_id}
+{note_block}
+If you have any questions, please reply to this email or contact HelpGhar
+support.
+"""),
+    )
+
+
 def account_restored_email(name):
     return (
         "Your HelpGhar account has been restored",

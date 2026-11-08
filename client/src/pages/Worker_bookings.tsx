@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, MapPin, MessageSquare, Phone, X, CheckCircle2, Lock, ShieldCheck } from "lucide-react";
+import { Calendar, MapPin, MessageSquare, Phone, X, CheckCircle2, Lock, ShieldCheck, Scale } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { api } from "@/services/api";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { messagesPath } from "@/lib/startChat";
 import { CompletePinDialog } from "@/components/bookings/CompletePinDialog";
+import { PaymentDisputeDialog } from "@/components/bookings/PaymentDisputeDialog";
 
 const tabs: { id: "upcoming" | "completed" | "cancelled"; label: string }[] = [
   { id: "upcoming", label: "Upcoming" },
@@ -18,6 +19,9 @@ const tabs: { id: "upcoming" | "completed" | "cancelled"; label: string }[] = [
 const slots = ["08:00 – 10:00", "10:00 – 12:00", "12:00 – 14:00", "14:00 – 16:00", "16:00 – 18:00", "18:00 – 20:00"];
 
 const isUpcoming = (s: string) => s === "confirmed" || s === "pending" || s === "in_progress";
+const isHeld = (s: string) => s === "confirmed" || s === "in_progress";
+// An open payment dispute: raised, and not yet decided.
+const disputeOpen = (b: any) => Boolean(b.paymentDisputeId) && !b.paymentDisputeOutcome;
 
 type AlertState = {
   open: boolean;
@@ -34,6 +38,7 @@ export default function WorkerBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [disputingId, setDisputingId] = useState<string | null>(null);
 
   const [alertState, setAlertState] = useState<AlertState>({
     open: false, type: "error", title: "", description: "",
@@ -129,6 +134,7 @@ export default function WorkerBookingsPage() {
   };
 
   const completingBooking = bookings.find(b => b.id === completingId);
+  const disputingBooking = bookings.find(b => b.id === disputingId) ?? null;
 
   const filtered = bookings.filter(b => tab === "upcoming" ? isUpcoming(b.status) : b.status === tab);
 
@@ -176,6 +182,7 @@ export default function WorkerBookingsPage() {
               onConfirmReschedule={(date, timeSlot) => handleReschedule(b.id, date, timeSlot)}
               onCancelBooking={() => confirmCancel(b.id)}
               onCompleteBooking={() => setCompletingId(b.id)}
+              onRaiseDispute={() => setDisputingId(b.id)}
             />
           ))}
         </div>
@@ -190,6 +197,16 @@ export default function WorkerBookingsPage() {
           loadBookings();
         }}
         onCompleted={handleCompleted}
+      />
+
+      <PaymentDisputeDialog
+        booking={disputingBooking}
+        onClose={() => setDisputingId(null)}
+        onSubmitted={(message) => {
+          setDisputingId(null);
+          loadBookings();
+          setAlertState({ open: true, type: "success", title: "Dispute submitted", description: message });
+        }}
       />
 
       <HgAlert
@@ -214,6 +231,7 @@ function BookingRow({
   onConfirmReschedule,
   onCancelBooking,
   onCompleteBooking,
+  onRaiseDispute,
 }: {
   booking: any;
   isRescheduling: boolean;
@@ -222,8 +240,12 @@ function BookingRow({
   onConfirmReschedule: (date: string, timeSlot: string) => void;
   onCancelBooking: () => void;
   onCompleteBooking: () => void;
+  onRaiseDispute: () => void;
 }) {
   const todayStr = new Date().toISOString().split("T")[0];
+  const underReview = disputeOpen(booking);
+  // Same rule as the server: only once the job date has arrived.
+  const canDispute = isHeld(booking.status) && !underReview && (booking.date ?? "") <= todayStr;
   const [newDate, setNewDate] = useState(booking.date || todayStr);
   const [newSlot, setNewSlot] = useState(booking.timeSlot || slots[0]);
 
@@ -249,12 +271,18 @@ function BookingRow({
         </div>
       </div>
 
-      {(booking.status === "confirmed" || booking.status === "in_progress") && (
+      {isHeld(booking.status) && underReview && (
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
+          <Scale className="h-3 w-3" /> Payment dispute {booking.paymentDisputeId} is being reviewed by HelpGhar. You'll get an email with the decision.
+        </p>
+      )}
+
+      {isHeld(booking.status) && !underReview && (
         <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary-soft px-3 py-1.5 text-xs font-semibold text-primary-dark">
           {booking.pinLocked ? (
             <><Lock className="h-3 w-3" /> Locked after too many wrong PINs. The customer can contact HelpGhar support, or you can raise a dispute.</>
           ) : (
-            <><ShieldCheck className="h-3 w-3" /> Payment held by HelpGhar. Ask the customer for the completion PIN when the job is done.</>
+            <><ShieldCheck className="h-3 w-3" /> Payment held by HelpGhar. Enter the customer's completion PIN when the job is done and it's sent straight to your payout account.</>
           )}
         </p>
       )}
@@ -285,7 +313,12 @@ function BookingRow({
               <CheckCircle2 className="mr-1 h-3 w-3" />Mark as done
             </Button>
           )}
-          {booking.status === "confirmed" && (
+          {canDispute && (
+            <Button size="sm" variant="outline" className="rounded-xl" onClick={onRaiseDispute}>
+              <Scale className="mr-1 h-3 w-3" />No PIN? Payment dispute
+            </Button>
+          )}
+          {booking.status === "confirmed" && !underReview && (
             <>
               <Button size="sm" variant="outline" className="rounded-xl" onClick={onStartReschedule}>Reschedule</Button>
               <Button size="sm" variant="outline" className="rounded-xl text-destructive" onClick={onCancelBooking}>

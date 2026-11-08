@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Ban, Loader2, ShieldCheck, Timer } from "lucide-react";
+import { AlertTriangle, Ban, Loader2, ShieldCheck, Timer } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ export type ModerationTarget = {
   reason?: string | null;
 };
 
-type Action = "suspend" | "block" | "restore";
+type Action = "warn" | "suspend" | "block" | "restore";
 
 const DAYS = [3, 7, 30] as const;
 
@@ -34,7 +34,8 @@ export function formatUntil(iso?: string | null) {
 }
 
 /**
- * Suspend (3/7/30 days), block (until restored) or restore an account.
+ * Warn (email only), suspend (3/7/30 days), block (until restored) or
+ * restore an account.
  * When opened from a complaint, `disputeId` ties the action to it so the
  * person who complained is told action was taken.
  */
@@ -68,10 +69,12 @@ export function ModerationDialog({
   if (!target) return null;
 
   const isActive = target.status === "active";
-  const actions: Action[] = isActive ? ["suspend", "block"] : ["restore", "suspend", "block"];
+  const actions: Action[] = isActive ? ["warn", "suspend", "block"] : ["restore", "suspend", "block"];
+  // A warning's note is optional; suspend/block always need a reason.
+  const needsReason = action === "suspend" || action === "block";
 
   const submit = async () => {
-    if (action !== "restore" && !reason.trim()) {
+    if (needsReason && !reason.trim()) {
       setError("Please write a reason. It is included in the email to the user.");
       return;
     }
@@ -81,7 +84,7 @@ export function ModerationDialog({
       const { data } = await adminService.moderateUser(target.role, target.code, {
         action,
         ...(action === "suspend" ? { days } : {}),
-        ...(action !== "restore" ? { reason: reason.trim() } : {}),
+        ...(action !== "restore" && reason.trim() ? { reason: reason.trim() } : {}),
         ...(disputeId && action !== "restore" ? { disputeId } : {}),
       });
       onDone(data.message ?? "Done");
@@ -93,6 +96,7 @@ export function ModerationDialog({
   };
 
   const label: Record<Action, string> = {
+    warn: "Warn",
     suspend: "Suspend",
     block: "Block",
     restore: "Restore",
@@ -124,10 +128,13 @@ export function ModerationDialog({
                   action === a
                     ? a === "restore"
                       ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                      : "border-red-600 bg-red-50 text-red-700"
+                      : a === "warn"
+                        ? "border-amber-500 bg-amber-50 text-amber-700"
+                        : "border-red-600 bg-red-50 text-red-700"
                     : "border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
+                {a === "warn" && <AlertTriangle className="h-3.5 w-3.5" />}
                 {a === "suspend" && <Timer className="h-3.5 w-3.5" />}
                 {a === "block" && <Ban className="h-3.5 w-3.5" />}
                 {a === "restore" && <ShieldCheck className="h-3.5 w-3.5" />}
@@ -159,7 +166,9 @@ export function ModerationDialog({
 
           {action !== "restore" && (
             <div>
-              <label htmlFor="moderation-reason" className="mb-1.5 block text-xs font-semibold">Reason (sent to the user)</label>
+              <label htmlFor="moderation-reason" className="mb-1.5 block text-xs font-semibold">
+                {action === "warn" ? "Note (optional, added to the email)" : "Reason (sent to the user)"}
+              </label>
               <textarea
                 id="moderation-reason"
                 rows={3}
@@ -172,7 +181,14 @@ export function ModerationDialog({
             </div>
           )}
 
-          {action !== "restore" && target.role === "worker" && (
+          {action === "warn" && (
+            <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+              Sends an official warning email{disputeId ? ` about complaint ${disputeId}` : ""}. The account stays
+              active — nothing is cancelled. It says another complaint will lead to a suspension.
+            </p>
+          )}
+
+          {(action === "suspend" || action === "block") && target.role === "worker" && (
             <p className="rounded-xl bg-yellow-50 p-3 text-xs text-yellow-800">
               This worker's gigs will be hidden, and all their open bookings will be cancelled with a full
               refund to the customers (they'll be emailed).
@@ -200,11 +216,15 @@ export function ModerationDialog({
             disabled={submitting}
             onClick={submit}
             className={`rounded-xl text-white ${
-              action === "restore" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"
+              action === "restore"
+                ? "bg-emerald-600 hover:bg-emerald-700"
+                : action === "warn"
+                  ? "bg-amber-600 hover:bg-amber-700"
+                  : "bg-red-600 hover:bg-red-700"
             }`}
           >
             {submitting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-            {action === "suspend" ? `Suspend ${days} days` : label[action]}
+            {action === "suspend" ? `Suspend ${days} days` : action === "warn" ? "Send warning" : label[action]}
           </Button>
         </DialogFooter>
       </DialogContent>

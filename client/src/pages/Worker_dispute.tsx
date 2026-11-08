@@ -50,7 +50,10 @@ export default function DisputePage() {
 
         <div>
           <h1 className="text-3xl font-black md:text-4xl">Disputes</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Track the status of complaints you've raised.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Track the status of complaints you've raised. Customer didn't give the PIN? Raise a payment dispute
+            from that booking on the My bookings page.
+          </p>
           <div className="mt-6 space-y-3">
             {list.length === 0 && (
               <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">

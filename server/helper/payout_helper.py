@@ -2,11 +2,15 @@
 Worker payout details + per-job payouts.
 
 Flow:
-    escrow released (PIN / admin)  -> payout "pending"  (one per booking)
-    admin transfers the money      -> payout "paid"     (with reference)
+    escrow released (PIN / admin)  -> payout created (one per booking)
+      worker has payout details    -> paid straight away to that account
+      no payout details yet        -> "pending" until the worker adds them,
+                                      then every pending payout is paid
 
-Transfers are done by the admin by hand (bank / JazzCash / Easypaisa);
-HelpGhar only records them. Payout details are validated here and are
+Payments are simulated (there is no live bank / wallet API), so "paid"
+means HelpGhar has recorded the transfer to the worker's saved account
+with an AUTO-... reference. An admin can still mark a leftover pending
+payout as paid by hand from the Payouts page. Payout details are validated here and are
 shown in full only to admins -- workers see a masked copy.
 """
 
@@ -126,8 +130,43 @@ def _next_payout_id() -> str:
     return f"PO-{counter['sequence']:04d}"
 
 
+def auto_pay(payout: dict, worker: dict) -> dict | None:
+    """Send a pending payout to the worker's saved account. Returns the
+    updated payout, or None if it can't be paid (no details / already paid)."""
+
+    details = worker.get("payout")
+    if not details or payout.get("status") != "pending":
+        return None
+
+    return payout_collection.find_one_and_update(
+        {"payoutId": payout["payoutId"], "status": "pending"},
+        {"$set": {
+            "status": "paid",
+            "paidAt": datetime.utcnow().isoformat(),
+            "paidBy": "auto",
+            "reference": f"AUTO-{payout['payoutId']}",
+            # Snapshot: later edits to the worker's details mustn't
+            # rewrite where an old payment actually went.
+            "paidTo": details,
+        }},
+        return_document=ReturnDocument.AFTER,
+    )
+
+
+def pay_pending_payouts(worker: dict) -> list:
+    """Pay every pending payout of this worker (e.g. right after they add
+    payout details). Returns the payouts that were paid."""
+    paid = []
+    for payout in payout_collection.find({"workerId": worker.get("workerId"), "status": "pending"}):
+        done = auto_pay(payout, worker)
+        if done:
+            paid.append(done)
+    return paid
+
+
 def create_payout_for_booking(booking_id: str) -> None:
-    """Called whenever escrow is released. Idempotent per booking."""
+    """Called whenever escrow is released. Idempotent per booking. Pays the
+    worker immediately when they have payout details saved."""
 
     booking = booking_collection.find_one({"bookingId": booking_id})
     if not booking or payout_collection.find_one({"bookingId": booking_id}):
@@ -135,8 +174,9 @@ def create_payout_for_booking(booking_id: str) -> None:
 
     worker = worker_collection.find_one({"workerId": booking.get("workerId")}) or {}
 
+    payout = None
     try:
-        payout_collection.insert_one({
+        payout = {
             "payoutId": _next_payout_id(),
             "bookingId": booking_id,
             "workerId": booking.get("workerId"),
@@ -146,11 +186,15 @@ def create_payout_for_booking(booking_id: str) -> None:
             "amount": booking.get("amount", 0),
             "status": "pending",
             "createdAt": datetime.utcnow().isoformat(),
-        })
+        }
+        payout_collection.insert_one(payout)
     except Exception as e:
         # Duplicate key = a concurrent release already created it.
         if "duplicate key" not in str(e).lower():
             print("Could not create payout:", str(e))
+        return
+
+    auto_pay(payout, worker)
 
 
 def serialize_payout(doc: dict) -> dict:

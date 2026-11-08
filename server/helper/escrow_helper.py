@@ -44,7 +44,8 @@ def strip_private(booking: dict) -> dict:
     return booking
 
 
-def release_escrow(booking_id: str, released_by: str) -> None:
+def release_escrow(booking_id: str, released_by: str) -> bool:
+    """Returns True if held money was actually released by this call."""
     result = payment_collection.update_one(
         {"bookingId": booking_id, "status": "held"},
         {
@@ -61,9 +62,12 @@ def release_escrow(booking_id: str, released_by: str) -> None:
         from helper.payout_helper import create_payout_for_booking
         create_payout_for_booking(booking_id)
 
+    return bool(result.modified_count)
 
-def refund_escrow(booking_id: str, refunded_by: str = "system") -> None:
-    payment_collection.update_one(
+
+def refund_escrow(booking_id: str, refunded_by: str = "system") -> bool:
+    """Returns True if held money was actually refunded by this call."""
+    result = payment_collection.update_one(
         {"bookingId": booking_id, "status": "held"},
         {
             "$set": {
@@ -73,6 +77,7 @@ def refund_escrow(booking_id: str, refunded_by: str = "system") -> None:
             }
         },
     )
+    return bool(result.modified_count)
 
 
 def migrate_legacy_payments() -> None:

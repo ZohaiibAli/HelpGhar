@@ -179,6 +179,8 @@ export interface Review {
   createdAt?: string;
 }
 
+export type PaymentResolution = "released" | "refunded" | "completed_with_pin";
+
 export interface Complaint {
   id: string;
   customerId?: string;
@@ -193,7 +195,13 @@ export interface Complaint {
   bookingId?: string;
   // Customer/worker view: true once an admin acted on the complaint.
   // Admin view: the action itself.
-  actionTaken?: boolean | { action: AccountStatus; days?: number | null; at: string };
+  actionTaken?: boolean | { action: AccountStatus | "warned"; days?: number | null; at: string };
+  // "payment" = worker's payment dispute (customer didn't give the PIN).
+  type?: "complaint" | "payment";
+  amount?: number | null;
+  // Payment disputes: how it was decided. A string in the worker view,
+  // the full record in the admin view.
+  resolution?: PaymentResolution | { decision: PaymentResolution; note?: string | null; at?: string } | null;
   // Admin view only: the account being complained about, live.
   against?: {
     role: "customer" | "worker";
