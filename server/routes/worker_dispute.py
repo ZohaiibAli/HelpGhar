@@ -2,10 +2,17 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from config.db import (
     booking_collection,
     dispute_collection,
+    payment_collection,
     worker_collection,
     customer_collection
 )
-from model.dispute_model import WorkerDisputeCreate
+from model.dispute_model import PaymentDisputeCreate, WorkerDisputeCreate
+from helper.escrow_helper import ESCROW_BOOKING_STATUSES
+from helper.payment_dispute_helper import PAYMENT_DISPUTE, open_payment_dispute
+from helper.email_helper import (
+    payment_dispute_opened_customer_email,
+    payment_dispute_received_email,
+)
 from helper.auth_helper import get_current_worker
 from helper.id_helper import generate_worker_dispute_id
 from datetime import datetime
@@ -103,6 +110,106 @@ def create_worker_dispute(
     }
 
 
+@router.post("/payment-dispute")
+def create_payment_dispute(
+    payload: PaymentDisputeCreate,
+    background_tasks: BackgroundTasks,
+    user=Depends(get_current_worker)
+):
+    """
+    The job is done but the customer won't share the completion PIN. The
+    held payment stays in escrow until an admin releases it to the worker
+    or refunds the customer.
+    """
+
+    booking = booking_collection.find_one({
+        "bookingId": payload.bookingId,
+        "workerId": user["workerId"],
+    })
+
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if booking.get("status") not in ESCROW_BOOKING_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail="A payment dispute can only be raised on a paid booking that isn't completed yet."
+        )
+
+    if not payment_collection.find_one({"bookingId": booking["bookingId"], "status": "held"}):
+        raise HTTPException(status_code=400, detail="There is no payment held for this booking.")
+
+    # The job can't be "done" before its date.
+    today = datetime.utcnow().date().isoformat()
+    if (booking.get("date") or "") > today:
+        raise HTTPException(
+            status_code=400,
+            detail=f"You can raise a payment dispute once the job date ({booking.get('date')}) has arrived."
+        )
+
+    existing = open_payment_dispute(booking)
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Payment dispute {existing['disputeId']} is already open for this booking."
+        )
+
+    worker = worker_collection.find_one({"workerId": user["workerId"]}) or {}
+    customer = customer_collection.find_one({"customerId": booking.get("customerId")}) or {}
+
+    dispute_id = generate_worker_dispute_id()
+
+    dispute_collection.insert_one({
+        "disputeId": dispute_id,
+        "type": PAYMENT_DISPUTE,
+        "bookingId": booking["bookingId"],
+        "workerId": user["workerId"],
+        "workerName": worker.get("fullName", "Worker"),
+        "customerId": booking.get("customerId"),
+        "customerName": customer.get("fullName") or booking.get("customerName", "Customer"),
+        "subject": "Payment dispute: completion PIN not given",
+        "description": payload.description.strip(),
+        "amount": booking.get("amount", 0),
+        "status": "Open",
+        "filedBy": "worker",
+        "createdAt": datetime.utcnow(),
+    })
+
+    booking_collection.update_one(
+        {"bookingId": booking["bookingId"]},
+        {
+            "$set": {"paymentDisputeId": dispute_id},
+            "$unset": {"paymentDisputeOutcome": ""},
+        },
+    )
+
+    if worker.get("email"):
+        background_tasks.add_task(
+            send_plain_email,
+            worker["email"],
+            *payment_dispute_received_email(
+                worker.get("fullName"), dispute_id, booking["bookingId"],
+                customer.get("fullName") or "the customer", booking.get("amount", 0),
+            ),
+        )
+
+    if customer.get("email"):
+        background_tasks.add_task(
+            send_plain_email,
+            customer["email"],
+            *payment_dispute_opened_customer_email(
+                customer.get("fullName"), dispute_id, booking["bookingId"],
+                worker.get("fullName") or "Your worker",
+            ),
+        )
+
+    return {
+        "success": True,
+        "message": f"Payment dispute {dispute_id} submitted. HelpGhar will review it and email you the decision.",
+        "disputeId": dispute_id,
+    }
+
+
 @router.get("/disputes")
 def get_worker_disputes(user=Depends(get_current_worker)):
 
@@ -134,6 +241,12 @@ def get_worker_disputes(user=Depends(get_current_worker)):
             "status": dispute["status"].lower(),
 
             "actionTaken": bool(dispute.get("actionTaken")),
+
+            "type": dispute.get("type", "complaint"),
+
+            "amount": dispute.get("amount"),
+
+            "resolution": (dispute.get("resolution") or {}).get("decision"),
 
             "createdAt": dispute["createdAt"]
 

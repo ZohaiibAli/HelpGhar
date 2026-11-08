@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from config.db import (
     booking_collection,
     customer_collection,
@@ -10,6 +10,14 @@ from config.db import (
 from model.booking_model import BookingCreate, BookingReschedule, BookingComplete
 from helper.auth_helper import get_current_customer, get_current_worker
 from helper.id_helper import generate_booking_id
+from helper.payment_dispute_helper import (
+    close_payment_dispute,
+    ensure_no_open_payment_dispute,
+    decide_payment_dispute,
+    open_payment_dispute,
+    queue_payment_released_email,
+)
+from helper.payout_helper import payout_collection
 from helper.price_helper import (
     DURATION_LIMITS,
     calculate_booking_price,
@@ -286,6 +294,8 @@ def customer_cancel_booking(
             detail="This booking can no longer be cancelled"
         )
 
+    ensure_no_open_payment_dispute(booking, "cancel")
+
     booking_collection.update_one(
         {"bookingId": booking_id},
         {"$set": {"status": "cancelled"}}
@@ -318,6 +328,8 @@ def customer_reschedule_booking(
             status_code=400,
             detail="Only confirmed bookings can be rescheduled"
         )
+
+    ensure_no_open_payment_dispute(booking, "reschedule")
 
     booking_collection.update_one(
         {"bookingId": booking_id},
@@ -354,6 +366,8 @@ def worker_cancel_booking(
             detail="This booking can no longer be cancelled"
         )
 
+    ensure_no_open_payment_dispute(booking, "cancel")
+
     booking_collection.update_one(
         {"bookingId": booking_id},
         {"$set": {"status": "cancelled"}}
@@ -386,6 +400,8 @@ def worker_reschedule_booking(
             status_code=400,
             detail="Only confirmed bookings can be rescheduled"
         )
+
+    ensure_no_open_payment_dispute(booking, "reschedule")
 
     booking_collection.update_one(
         {"bookingId": booking_id},
@@ -426,6 +442,7 @@ def start_booking(booking_id: str, current_worker: dict = Depends(get_current_wo
 def complete_booking(
     booking_id: str,
     payload: BookingComplete,
+    background_tasks: BackgroundTasks,
     current_worker: dict = Depends(get_current_worker)
 ):
     """
@@ -491,12 +508,22 @@ def complete_booking(
     if result.modified_count == 0:
         raise HTTPException(status_code=400, detail="This booking was already closed.")
 
-    release_escrow(booking_id, "worker_pin")
+    released = release_escrow(booking_id, "worker_pin")
 
-    return {
-        "success": True,
-        "message": "Job completed. Payment has been released to your earnings."
-    }
+    # The customer gave the PIN after all -- any payment dispute is moot.
+    close_payment_dispute(booking, "completed_with_pin", "worker_pin")
+
+    if released:
+        queue_payment_released_email(background_tasks, booking_id)
+
+    payout = payout_collection.find_one({"bookingId": booking_id}) or {}
+    message = (
+        "Job completed. Your payment has been sent to your payout account."
+        if payout.get("status") == "paid"
+        else "Job completed. Add your payout details in Settings and your payment will be sent straight away."
+    )
+
+    return {"success": True, "message": message}
 
 
 @router.get("/admin/all")
@@ -524,6 +551,7 @@ def get_all_bookings(current_admin: dict = Depends(get_current_admin)):
 @router.patch("/admin/{booking_id}/cancel")
 def cancel_booking(
     booking_id: str,
+    background_tasks: BackgroundTasks,
     current_admin: dict = Depends(get_current_admin)
 ):
     booking = booking_collection.find_one(
@@ -535,6 +563,14 @@ def cancel_booking(
             status_code=404,
             detail="Booking not found"
         )
+
+    dispute = open_payment_dispute(booking)
+    if dispute:
+        # Same as deciding the dispute in the customer's favour.
+        message = decide_payment_dispute(
+            dispute, "refund", str(current_admin["_id"]), None, background_tasks
+        )
+        return {"success": True, "message": message}
 
     if booking["status"] not in ACTIVE_STATUSES:
         raise HTTPException(
@@ -580,6 +616,7 @@ def _held_booking_or_400(booking_id: str):
 @router.patch("/admin/{booking_id}/escrow/release")
 def admin_release_escrow(
     booking_id: str,
+    background_tasks: BackgroundTasks,
     current_admin: dict = Depends(get_current_admin)
 ):
     """
@@ -587,7 +624,14 @@ def admin_release_escrow(
     can't) give the PIN. Completes the booking and pays the worker.
     """
 
-    _held_booking_or_400(booking_id)
+    booking = _held_booking_or_400(booking_id)
+
+    dispute = open_payment_dispute(booking)
+    if dispute:
+        message = decide_payment_dispute(
+            dispute, "release", str(current_admin["_id"]), None, background_tasks
+        )
+        return {"success": True, "message": message}
 
     booking_collection.update_one(
         {"bookingId": booking_id},
@@ -600,7 +644,8 @@ def admin_release_escrow(
         }
     )
 
-    release_escrow(booking_id, "admin")
+    if release_escrow(booking_id, "admin"):
+        queue_payment_released_email(background_tasks, booking_id)
 
     return {"success": True, "message": "Payment released to the worker"}
 
@@ -608,6 +653,7 @@ def admin_release_escrow(
 @router.patch("/admin/{booking_id}/escrow/refund")
 def admin_refund_escrow(
     booking_id: str,
+    background_tasks: BackgroundTasks,
     current_admin: dict = Depends(get_current_admin)
 ):
     """
@@ -615,7 +661,14 @@ def admin_refund_escrow(
     returns the escrowed money to the customer.
     """
 
-    _held_booking_or_400(booking_id)
+    booking = _held_booking_or_400(booking_id)
+
+    dispute = open_payment_dispute(booking)
+    if dispute:
+        message = decide_payment_dispute(
+            dispute, "refund", str(current_admin["_id"]), None, background_tasks
+        )
+        return {"success": True, "message": message}
 
     booking_collection.update_one(
         {"bookingId": booking_id},

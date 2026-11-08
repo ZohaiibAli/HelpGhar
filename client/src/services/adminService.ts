@@ -107,7 +107,7 @@ export const adminService = {
     role: "customer" | "worker",
     userCode: string,
     body: {
-      action: "suspend" | "block" | "restore";
+      action: "warn" | "suspend" | "block" | "restore";
       days?: 3 | 7 | 30;
       reason?: string;
       disputeId?: string;
