@@ -2,7 +2,6 @@ import AppRouter from "./Router";
 import { useEffect } from "react";
 import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
 import AuthWatcher from "@/components/AuthWatcher";
-import { PreferencesBar } from "@/components/PreferencesBar";
 import { useChatConnection } from "@/hooks/useChatConnection";
 
 export default function App() {
@@ -21,7 +20,6 @@ export default function App() {
     <>
       <AuthWatcher />
       <AppRouter />
-      <PreferencesBar />
     </>
   );
 }

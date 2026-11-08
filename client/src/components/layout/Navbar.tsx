@@ -22,6 +22,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
 import { logout as endSession, loginPathForSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
+import { PreferencesControls } from "@/components/PreferencesBar";
 import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
 import {
   DropdownMenu,
@@ -146,6 +147,7 @@ export function Navbar() {
 
         {/* Desktop right side */}
         <div className="hidden items-center gap-2 md:flex">
+          <PreferencesControls />
           {canMessage && (
             <Link
               to="/messages"
@@ -210,6 +212,11 @@ export function Navbar() {
               </Button>
             </>
           )}
+        </div>
+
+        {/* Language + dark mode on mobile (desktop has them above) */}
+        <div className="ml-auto md:hidden">
+          <PreferencesControls />
         </div>
 
         {/* Hamburger */}

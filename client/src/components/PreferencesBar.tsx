@@ -26,11 +26,10 @@ export function applyMode(mode: ColorMode) {
 }
 
 /**
- * Language + light/dark switcher. Mounted once at the app root so it is
- * available to customers, workers and admins alike -- including on the
- * sign-in pages, which have no navbar.
+ * Language + light/dark switcher, rendered inside the Navbar so customers,
+ * workers and admins (and signed-out visitors) all get it.
  */
-export function PreferencesBar() {
+export function PreferencesControls() {
   const lang = useLang();
   const [mode, setMode] = useState<ColorMode>(readMode);
   const [open, setOpen] = useState(false);
@@ -70,8 +69,7 @@ export function PreferencesBar() {
     <div
       ref={ref}
       translate="no"
-      className="fixed bottom-4 z-[60] flex items-center gap-1 rounded-full border border-border bg-card/95 p-1 shadow-card backdrop-blur"
-      style={{ insetInlineStart: 16 }}
+      className="flex items-center gap-0.5 rounded-full border border-border bg-card p-0.5"
       dir="ltr"
     >
       <button
@@ -79,7 +77,7 @@ export function PreferencesBar() {
         onClick={toggleMode}
         aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
         title={mode === "dark" ? "Light mode" : "Dark mode"}
-        className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
+        className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition hover:bg-accent hover:text-foreground"
       >
         {mode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
       </button>
@@ -91,7 +89,7 @@ export function PreferencesBar() {
           aria-haspopup="menu"
           aria-expanded={open}
           aria-label="Language"
-          className="flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          className="flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-bold text-muted-foreground transition hover:bg-accent hover:text-foreground"
         >
           <Globe className="h-4 w-4" />
           {current.short}
@@ -100,8 +98,7 @@ export function PreferencesBar() {
         {open && (
           <ul
             role="menu"
-            className="absolute bottom-full mb-2 w-40 overflow-hidden rounded-2xl border border-border bg-popover p-1 shadow-card"
-            style={{ insetInlineStart: 0 }}
+            className="absolute right-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-2xl border border-border bg-popover p-1 shadow-card"
           >
             {LANGUAGES.map((l) => (
               <li key={l.id}>
