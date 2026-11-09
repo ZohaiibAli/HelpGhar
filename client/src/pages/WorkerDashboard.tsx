@@ -321,7 +321,7 @@ export default function WorkerDashboard() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               <Stat label="Total jobs" value={String(stats?.totalJobs ?? 0)} hint={`${stats?.completedJobs ?? 0} completed`} icon={Briefcase} />
               <Stat label="Completed" value={String(stats?.completedJobs ?? 0)} hint={`${stats?.completionRate ?? 0}% rate`} icon={TrendingUp} />
               <Stat label="Avg rating" value={String(stats?.avgRating ?? 0)} hint={`From ${stats?.reviewsCount ?? 0} reviews`} icon={Star} />
@@ -329,7 +329,7 @@ export default function WorkerDashboard() {
               <Stat label="Pending in escrow" value={`Rs. ${(stats?.pendingEscrow ?? 0).toLocaleString()}`} hint="Released when the customer's PIN is entered" icon={ShieldCheck} />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
                 <h2 className="text-base font-bold">Active jobs</h2>
 

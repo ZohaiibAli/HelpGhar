@@ -140,7 +140,7 @@ export default function PayoutDetailsSection() {
           </div>
 
           {method === "bank" ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label htmlFor="payout-bank" className="mb-1.5 block text-xs font-semibold">Bank name</label>
                 <input id="payout-bank" className={input} value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="e.g. Meezan Bank" />

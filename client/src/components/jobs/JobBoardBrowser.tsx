@@ -83,7 +83,7 @@ export function JobBoardBrowser() {
         ))}
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {loading && (
           <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground sm:col-span-2 xl:col-span-3">
             Loading open jobs...

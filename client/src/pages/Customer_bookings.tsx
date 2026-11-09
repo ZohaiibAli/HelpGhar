@@ -114,7 +114,7 @@ export default function MyBookingsPage() {
       title="Customer"
       items={customerItems}
     >
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black md:text-4xl">My bookings</h1>
@@ -239,7 +239,7 @@ function BookingRow({
 
       {isRescheduling ? (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input type="date" min={todayStr} value={newDate} onChange={(e) => setNewDate(e.target.value)}
               className="h-11 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
             <select value={newSlot} onChange={(e) => setNewSlot(e.target.value)}

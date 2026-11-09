@@ -165,3 +165,10 @@
     radial-gradient(800px 400px at -10% 110%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 60%),
     linear-gradient(180deg, #ffffff 0%, #F9FAFB 100%);
 }
+
+/* Global API loader bar */
+@keyframes hg-loader-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.hg-loader-bar { animation: hg-loader-slide 1.1s ease-in-out infinite; }

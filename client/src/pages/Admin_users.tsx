@@ -1,6 +1,6 @@
 // import { useState, useRef, useEffect } from "react";
 import { useState, useEffect } from "react";
-import { Search, ShieldCheck, ShieldOff, Mail, Phone, MoreVertical, Trash2, CheckCircle2, X } from "lucide-react";
+import { Search, ShieldCheck, ShieldOff, Mail, Phone, MoreVertical, Trash2, CheckCircle2, X, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 import { adminService } from "@/services/adminService";
@@ -106,10 +106,13 @@ export default function AdminUsers() {
   // Fetch users from backend
   const fetchUsers = async () => {
     try {
+      setLoading(true);
       const response = await adminService.getUsers();
       setUsers(response.data.users);
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,6 +120,8 @@ export default function AdminUsers() {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const [loading, setLoading] = useState(true);
 
   const filtered = users.filter(
     (u) =>
@@ -203,7 +208,59 @@ export default function AdminUsers() {
             </div>
           </div>
 
-          <div className="mt-6 overflow-x-auto">
+          {loading && (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
+
+          {/* Mobile: one card per user (the 6-column table can't fit a phone) */}
+          <div className={`mt-6 space-y-3 md:hidden ${loading ? "hidden" : ""}`}>
+            {filtered.map((u) => (
+              <div key={u.id} className="rounded-2xl border border-border bg-background p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-bold">{u.fullName}</p>
+                    <p className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
+                      {u.role === "customer" ? u.customerId : u.workerId} •{" "}
+                      <span className="capitalize">{u.role}</span>
+                    </p>
+                  </div>
+                  <UserActionsMenu
+                    user={u}
+                    onToggleStatus={toggleStatus}
+                    onDelete={() => {
+                      setSelectedUser(u);
+                      setDeleteModalOpen(true);
+                    }}
+                  />
+                </div>
+                <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Mail className="h-3 w-3 shrink-0" /> <span className="min-w-0 break-all">{u.email}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Phone className="h-3 w-3 shrink-0" /> {u.phone}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${accountStyles[u.status] ?? accountStyles.active}`}
+                  >
+                    {u.status}
+                  </span>
+                  {u.status === "suspended" && u.suspendedUntil && (
+                    <span className="text-[10px] text-muted-foreground">until {formatUntil(u.suspendedUntil)}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <p className="py-8 text-center text-xs text-muted-foreground">No users found.</p>
+            )}
+          </div>
+
+          <div className={`mt-6 hidden overflow-x-auto ${loading ? "" : "md:block"}`}>
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
                 <tr>

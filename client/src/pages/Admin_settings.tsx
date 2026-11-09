@@ -228,7 +228,7 @@ async function handleSave() {
             {isFetchingTheme && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
 
-          <div className="mt-5 grid gap-8 lg:grid-cols-2">
+          <div className="mt-5 grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div className="space-y-5">
               <div>
                 <p className="text-xs font-semibold text-muted-foreground">Quick palette</p>

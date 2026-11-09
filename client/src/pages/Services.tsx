@@ -143,7 +143,7 @@ export default function ServicesPage() {
           <JobBoardBrowser />
         </div>
       ) : (
-        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-8">
+        <div className="mx-auto grid grid-cols-1 max-w-7xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-8">
           <aside className="space-y-6 rounded-2xl border border-border bg-card p-5 shadow-soft lg:sticky lg:top-24 lg:self-start">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Category</p>
@@ -194,7 +194,7 @@ export default function ServicesPage() {
                 <p className="mt-1 text-sm text-muted-foreground">Try widening your price or rating range.</p>
               </div>
             ) : (
-              <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((w, i) => <WorkerCard key={w.id} worker={w} index={i} />)}
               </div>
             )}

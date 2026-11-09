@@ -271,10 +271,10 @@ export default function WorkerProfilePage() {
 
   return (
     <DashboardLayout title="Worker" items={workerItems}>
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl">
         <h1 className="text-3xl font-black md:text-4xl">Profile</h1>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
           <div className="rounded-3xl border border-border bg-card p-6 text-center shadow-soft">
             <div
               className="group relative mx-auto h-28 w-28 overflow-hidden rounded-full cursor-pointer"
@@ -571,7 +571,7 @@ function Card({
 }
 
 function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="grid gap-4 md:grid-cols-2">{children}</div>;
+  return <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{children}</div>;
 }
 
 function F({

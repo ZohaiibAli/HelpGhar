@@ -308,7 +308,7 @@ const handleDownloadReceipt = () => {
         <h1 className="text-3xl font-black md:text-4xl">Secure checkout</h1>
         <p className="mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground"><Lock className="h-3.5 w-3.5" /> Your payment details are encrypted.</p>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
               <h3 className="text-sm font-bold uppercase tracking-wider">Payment method</h3>

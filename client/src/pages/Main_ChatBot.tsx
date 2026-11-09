@@ -641,7 +641,7 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
         Describe the job in plain words. I'll match you with verified, rated professionals — no scrolling through listings.
       </p>
 
-      <div className="mt-8 grid w-full gap-2.5 sm:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 w-full gap-2.5 sm:grid-cols-2">
         {SUGGESTIONS.map((s) => (
           <button
             key={s}

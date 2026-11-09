@@ -1,4 +1,5 @@
 import axios from "axios";
+import { loadingTracker } from "@/components/GlobalLoader";
 import { getToken, handleAuthFailure, isTokenExpired } from "@/lib/session";
 
 export const api = axios.create({
@@ -10,6 +11,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  loadingTracker.start();
   const token = getToken();
 
   // An expired token is never attached -- it would only come back 401. Public
@@ -24,9 +26,13 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    loadingTracker.end();
+    return response;
+  },
 
   (error) => {
+    loadingTracker.end();
 
     // 401 (rejected token) and 403 (missing bearer / wrong role) both end the
     // session and send the user to the login page they actually belong to.

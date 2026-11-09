@@ -154,7 +154,7 @@ export default function AdminPayouts() {
             {!loading && rows.map((p) => {
               const d = p.payoutDetails;
               return (
-                <div key={p.payoutId} className="grid gap-4 rounded-2xl border border-border bg-background p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto] md:items-center">
+                <div key={p.payoutId} className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-background p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_auto] md:items-center">
                   <div className="min-w-0">
                     <p className="text-xs font-bold">{p.payoutId} • Booking {p.bookingId}</p>
                     <p className="truncate text-sm font-semibold">{p.workerName} <span className="text-xs font-normal text-muted-foreground">({p.workerId})</span></p>

@@ -115,7 +115,7 @@ export default function CustomerReviewsPage() {
   };
   return (
     <DashboardLayout title="Customer" items={customerItems}>
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8">
+      <div className="mx-auto grid grid-cols-1 max-w-6xl gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div>
           <h1 className="text-3xl font-black md:text-4xl">Reviews</h1>
           <p className="mt-2 text-sm text-muted-foreground">Hear what real customers say about our workers.</p>

@@ -89,7 +89,7 @@ export default function Customer_PostJob() {
 
   return (
     <DashboardLayout title="Customer" items={customerItems}>
-      <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl">
         <h1 className="text-3xl font-black md:text-4xl">Post a job</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Describe what you need and let workers apply with their offer.
@@ -128,7 +128,7 @@ export default function Customer_PostJob() {
             />
           </Field>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Field label="Budget min (Rs.)">
               <input
                 type="number"
@@ -147,6 +147,7 @@ export default function Customer_PostJob() {
                 className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
             </Field>
+            <div className="col-span-2 sm:col-span-1">
             <Field label="Per">
               <select
                 value={budgetUnit}
@@ -158,6 +159,7 @@ export default function Customer_PostJob() {
                 ))}
               </select>
             </Field>
+            </div>
           </div>
 
           <Field label="Address">
@@ -170,7 +172,7 @@ export default function Customer_PostJob() {
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Preferred date">
               <input
                 type="date"

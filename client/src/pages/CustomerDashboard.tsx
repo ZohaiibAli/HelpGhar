@@ -98,7 +98,7 @@ export default function CustomerDashboard() {
           <p className="mt-1 text-sm text-muted-foreground">Here's what's happening with your account.</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="Active bookings"
             value={stats.activeBookings.toString()}
@@ -122,7 +122,7 @@ export default function CustomerDashboard() {
         </div>
         <RecommendedWorkers />
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold">Recent bookings</h2>

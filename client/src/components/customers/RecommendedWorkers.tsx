@@ -66,7 +66,7 @@ export default function RecommendedWorkers() {
         with similar bookings rated these workers.
       </p>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {workers.slice(0, 4).map((worker) => {
           const reasons = worker.recommendationReasons ?? [];
 

@@ -45,22 +45,29 @@ const NAV = [
   { to: "/#chat", label: "Help", icon: MessageCircle },
 ];
 
-const CUSTOMER_DASHBOARD_ROUTES = [
-  "/dashboard/customer",
-  "/messages",
-  "/my-bookings",
-  "/transactions",
-  "/reviews",
-  "/disputes",
-  "/profile",
-  "/settings",
-];
+// Signed-in pages that live inside the role's dashboard shell. Derived from
+// the menus (plus the booking/payment steps) so a new tab can never be left
+// out -- a hard-coded route list used to drop Post a Job, My Jobs, My Workers
+// and the Job Board from the mobile menu.
+const EXTRA_DASHBOARD_PATHS = ["/booking", "/payment", "/job-board"];
 
-function isOnDashboard(pathname: string): boolean {
+function isActivePath(pathname: string, to: string): boolean {
+  if (pathname === to) return true;
+  // Detail pages (e.g. /my-jobs/:id) keep their parent tab highlighted,
+  // but the overview roots must not match every sub-route.
+  return !to.startsWith("/dashboard/") && pathname.startsWith(to + "/");
+}
+
+function isOnDashboard(
+  pathname: string,
+  signedIn: boolean,
+  items: { to: string }[],
+): boolean {
+  if (!signedIn) return false;
   return (
     pathname.startsWith("/dashboard/") ||
-    pathname.startsWith("/worker/") ||
-    CUSTOMER_DASHBOARD_ROUTES.includes(pathname)
+    EXTRA_DASHBOARD_PATHS.includes(pathname) ||
+    items.some((it) => isActivePath(pathname, it.to))
   );
 }
 
@@ -72,14 +79,14 @@ export function Navbar() {
   const { pathname, hash } = useLocation();
   const navigate = useNavigate();
 
-  const onDashboard = isOnDashboard(pathname);
-
   const dashboardItems =
     user?.role === "admin"
       ? adminItems
       : user?.role === "worker"
         ? workerItems
         : customerItems;
+
+  const onDashboard = isOnDashboard(pathname, !!user, dashboardItems);
 
   const dashHref =
     user?.role === "admin"
@@ -248,7 +255,7 @@ export function Navbar() {
                 <div className="my-2 h-px bg-border" />
 
                 {dashboardItems.map((item) => {
-                  const active = pathname === item.to;
+                  const active = isActivePath(pathname, item.to);
                   const Icon = item.icon;
                   return (
                     <Link

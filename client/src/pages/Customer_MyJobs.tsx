@@ -55,7 +55,7 @@ export default function Customer_MyJobs() {
 
   return (
     <DashboardLayout title="Customer" items={customerItems}>
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black md:text-4xl">My job posts</h1>

@@ -99,7 +99,59 @@ export default function AdminVerification() {
               No workers awaiting verification.
             </p>
           ) : (
-            <div className="mt-4 overflow-x-auto">
+            <>
+            <div className="mt-4 space-y-3 md:hidden">
+              {queue.map((w) => (
+                <div key={w.workerId} className="rounded-2xl border border-border bg-background p-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar src={w.avatar} name={w.fullName} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold">{w.fullName}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">{w.category || w.workerId} • {formatDate(w.appliedAt)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+                    <p>
+                      <span className="font-semibold text-foreground">CNIC:</span> {w.cnic || "—"}{" "}
+                      {w.cnicImage && (
+                        <a href={w.cnicImage} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">View photo</a>
+                      )}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-foreground">Payout:</span>{" "}
+                      {w.payout ? (
+                        <>
+                          {w.payout.methodLabel}{w.payout.bankName ? ` • ${w.payout.bankName}` : ""} — <span className="break-all font-mono">{w.payout.account}</span> ({w.payout.accountTitle})
+                          {w.payoutTitleMatchesName === false && (
+                            <span className="block font-semibold text-orange-700">⚠ Title doesn't match name</span>
+                          )}
+                        </>
+                      ) : (
+                        "Not provided"
+                      )}
+                    </p>
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => decide(w, "approve")}
+                      disabled={verifying === w.workerId}
+                      className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
+                    >
+                      {verifying === w.workerId ? "…" : "Approve"}
+                    </button>
+                    <button
+                      onClick={() => decide(w, "reject")}
+                      disabled={verifying === w.workerId}
+                      className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-bold hover:border-destructive hover:text-destructive disabled:opacity-60"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase text-muted-foreground">
                   <tr><th className="py-2">Worker</th><th>CNIC</th><th>Payout</th><th>Applied</th><th></th></tr>
@@ -160,6 +212,7 @@ export default function AdminVerification() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       </div>

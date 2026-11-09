@@ -46,7 +46,7 @@ export function DashboardLayout({
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
 
-      <div className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 py-8 sm:px-6 md:grid-cols-[240px_minmax(0,1fr)] lg:px-8">
+      <div className="mx-auto grid grid-cols-1 w-full max-w-7xl flex-1 gap-6 px-4 py-8 sm:px-6 md:grid-cols-[240px_minmax(0,1fr)] lg:px-8">
         {/* ===== SIDEBAR — hidden on mobile, visible on md+ =====
             Must match Navbar's md:hidden hamburger breakpoint exactly.
             This used to be lg: while the hamburger disappeared at md:,
@@ -61,7 +61,7 @@ export function DashboardLayout({
             </p>
             <nav className="mt-1 space-y-1">
               {items.map((it) => {
-                const active = pathname === it.to;
+                const active = pathname === it.to || (!it.to.startsWith("/dashboard/") && pathname.startsWith(it.to + "/"));
                 const Icon = it.icon;
                 return (
                   <Link

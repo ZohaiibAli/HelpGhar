@@ -47,7 +47,7 @@ export default function Worker_MyApplications() {
 
   return (
     <DashboardLayout title="Worker" items={workerItems}>
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl">
         <h1 className="text-3xl font-black md:text-4xl">My applications</h1>
         <p className="mt-2 text-sm text-muted-foreground">Track the jobs you've applied to.</p>
 

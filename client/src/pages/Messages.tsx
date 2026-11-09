@@ -247,7 +247,7 @@ export default function MessagesPage() {
           dashboard's normal document flow, so without one the message list
           would grow the page instead of scrolling inside its own pane.
         */}
-        <div className="grid h-[calc(100vh-15rem)] min-h-[28rem] overflow-hidden rounded-3xl border border-border bg-card shadow-soft md:grid-cols-[320px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 h-[calc(100vh-15rem)] min-h-[28rem] overflow-hidden rounded-3xl border border-border bg-card shadow-soft md:grid-cols-[320px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)]">
           <div
             className={`min-h-0 border-border md:block md:border-r ${
               activeThreadId ? "hidden" : "block"

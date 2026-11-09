@@ -114,7 +114,7 @@ const closeAlert = () => setAlertState((s) => ({ ...s, open: false }));
         <h1 className="text-3xl font-black md:text-4xl">Book your service</h1>
         <p className="mt-2 text-sm text-muted-foreground">Choose date, time and confirm details.</p>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
           <div className="space-y-6">
             <Card>
               <div className="flex items-center gap-4">

@@ -119,7 +119,7 @@ export default function WorkerDetailsPage() {
   return (
     <MainLayout>
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
             <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
               {/* No decorative cover banner: it pushed the actual profile

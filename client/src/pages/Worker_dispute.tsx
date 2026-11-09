@@ -33,7 +33,7 @@ export default function DisputePage() {
 
   return (
     <DashboardLayout title="Worker" items={workerItems}>
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:px-8">
+      <div className="mx-auto grid grid-cols-1 max-w-6xl gap-8 lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-3xl border border-border bg-card p-6 shadow-card">
             <h2 className="text-base font-bold">File a complaint</h2>

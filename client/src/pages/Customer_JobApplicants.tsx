@@ -98,7 +98,7 @@ export default function Customer_JobApplicants() {
 
   return (
     <DashboardLayout title="Customer" items={customerItems}>
-      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl">
         {loading && (
           <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
             Loading...

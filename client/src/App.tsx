@@ -1,6 +1,7 @@
 import AppRouter from "./Router";
 import { useEffect } from "react";
 import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
+import { GlobalLoader } from "@/components/GlobalLoader";
 import AuthWatcher from "@/components/AuthWatcher";
 import { useChatConnection } from "@/hooks/useChatConnection";
 
@@ -18,6 +19,7 @@ export default function App() {
 
   return (
     <>
+      <GlobalLoader />
       <AuthWatcher />
       <AppRouter />
     </>

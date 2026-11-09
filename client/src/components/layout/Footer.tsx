@@ -10,7 +10,7 @@ export function Footer() {
 
 return (
   <footer className="mt-24 border-t border-border bg-card">
-    <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:px-8">
+    <div className="mx-auto grid grid-cols-1 max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:grid-cols-2 md:grid-cols-3 lg:px-8">
       <div>
         <div className="flex items-center gap-2">
           {!loading && websiteLogo && (

@@ -66,7 +66,7 @@ export function Testimonials() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-5">
+      <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Featured quote — larger type, no card chrome */}
         <motion.figure
           initial={{ opacity: 0, y: 16 }}

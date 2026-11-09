@@ -14,7 +14,7 @@ export function CTASection() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="rounded-2xl bg-primary px-6 py-10 text-primary-foreground sm:px-10 sm:py-12">
-        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="max-w-xl">
             <h2 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
               Looking for work instead?
@@ -31,7 +31,7 @@ export function CTASection() {
               customers have already posted.
             </p>
 
-            <ul className="mt-5 grid gap-x-8 gap-y-2 text-sm text-primary-foreground/85 sm:grid-cols-2">
+            <ul className="mt-5 grid grid-cols-1 gap-x-8 gap-y-2 text-sm text-primary-foreground/85 sm:grid-cols-2">
               <li>You set your own rates and hours</li>
               <li>Decline any booking that doesn't suit you</li>
               <li>Reviews build a profile customers can check</li>

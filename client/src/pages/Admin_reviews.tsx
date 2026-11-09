@@ -41,7 +41,7 @@ export default function AdminReviews() {
           <p className="mt-1 text-sm text-muted-foreground">Monitor customer feedback across the platform.</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-4 shadow-soft">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total reviews</p>
             <p className="mt-2 text-xl font-black">{reviews.length}</p>

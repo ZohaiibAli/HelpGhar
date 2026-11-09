@@ -43,7 +43,7 @@ export function HowItWorks() {
           Five steps, no call centre in between.
         </p>
 
-        <ol className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+        <ol className="mt-10 grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {STEPS.map((step, index) => (
             <li key={step.title} className="flex gap-4">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-background text-sm font-semibold text-primary">

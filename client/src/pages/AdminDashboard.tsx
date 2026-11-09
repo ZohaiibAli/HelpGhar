@@ -102,7 +102,7 @@ export default function AdminDashboard() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Stat
                 label="Total users"
                 value={formatNumber(stats?.totalUsers ?? 0)}
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
                   <PiggyBank className="mr-1 h-3.5 w-3.5" /> Month-by-month earnings →
                 </Link>
               </div>
-              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Bookings</p>
                   <p className="text-2xl font-black">{formatNumber(sum(series?.bookings))}</p>

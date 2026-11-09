@@ -73,7 +73,7 @@ export function ChatbotTeaserSection() {
 
   return (
     <section id="chat" className="border-y border-border bg-card/40 py-16">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-8">
+      <div className="mx-auto grid grid-cols-1 max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:items-center lg:gap-14 lg:px-8">
         {/* ─────────── Left: what it is, and what to ask it ─────────── */}
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">

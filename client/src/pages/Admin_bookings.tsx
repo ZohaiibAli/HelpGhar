@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Lock, MoreVertical, X } from "lucide-react";
+import { Lock, MoreVertical, X, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 // import { bookings as initialBookings } from "@/data/mock";
@@ -208,7 +208,66 @@ export default function AdminBookings() {
             ))}
           </div>
 
-          <div className="mt-6 overflow-x-auto">
+          {loading && (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
+
+          {/* Mobile: one card per booking instead of a 7-column table */}
+          <div className={`mt-6 space-y-3 md:hidden ${loading ? "hidden" : ""}`}>
+            {filtered.map((b) => (
+              <div key={b.bookingId} className="rounded-2xl border border-border bg-background p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <img src={b.workerAvatar} className="h-10 w-10 shrink-0 rounded-full object-cover object-top" alt="" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold">{b.workerName}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">{b.category} • {b.bookingId}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      if (openMenuId === b.bookingId) {
+                        setOpenMenuId(null);
+                        setMenuPosition(null);
+                        return;
+                      }
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setMenuPosition({ top: rect.bottom + 6, left: Math.max(8, rect.right - 190) });
+                      setOpenMenuId(b.bookingId);
+                    }}
+                    className="shrink-0 rounded-full p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+                    aria-label="Booking actions"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+                  <span className="text-muted-foreground">{b.date} • {b.timeSlot}</span>
+                  <span className="font-bold">Rs. {b.total.toLocaleString()}</span>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${statusStyles[b.status]}`}>
+                    {b.status.replace("_", " ")}
+                  </span>
+                  <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${(paymentStyles[b.paymentStatus ?? "unpaid"] ?? paymentStyles.unpaid).cls}`}>
+                    {(paymentStyles[b.paymentStatus ?? "unpaid"] ?? paymentStyles.unpaid).label}
+                  </span>
+                  {b.pinLocked && ESCROW_STATUSES.includes(b.status) && (
+                    <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-bold uppercase text-orange-700">
+                      <Lock className="h-3 w-3" /> PIN locked
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <p className="py-8 text-center text-xs text-muted-foreground">No bookings found.</p>
+            )}
+          </div>
+
+          <div className={`mt-6 hidden overflow-x-auto ${loading ? "" : "md:block"}`}>
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
                 <tr>

@@ -231,7 +231,7 @@ export default function AdminAnalytics() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <Stat
                 label="Total users"
                 value={formatNumber(stats?.totalUsers ?? 0)}
@@ -261,7 +261,7 @@ export default function AdminAnalytics() {
               />
             </div>
 
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <ChartCard
                 label="Bookings — last 7 days"
                 value={formatNumber(bookingsThisWeek)}
@@ -276,7 +276,7 @@ export default function AdminAnalytics() {
               />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* ---------- Top categories ---------- */}
               <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
                 <h2 className="text-base font-bold">Top categories by bookings</h2>

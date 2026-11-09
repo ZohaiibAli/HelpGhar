@@ -150,7 +150,7 @@ export function ThemeCustomizer() {
       <CardHeader>
         <CardTitle>{t("adminSettings.theme.title", { defaultValue: "Theme customization" })}</CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-6 lg:grid-cols-2">
+      <CardContent className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <div>
             <Label className="mb-2 block">Quick palette</Label>

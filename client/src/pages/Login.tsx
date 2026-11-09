@@ -150,7 +150,7 @@ export default function LoginPage() {
 
   return (
     <MainLayout>
-      <div className="mx-auto grid min-h-[calc(100vh-8rem)] max-w-7xl items-stretch gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
+      <div className="mx-auto grid grid-cols-1 min-h-[calc(100vh-8rem)] max-w-7xl items-stretch gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
         {/* Left Side — Hero */}
         <div className="hidden lg:block">
           <div
