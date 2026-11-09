@@ -91,6 +91,44 @@ export interface AdminEarnings {
   monthly: EarningsMonth[];
 }
 
+export interface ReportMonth {
+  year: number;
+  monthNumber: number;
+  month: string;
+  bookings: number;
+  completed: number;
+  cancelled: number;
+  paidBookings: number;
+  gross: number;
+  workerShare: number;
+  profit: number;
+  newCustomers: number;
+  newWorkers: number;
+  newUsers: number;
+  totalCustomers: number;
+  totalWorkers: number;
+  totalUsers: number;
+  profitGrowth: number | null;
+}
+
+export interface AdminReport {
+  success: boolean;
+  generatedAt: string;
+  feeRate: number;
+  totals: {
+    customers: number;
+    workers: number;
+    users: number;
+    verifiedWorkers: number;
+    pendingWorkers: number;
+    bookings: number;
+    completedBookings: number;
+    openDisputes: number;
+    reviews: number;
+  };
+  monthly: ReportMonth[];
+}
+
 export interface PayoutDetailsView {
   method: "bank" | "jazzcash" | "easypaisa";
   methodLabel: string;
@@ -125,6 +163,9 @@ export const adminService = {
   // Month-by-month earnings after the 5% platform cut
   getEarnings: (months = 12) =>
     api.get<AdminEarnings>("/dashboard/admin/earnings", { params: { months } }),
+
+  // Data behind the downloadable monthly / yearly growth report
+  getReport: () => api.get<AdminReport>("/dashboard/admin/report"),
 
   // Approve / reject a worker's CNIC verification
   setWorkerVerification: (workerId: string, action: "approve" | "reject") =>

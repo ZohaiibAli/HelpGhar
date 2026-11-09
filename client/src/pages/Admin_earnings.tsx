@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Loader2, TrendingDown, TrendingUp, Wallet, Landmark, PiggyBank, Receipt } from "lucide-react";
+import { Download, Loader2, TrendingDown, TrendingUp, Wallet, Landmark, PiggyBank, Receipt } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -16,6 +16,8 @@ import {
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { adminItems } from "@/data/adminMenu";
 import { adminService, type AdminEarnings } from "@/services/adminService";
+import { downloadAdminReport, reportYears, type ReportKind } from "@/lib/adminReport";
+import { useWebsiteSettingsStore } from "@/store/websiteSettingsStore";
 
 const rs = (v: number) => `Rs. ${Math.round(v).toLocaleString()}`;
 const compact = (v: number) =>
@@ -57,6 +59,32 @@ export default function AdminEarningsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const { websiteLogo, websiteName } = useWebsiteSettingsStore();
+  const [kind, setKind] = useState<ReportKind>("monthly");
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const download = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const res = await adminService.getReport();
+      const years = reportYears(res.data);
+      await downloadAdminReport({
+        report: res.data,
+        kind,
+        year: years.includes(year) ? year : years[0],
+        logoUrl: websiteLogo,
+        siteName: websiteName || "HelpGhar",
+      });
+    } catch (e: any) {
+      setExportError(e?.message ?? "Could not generate the report");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const monthly = data?.monthly ?? [];
   const rowsDesc = [...monthly].reverse();
@@ -116,6 +144,58 @@ export default function AdminEarningsPage() {
                   value={rs(data.pending.heldInEscrow)}
                   note={`${rs(data.pending.profitInEscrow)} profit once released`}
                 />
+              </div>
+
+              <div className="flex flex-wrap items-end gap-4 rounded-3xl border border-primary/30 bg-primary/5 p-5 shadow-soft">
+                <div className="min-w-[220px] flex-1">
+                  <h2 className="text-base font-bold">Download growth report (PDF)</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Profit, revenue, bookings, new customers and workers, total users and growth comparison, with the
+                    HelpGhar logo.
+                  </p>
+                  {exportError && <p className="mt-1 text-xs text-destructive">{exportError}</p>}
+                </div>
+                <div className="flex rounded-full border border-border bg-card p-0.5 text-xs font-bold">
+                  {(["monthly", "yearly"] as const).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setKind(k)}
+                      className={`rounded-full px-4 py-1.5 transition ${
+                        kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {k === "monthly" ? "Monthly" : "Yearly"}
+                    </button>
+                  ))}
+                </div>
+                {kind === "monthly" && (
+                  <select
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    className="h-9 rounded-full border border-border bg-card px-3 text-xs font-bold"
+                    aria-label="Year"
+                  >
+                    {Array.from(
+                      new Set([new Date().getFullYear(), ...monthly.map((m) => Number(m.month.slice(-4)))]),
+                    )
+                      .sort((a, b) => b - a)
+                      .map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                  </select>
+                )}
+                <button
+                  type="button"
+                  onClick={download}
+                  disabled={exporting}
+                  className="inline-flex h-9 items-center gap-2 rounded-full bg-primary px-5 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  {exporting ? "Preparing..." : "Download report"}
+                </button>
               </div>
 
               <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">

@@ -806,6 +806,140 @@ def admin_earnings(
     }
 
 
+@router.get("/admin/report")
+def admin_report(months: int = 60, current_admin=Depends(get_current_admin)):
+    """
+    Everything the downloadable monthly / yearly growth report needs:
+    money (released payments), bookings and new customers / workers per
+    month, plus platform-wide totals. Yearly figures are rolled up from
+    the monthly rows so both views always agree.
+    """
+
+    months = max(1, min(months, 120))
+    now = datetime.utcnow() + timedelta(hours=5)
+
+    def month_of(moment):
+        moment = _as_utc(moment)
+        return _month_key(moment) if moment else None
+
+    rows = {}
+
+    def row(key):
+        if key not in rows:
+            rows[key] = {
+                "bookings": 0, "completed": 0, "cancelled": 0,
+                "paidBookings": 0, "gross": 0, "workerShare": 0, "profit": 0,
+                "newCustomers": 0, "newWorkers": 0,
+            }
+        return rows[key]
+
+    for payment in payment_collection.find(
+        {"status": "released"},
+        {"total": 1, "amount": 1, "platformFee": 1, "date": 1},
+    ):
+        key = month_of(payment.get("date"))
+        if key is None:
+            continue
+        gross = _money(payment.get("total"))
+        fee = _money(payment.get("platformFee"))
+        bucket = row(key)
+        bucket["paidBookings"] += 1
+        bucket["gross"] += gross
+        bucket["profit"] += fee
+        bucket["workerShare"] += _money(payment.get("amount")) or max(gross - fee, 0)
+
+    for booking in booking_collection.find({}, {"status": 1, "createdAt": 1}):
+        key = month_of(booking.get("createdAt"))
+        if key is None:
+            continue
+        bucket = row(key)
+        bucket["bookings"] += 1
+        status = str(booking.get("status", "")).lower()
+        if status == "completed":
+            bucket["completed"] += 1
+        elif status in ("cancelled", "canceled", "rejected"):
+            bucket["cancelled"] += 1
+
+    # Signups: no createdAt on users, so read it from the ObjectId.
+    customers = list(customer_collection.find({}, {"_id": 1}))
+    workers = list(worker_collection.find({}, {"_id": 1, "verificationStatus": 1}))
+    for doc in customers:
+        row(_month_key(doc["_id"].generation_time))["newCustomers"] += 1
+    for doc in workers:
+        row(_month_key(doc["_id"].generation_time))["newWorkers"] += 1
+
+    # Continuous month range from the first activity (or `months` back).
+    earliest = min(rows) if rows else (now.year, now.month)
+    start = (now.year, now.month)
+    for _ in range(months - 1):
+        y, m = start
+        m -= 1
+        if m == 0:
+            y, m = y - 1, 12
+        start = (y, m)
+    start = max(start, earliest)
+
+    keys = []
+    y, m = start
+    while (y, m) <= (now.year, now.month):
+        keys.append((y, m))
+        m += 1
+        if m == 13:
+            y, m = y + 1, 1
+
+    # Users that existed before the first listed month.
+    running_customers = sum(v["newCustomers"] for k, v in rows.items() if k < start)
+    running_workers = sum(v["newWorkers"] for k, v in rows.items() if k < start)
+
+    monthly = []
+    prev_profit = None
+    for key in keys:
+        data = dict(row(key))
+        running_customers += data["newCustomers"]
+        running_workers += data["newWorkers"]
+        monthly.append(
+            {
+                "year": key[0],
+                "monthNumber": key[1],
+                "month": datetime(key[0], key[1], 1).strftime("%b %Y"),
+                **data,
+                "newUsers": data["newCustomers"] + data["newWorkers"],
+                "totalCustomers": running_customers,
+                "totalWorkers": running_workers,
+                "totalUsers": running_customers + running_workers,
+                "profitGrowth": _trend(data["profit"], prev_profit)
+                if prev_profit is not None
+                else None,
+            }
+        )
+        prev_profit = data["profit"]
+
+    verified = sum(1 for w in workers if w.get("verificationStatus") == "approved")
+    pending = sum(
+        1 for w in workers if w.get("verificationStatus") not in ("approved", "rejected")
+    )
+
+    return {
+        "success": True,
+        "generatedAt": datetime.utcnow().isoformat() + "Z",
+        "feeRate": 5,
+        "totals": {
+            "customers": len(customers),
+            "workers": len(workers),
+            "users": len(customers) + len(workers),
+            "verifiedWorkers": verified,
+            "pendingWorkers": pending,
+            "bookings": booking_collection.count_documents({}),
+            "completedBookings": booking_collection.count_documents({"status": "completed"}),
+            "openDisputes": dispute_collection.count_documents(
+                {"status": {"$nin": ["resolved", "Resolved"]}}
+            ),
+            "reviews": review_collection.count_documents({}),
+        },
+        "monthly": monthly,
+    }
+
+
 def _admin_payout_view(payout):
     from helper.payout_helper import full_view
     return full_view(payout)
