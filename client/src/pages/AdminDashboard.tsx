@@ -169,48 +169,6 @@ export default function AdminDashboard() {
             </div>
 
             <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold">Open complaints</h2>
-                <span className="rounded-full bg-yellow-100 px-2.5 py-1 text-[10px] font-bold uppercase text-yellow-800">{complaints.length} total</span>
-              </div>
-              <div className="mt-4 space-y-3">
-                {complaints.length === 0 && (
-                  <p className="py-6 text-center text-xs text-muted-foreground">No open complaints.</p>
-                )}
-                {complaints.slice(0, 4).map((c) => (
-                  <div key={c.id} className="rounded-2xl border border-border bg-background p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold">#{c.id} • {c.subject}</p>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {c.customerName} ({c.customerId}) vs {c.workerName} ({c.workerId})
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-yellow-100 px-2 py-1 text-[10px] font-bold uppercase text-yellow-800">{c.status.replace("_", " ")}</span>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">{c.description}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button asChild size="sm" className="rounded-lg bg-primary hover:bg-primary-dark">
-                        <Link to="/dashboard/admin/complaints">Review & resolve</Link>
-                      </Button>
-                      <Button asChild size="sm" variant="outline" className="rounded-lg">
-                        <Link to="/dashboard/admin/bookings">View booking</Link>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {complaints.length > 4 && (
-                  <Link
-                    to="/dashboard/admin/complaints"
-                    className="inline-block text-xs font-semibold text-primary hover:underline"
-                  >
-                    View all {complaints.length} complaints →
-                  </Link>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h2 className="text-base font-bold">Platform analytics</h2>

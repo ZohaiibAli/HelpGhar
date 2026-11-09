@@ -101,10 +101,19 @@ async function loadLogo(url: string | null | undefined): Promise<string | null> 
       el.onerror = reject;
       el.src = dataUrl;
     });
+    // Square, circle-clipped, transparent outside -- no box behind the logo.
+    const size = 256;
     const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth || 200;
-    canvas.height = img.naturalHeight || 200;
-    canvas.getContext("2d")!.drawImage(img, 0, 0);
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+    const iw = img.naturalWidth || size;
+    const ih = img.naturalHeight || size;
+    const side = Math.min(iw, ih);
+    ctx.drawImage(img, (iw - side) / 2, (ih - side) / 2, side, side, 0, 0, size, size);
     return canvas.toDataURL("image/png");
   } catch {
     return null;
@@ -164,50 +173,48 @@ export async function downloadAdminReport(opts: {
 
   // ================= HEADER (same style as the payment receipt) =================
   doc.setFillColor(...GREEN);
-  doc.rect(0, 0, W, 34, "F");
+  doc.rect(0, 0, W, 30, "F");
 
-  let textX = M;
+  let textX = M + 25;
+  let drawn = false;
   if (logo) {
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(M, 6, 22, 22, 3, 3, "F");
     try {
-      doc.addImage(logo, "PNG", M + 2, 8, 18, 18);
+      doc.addImage(logo, "PNG", M, 4, 22, 22);
+      drawn = true;
     } catch {
-      /* unreadable image: fall through to the text-only header */
+      /* unreadable image: use the fallback mark */
     }
-    textX = M + 28;
-  } else {
-    // Fallback mark so the report is always branded.
+  }
+  if (!drawn) {
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(M, 6, 22, 22, 3, 3, "F");
+    doc.circle(M + 11, 15, 11, "F");
     doc.setTextColor(...GREEN);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.text("H", M + 11, 21, { align: "center" });
-    textX = M + 28;
   }
 
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
-  doc.text(siteName, textX, 17);
+  doc.text(siteName, textX, 14);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("Professional Home Services", textX, 25);
+  doc.text("Professional Home Services", textX, 22);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(17);
-  doc.text(title, W - M, 16, { align: "right" });
+  doc.text(title, W - M, 14, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9.5);
-  doc.text(subtitle, W - M, 24, { align: "right" });
+  doc.text(subtitle, W - M, 22, { align: "right" });
 
   doc.setTextColor(...GREY);
   doc.setFontSize(8.5);
   doc.text(
     `Generated ${new Date(report.generatedAt).toLocaleString("en-GB")}  |  Revenue counts completed (released) bookings only  |  Platform fee ${report.feeRate}%`,
     M,
-    41,
+    36,
   );
 
   // ================= KPI TILES =================
@@ -225,29 +232,29 @@ export async function downloadAdminReport(opts: {
   tiles.forEach(([label, value, note], i) => {
     const x = M + i * (tileW + tileGap);
     doc.setFillColor(i === 0 ? 220 : 245, i === 0 ? 252 : 245, i === 0 ? 231 : 245);
-    doc.roundedRect(x, 46, tileW, 24, 3, 3, "F");
+    doc.roundedRect(x, 40, tileW, 20, 3, 3, "F");
     doc.setTextColor(...GREY);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
-    doc.text(label, x + 4, 53);
+    doc.text(label, x + 4, 46);
     doc.setTextColor(...(i === 0 ? GREEN : DARK));
     doc.setFontSize(14);
-    doc.text(value, x + 4, 61);
+    doc.text(value, x + 4, 53);
     doc.setTextColor(...GREY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
-    doc.text(note, x + 4, 67);
+    doc.text(note, x + 4, 58);
   });
 
   // ================= GROWTH BARS =================
-  let y = 78;
+  let y = 67;
   doc.setTextColor(...DARK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.text(kind === "monthly" ? "Profit and new users by month" : "Profit and new users by year", M, y);
 
   const chartTop = y + 4;
-  const chartH = 42;
+  const chartH = 28;
   const half = (W - M * 2 - 10) / 2;
 
   const bars = (x0: number, heading: string, values: number[], color: [number, number, number], fmt: (v: number) => string) => {
@@ -256,7 +263,7 @@ export async function downloadAdminReport(opts: {
     doc.setTextColor(...GREY);
     doc.text(heading, x0, chartTop + 3);
     const baseY = chartTop + chartH;
-    const area = chartH - 14;
+    const area = chartH - 11;
     const max = Math.max(...values, 1);
     const slot = half / Math.max(values.length, 1);
     const bw = Math.min(slot * 0.62, 14);
@@ -326,12 +333,12 @@ export async function downloadAdminReport(opts: {
   ]);
 
   autoTable(doc, {
-    startY: chartTop + chartH + 12,
+    startY: chartTop + chartH + 7,
     head: [head],
     body,
     theme: "grid",
-    margin: { left: M, right: M, bottom: 18 },
-    styles: { fontSize: 8, cellPadding: 2, textColor: DARK, lineColor: [226, 232, 240] },
+    margin: { left: M, right: M, bottom: 16 },
+    styles: { fontSize: 7, cellPadding: 0.8, textColor: DARK, lineColor: [226, 232, 240] },
     headStyles: { fillColor: GREEN, textColor: 255, halign: "center", fontStyle: "bold" },
     columnStyles: Object.fromEntries(head.map((_, i) => [i, { halign: i === 0 ? "left" : "right" }])),
     didParseCell: (data) => {
@@ -342,36 +349,22 @@ export async function downloadAdminReport(opts: {
     },
   });
 
-  // ================= PLATFORM SNAPSHOT =================
+  // ================= PLATFORM SNAPSHOT (compact, stays on the same page) =================
   const t = report.totals;
   const lastY = (doc as any).lastAutoTable?.finalY ?? 150;
-  let sy = lastY + 10;
-  if (sy + 40 > H - 18) {
-    doc.addPage();
-    sy = 20;
-  }
-  doc.setTextColor(...DARK);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Platform snapshot (all time)", M, sy);
+  const label: Partial<import("jspdf-autotable").CellDef> = { styles: { fontStyle: "bold", fillColor: [245, 245, 245] } };
+  const cell = (c: string) => ({ content: c, ...label });
   autoTable(doc, {
-    startY: sy + 3,
+    startY: lastY + 4,
     theme: "grid",
-    margin: { left: M, right: M, bottom: 18 },
-    styles: { fontSize: 8.5, cellPadding: 2.2, textColor: DARK, lineColor: [226, 232, 240] },
+    margin: { left: M, right: M, bottom: 16 },
+    styles: { fontSize: 7, cellPadding: 0.8, textColor: DARK, lineColor: [226, 232, 240] },
     body: [
-      ["Total users", num(t.users), "Total customers", num(t.customers), "Total workers", num(t.workers)],
-      ["Verified workers", num(t.verifiedWorkers), "Awaiting verification", num(t.pendingWorkers), "Open complaints", num(t.openDisputes)],
-      ["Total bookings", num(t.bookings), "Completed bookings", num(t.completedBookings), "Reviews received", num(t.reviews)],
+      [cell("Total users"), num(t.users), cell("Customers"), num(t.customers), cell("Workers"), num(t.workers)],
+      [cell("Verified workers"), num(t.verifiedWorkers), cell("Awaiting verification"), num(t.pendingWorkers), cell("Open complaints"), num(t.openDisputes)],
+      [cell("Total bookings"), num(t.bookings), cell("Completed bookings"), num(t.completedBookings), cell("Reviews"), num(t.reviews)],
     ],
-    columnStyles: {
-      0: { fontStyle: "bold", fillColor: [245, 245, 245] },
-      2: { fontStyle: "bold", fillColor: [245, 245, 245] },
-      4: { fontStyle: "bold", fillColor: [245, 245, 245] },
-      1: { halign: "right" },
-      3: { halign: "right" },
-      5: { halign: "right" },
-    },
+    columnStyles: { 1: { halign: "right" }, 3: { halign: "right" }, 5: { halign: "right" } },
   });
 
   // ================= FOOTER on every page =================
