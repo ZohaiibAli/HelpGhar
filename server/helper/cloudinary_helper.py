@@ -116,6 +116,88 @@ def upload_chat_attachment(file, folder: str = "HelpGhar/chat"):
     }
 
 
+# Voice notes recorded in the browser. Chrome/Firefox/Edge record
+# webm/ogg (Opus); Safari records mp4 (AAC). The rest cover a phone
+# uploading a clip it already has.
+CHAT_AUDIO_TYPES = {
+    "audio/webm",
+    "audio/ogg",
+    "audio/mp4",
+    "audio/mpeg",
+    "audio/aac",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/x-m4a",
+    "video/webm",  # Some browsers label an audio-only webm recording as video.
+}
+
+# Mirrors the recorder's auto-stop on the client, with headroom for the
+# encoder's rounding.
+MAX_VOICE_SECONDS = 180
+
+MAX_VOICE_BYTES = 10 * 1024 * 1024
+
+
+def _playback_url(secure_url: str) -> str:
+    """
+    The same asset, delivered as mp3. Cloudinary transcodes on request when
+    the extension changes -- that's what lets a webm recorded in Chrome play
+    on an iPhone, which doesn't decode Opus-in-webm.
+    """
+    return re.sub(r"\.\w+$", ".mp3", secure_url)
+
+
+def upload_voice_note(file, client_duration: float | None = None, folder: str = "HelpGhar/chat/voice"):
+    """Uploads one recorded voice note and returns the attachment metadata."""
+
+    # MediaRecorder labels its output "audio/webm;codecs=opus" -- the codec
+    # parameter is irrelevant to the allow-list.
+    content_type = (file.content_type or "").split(";")[0].strip().lower()
+
+    if content_type not in CHAT_AUDIO_TYPES:
+        raise HTTPException(status_code=400, detail="That doesn't look like a voice recording.")
+
+    file.file.seek(0, 2)
+    size = file.file.tell()
+    file.file.seek(0)
+
+    if size == 0:
+        raise HTTPException(status_code=400, detail="The recording is empty.")
+
+    if size > MAX_VOICE_BYTES:
+        raise HTTPException(status_code=413, detail="Voice messages must be 10 MB or smaller.")
+
+    try:
+        # Cloudinary files audio under the "video" resource type.
+        result = cloudinary.uploader.upload(file.file, folder=folder, resource_type="video")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Voice upload failed: {e}")
+
+    # Cloudinary measures the real length; the browser's figure is only a
+    # fallback (and is never trusted to *allow* an over-long note).
+    duration = result.get("duration") or client_duration or 0
+
+    if duration > MAX_VOICE_SECONDS:
+        try:
+            cloudinary.uploader.destroy(result["public_id"], resource_type="video")
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=400,
+            detail=f"Voice messages can be at most {MAX_VOICE_SECONDS // 60} minutes long.",
+        )
+
+    return {
+        "url": result["secure_url"],
+        "playbackUrl": _playback_url(result["secure_url"]),
+        "name": "Voice message",
+        "type": "audio",
+        "mime": content_type,
+        "size": size,
+        "duration": round(float(duration), 1),
+    }
+
+
 def extract_public_id(url: str):
     """
     Best-effort extraction of a Cloudinary public_id from a

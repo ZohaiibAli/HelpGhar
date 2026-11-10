@@ -1,6 +1,7 @@
 import { AlertCircle, Check, CheckCheck, Clock, Download, FileText, Trash2 } from "lucide-react";
 import type { ChatMessage } from "@/services/messagingService";
 import { formatFileSize, formatMessageTime } from "./chatFormat";
+import { VoiceNotePlayer } from "./VoiceNotePlayer";
 
 /**
  * Delivery state, shown only on your own messages -- the same convention as
@@ -33,6 +34,10 @@ function Attachment({
   attachment: ChatMessage["attachments"][number];
   mine: boolean;
 }) {
+  if (attachment.type === "audio") {
+    return <VoiceNotePlayer attachment={attachment} mine={mine} />;
+  }
+
   if (attachment.type === "image") {
     return (
       <a
