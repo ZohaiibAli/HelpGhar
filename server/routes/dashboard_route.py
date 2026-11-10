@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from datetime import datetime, timedelta, timezone
 
 from helper.auth_helper import get_current_customer
+from helper.price_helper import worker_payout
 from config.db import (
     booking_collection,
     payment_collection,
@@ -109,6 +110,20 @@ def _money(value):
         return int(round(value or 0))
     except (TypeError, ValueError):
         return 0
+
+
+def _profit(payment):
+    """HelpGhar's cut of one payment: the customer-side 5% plus the
+    worker-side 5% (older payments have no workerFee)."""
+    return _money(payment.get("platformFee")) + _money(payment.get("workerFee"))
+
+
+def _worker_share(payment):
+    """What the worker actually received for one payment."""
+    if payment.get("workerPayout") is not None:
+        return _money(payment.get("workerPayout"))
+    gross = _money(payment.get("total"))
+    return _money(payment.get("amount")) or max(gross - _profit(payment), 0)
 
 
 def _trend(current, previous):
@@ -362,16 +377,15 @@ def worker_dashboard(current_worker=Depends(get_current_worker)):
         round((completed_jobs / total_jobs) * 100, 1) if total_jobs else 0
     )
 
-    # A worker earns `amount`; `total` is what the customer paid,
-    # including the 5% platform fee that never reaches the worker.
-    # Summing `total` here overstated every worker's earnings.
-    total_earnings = _money(sum(b.get("amount", 0) for b in completed_bookings))
+    # A worker earns `amount` minus their 5% fee (`workerPayout`); `total`
+    # is what the customer paid, including the customer-side 5% fee.
+    total_earnings = _money(sum(worker_payout(b) for b in completed_bookings))
 
     # Paid by the customer but held in escrow until the worker
     # completes the job with the customer's PIN.
     pending_escrow = _money(
         sum(
-            b.get("amount", 0)
+            worker_payout(b)
             for b in all_bookings
             if b.get("status") in ("confirmed", "in_progress")
         )
@@ -593,7 +607,7 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
     payments = list(
         payment_collection.find(
             {"status": "released"},
-            {"total": 1, "platformFee": 1, "date": 1},
+            {"total": 1, "platformFee": 1, "workerFee": 1, "date": 1},
         )
     )
 
@@ -608,7 +622,7 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
 
     gross_revenue = _money(sum(payment.get("total", 0) for payment in payments))
     platform_earnings = _money(
-        sum(payment.get("platformFee", 0) for payment in payments)
+        sum(_profit(payment) for payment in payments)
     )
 
     reviews = list(review_collection.find({}, {"rating": 1}))
@@ -661,7 +675,7 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
             "bookings": _daily_series(bookings, "createdAt", one, now),
             "revenue": _daily_series(payments, "date", revenue_of, now),
             "profit": _daily_series(
-                payments, "date", lambda p: _money(p.get("platformFee")), now
+                payments, "date", lambda p: _profit(p), now
             ),
             **_signup_series(now),
             "complaints": _daily_series(
@@ -714,8 +728,8 @@ def admin_earnings(
 ):
     """
     Month-by-month money picture. For every released booking the customer
-    paid `total` = worker `amount` + 5% `platformFee`; the worker gets the
-    amount and HelpGhar keeps the fee, so the fee is the platform profit.
+    paid `total` = job `amount` + 5% `platformFee`; the worker gets the
+    amount minus a 5% `workerFee`. HelpGhar keeps both fees (the profit).
     """
 
     months = max(1, min(months, 36))
@@ -739,7 +753,7 @@ def admin_earnings(
     released = list(
         payment_collection.find(
             {"status": "released"},
-            {"total": 1, "amount": 1, "platformFee": 1, "date": 1},
+            {"total": 1, "amount": 1, "platformFee": 1, "workerFee": 1, "workerPayout": 1, "date": 1},
         )
     )
 
@@ -747,8 +761,8 @@ def admin_earnings(
 
     for payment in released:
         gross = _money(payment.get("total"))
-        fee = _money(payment.get("platformFee"))
-        share = _money(payment.get("amount")) or max(gross - fee, 0)
+        fee = _profit(payment)
+        share = _worker_share(payment)
 
         life["bookings"] += 1
         life["gross"] += gross
@@ -768,7 +782,7 @@ def admin_earnings(
 
     held = list(
         payment_collection.find(
-            {"status": "held"}, {"total": 1, "platformFee": 1}
+            {"status": "held"}, {"total": 1, "platformFee": 1, "workerFee": 1}
         )
     )
 
@@ -800,7 +814,7 @@ def admin_earnings(
         "growth": _trend(current["profit"], last["profit"]) if current and last else None,
         "pending": {
             "heldInEscrow": sum(_money(p.get("total")) for p in held),
-            "profitInEscrow": sum(_money(p.get("platformFee")) for p in held),
+            "profitInEscrow": sum(_profit(p) for p in held),
         },
         "monthly": rows,
     }
@@ -835,18 +849,18 @@ def admin_report(months: int = 60, current_admin=Depends(get_current_admin)):
 
     for payment in payment_collection.find(
         {"status": "released"},
-        {"total": 1, "amount": 1, "platformFee": 1, "date": 1},
+        {"total": 1, "amount": 1, "platformFee": 1, "workerFee": 1, "workerPayout": 1, "date": 1},
     ):
         key = month_of(payment.get("date"))
         if key is None:
             continue
         gross = _money(payment.get("total"))
-        fee = _money(payment.get("platformFee"))
+        fee = _profit(payment)
         bucket = row(key)
         bucket["paidBookings"] += 1
         bucket["gross"] += gross
         bucket["profit"] += fee
-        bucket["workerShare"] += _money(payment.get("amount")) or max(gross - fee, 0)
+        bucket["workerShare"] += _worker_share(payment)
 
     for booking in booking_collection.find({}, {"status": 1, "createdAt": 1}):
         key = month_of(booking.get("createdAt"))

@@ -12,10 +12,9 @@ from config.db import (
 from model.job_model import JobPostCreate, JobApplicationCreate
 from helper.auth_helper import get_current_customer, get_current_worker
 from helper.id_helper import generate_job_id, generate_job_application_id, generate_booking_id
+from helper.price_helper import PLATFORM_FEE_RATE, calculate_worker_fee
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
-
-PLATFORM_FEE_RATE = 0.05
 
 
 def _applications_count_by_job(job_ids: list[str]) -> dict:
@@ -239,6 +238,7 @@ def accept_application(
     amount = application["proposedPrice"]
     platform_fee = round(amount * PLATFORM_FEE_RATE)
     total = amount + platform_fee
+    worker_fee, worker_payout = calculate_worker_fee(amount)
 
     customer_record = customer_collection.find_one({"customerId": current_customer["customerId"]})
 
@@ -257,6 +257,8 @@ def accept_application(
         "amount": amount,
         "platformFee": platform_fee,
         "total": total,
+        "workerFee": worker_fee,
+        "workerPayout": worker_payout,
         "status": "pending",
         "customerId": current_customer["customerId"],
         "customerName": customer_record.get("fullName") if customer_record else "Customer",

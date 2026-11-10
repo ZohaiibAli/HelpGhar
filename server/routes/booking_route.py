@@ -21,6 +21,7 @@ from helper.payout_helper import payout_collection
 from helper.price_helper import (
     DURATION_LIMITS,
     calculate_booking_price,
+    calculate_worker_fee,
     gig_price,
     gig_unit,
 )
@@ -134,6 +135,8 @@ def create_booking(
     booking_data["amount"] = amount
     booking_data["platformFee"] = platform_fee
     booking_data["total"] = total
+    # 5% is also deducted from the worker's side when the payment is released.
+    booking_data["workerFee"], booking_data["workerPayout"] = calculate_worker_fee(amount)
 
     customer_record = customer_collection.find_one({"customerId": current_customer["customerId"]})
     booking_data["customerName"] = customer_record.get("fullName") if customer_record else "Customer"

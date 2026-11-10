@@ -266,8 +266,15 @@ function BookingRow({
         </div>
         <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end">
           <StatusBadge status={booking.status} />
-          {/* The worker earns `amount`; `total` adds the platform fee. */}
-          <p className="text-base font-black">Rs. {(booking.amount ?? booking.total).toLocaleString()}</p>
+          {/* The worker receives `amount` minus their 5% fee (`workerPayout`). */}
+          <div className="text-right">
+            <p className="text-base font-black">Rs. {(booking.workerPayout ?? booking.amount ?? booking.total).toLocaleString()}</p>
+            {booking.workerFee ? (
+              <p className="text-[11px] text-muted-foreground">
+                Rs. {booking.amount.toLocaleString()} − Rs. {booking.workerFee.toLocaleString()} fee (5%)
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
 

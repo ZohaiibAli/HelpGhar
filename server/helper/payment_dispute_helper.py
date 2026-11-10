@@ -26,6 +26,7 @@ from helper.email_helper import (
 )
 from helper.escrow_helper import ESCROW_BOOKING_STATUSES, refund_escrow, release_escrow
 from helper.payout_helper import masked, payout_collection
+from helper.price_helper import worker_payout
 
 PAYMENT_DISPUTE = "payment"
 
@@ -49,7 +50,7 @@ def queue_payment_released_email(background_tasks: BackgroundTasks, booking_id: 
             worker.get("fullName"),
             booking_id,
             booking.get("category"),
-            payout.get("amount", booking.get("amount", 0)),
+            payout.get("amount", worker_payout(booking)),
             masked(payout.get("paidTo")) if paid else None,
             payout.get("reference") if paid else None,
             after_dispute,
@@ -147,7 +148,7 @@ def decide_payment_dispute(dispute: dict, decision: str, admin_id: str, note: st
     # ---- emails
     worker = worker_collection.find_one({"workerId": booking.get("workerId")}) or {}
     customer = customer_collection.find_one({"customerId": booking.get("customerId")}) or {}
-    amount = booking.get("amount", 0)
+    amount = worker_payout(booking)
 
     if outcome == "released":
         if released:

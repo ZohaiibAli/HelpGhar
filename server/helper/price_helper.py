@@ -7,7 +7,12 @@ midpoint is used, so every caller can read a price without caring which
 shape the document is in.
 """
 
+# HelpGhar takes 5% from BOTH sides of every booking:
+#   customer pays  amount + 5%   (platformFee)
+#   worker gets    amount - 5%   (workerFee is deducted on release)
+# e.g. a Rs. 20,000 job -> customer pays 21,000, worker receives 19,000.
 PLATFORM_FEE_RATE = 0.05
+WORKER_FEE_RATE = 0.05
 
 PRICE_UNITS = ("hour", "day", "month")
 
@@ -46,3 +51,19 @@ def calculate_booking_price(gig: dict, duration: int):
     amount = gig_price(gig) * duration
     platform_fee = round(amount * PLATFORM_FEE_RATE)
     return amount, platform_fee, amount + platform_fee
+
+
+def calculate_worker_fee(amount: int):
+    """The worker's side of the cut: (workerFee, workerPayout)."""
+    worker_fee = round(amount * WORKER_FEE_RATE)
+    return worker_fee, amount - worker_fee
+
+
+def worker_payout(booking: dict) -> int:
+    """What the worker actually receives for a booking. Bookings made before
+    the worker fee existed have no `workerPayout` and keep their old terms
+    (the full amount)."""
+    payout = booking.get("workerPayout")
+    if isinstance(payout, (int, float)):
+        return int(payout)
+    return int(booking.get("amount", 0) or 0)

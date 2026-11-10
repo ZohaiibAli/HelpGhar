@@ -20,6 +20,7 @@ from datetime import datetime
 from pymongo import ReturnDocument
 
 from config.db import booking_collection, counter_collection, db, worker_collection
+from helper.price_helper import worker_payout
 
 payout_collection = db["payouts"]
 
@@ -182,8 +183,11 @@ def create_payout_for_booking(booking_id: str) -> None:
             "workerId": booking.get("workerId"),
             "workerName": worker.get("fullName") or booking.get("workerName", ""),
             "category": booking.get("category", ""),
-            # The worker earns `amount`; the 5% platform fee stays with HelpGhar.
-            "amount": booking.get("amount", 0),
+            # The worker gets `amount` minus their 5% fee; both 5% cuts
+            # (customer's platformFee + workerFee) stay with HelpGhar.
+            "amount": worker_payout(booking),
+            "jobAmount": booking.get("amount", 0),
+            "workerFee": booking.get("workerFee", 0),
             "status": "pending",
             "createdAt": datetime.utcnow().isoformat(),
         }

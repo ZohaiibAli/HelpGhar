@@ -141,6 +141,9 @@ export interface Booking {
   amount: number;
   fee: number;
   total: number;
+  // Worker side of the 5% cut: the worker receives amount - workerFee.
+  workerFee?: number;
+  workerPayout?: number;
 
   address: string;
 
