@@ -5,6 +5,8 @@ Money flow:
     customer pays          -> payment "held"     (HelpGhar holds it)
     worker enters the PIN  -> payment "released" (worker has earned it)
     booking cancelled      -> payment "refunded" (back to the customer)
+                              If the CUSTOMER cancels a paid booking, the 5%
+                              platform fee is kept and only the rest is refunded.
 
 The PIN is generated when the booking is paid for and is only ever shown
 to the customer. The worker gets it from the customer in person once the
@@ -65,15 +67,31 @@ def release_escrow(booking_id: str, released_by: str) -> bool:
     return bool(result.modified_count)
 
 
-def refund_escrow(booking_id: str, refunded_by: str = "system") -> bool:
-    """Returns True if held money was actually refunded by this call."""
+def refund_escrow(booking_id: str, refunded_by: str = "system",
+                  keep_platform_fee: bool = False) -> bool:
+    """Returns True if held money was actually refunded by this call.
+
+    keep_platform_fee: the customer cancelled themselves, so HelpGhar keeps
+    the platform fee (`cancellationFee`) and refunds the rest (`refundAmount`).
+    Otherwise (worker/admin cancel, dispute refund) the full total goes back.
+    """
+    payment = payment_collection.find_one({"bookingId": booking_id, "status": "held"})
+    if not payment:
+        return False
+
+    total = int(payment.get("total", 0) or 0)
+    fee = int(payment.get("platformFee", 0) or 0) if keep_platform_fee else 0
+    fee = min(fee, total)
+
     result = payment_collection.update_one(
-        {"bookingId": booking_id, "status": "held"},
+        {"_id": payment["_id"], "status": "held"},
         {
             "$set": {
                 "status": "refunded",
                 "refundedAt": datetime.utcnow().isoformat(),
                 "refundedBy": refunded_by,
+                "refundAmount": total - fee,
+                "cancellationFee": fee,
             }
         },
     )

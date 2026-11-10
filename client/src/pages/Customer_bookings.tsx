@@ -56,11 +56,18 @@ export default function MyBookingsPage() {
   }, []);
 
   const confirmCancel = (bookingId: string) => {
+    const booking = bookings.find((b) => b.bookingId === bookingId);
+    // Paid bookings are "confirmed": the platform fee is kept on a customer cancel.
+    const paid = booking?.status === "confirmed" && booking?.total;
+    const fee = booking?.platformFee ?? 0;
     setAlertState({
       open: true,
       type: "warning",
       title: "Cancel this booking?",
-      description: "This action cannot be undone. Free cancellation may not apply depending on timing.",
+      description: paid
+        ? `This action cannot be undone. The Rs. ${fee.toLocaleString()} platform fee is non-refundable — ` +
+          `you'll get Rs. ${(booking.total - fee).toLocaleString()} back.`
+        : "This action cannot be undone.",
       actionLabel: "Yes, cancel it",
       onAction: () => doCancel(bookingId),
     });
@@ -68,13 +75,13 @@ export default function MyBookingsPage() {
 
   const doCancel = async (bookingId: string) => {
     try {
-      await api.patch(`/bookings/${bookingId}/cancel`);
+      const { data } = await api.patch(`/bookings/${bookingId}/cancel`);
       setBookings((prev) => prev.map(b => b.bookingId === bookingId ? { ...b, status: "cancelled" } : b));
       setAlertState({
         open: true,
         type: "success",
         title: "Booking cancelled",
-        description: "Your booking has been cancelled successfully.",
+        description: data?.message ?? "Your booking has been cancelled successfully.",
       });
     } catch (err: any) {
       setAlertState({

@@ -112,14 +112,44 @@ def _money(value):
         return 0
 
 
+# Payments that earned HelpGhar money: completed jobs, plus bookings the
+# customer cancelled after paying (the platform fee was kept).
+EARNING_PAYMENTS = {
+    "$or": [
+        {"status": "released"},
+        {"status": "refunded", "cancellationFee": {"$gt": 0}},
+    ]
+}
+EARNING_FIELDS = {
+    "status": 1, "total": 1, "amount": 1, "platformFee": 1, "workerFee": 1,
+    "workerPayout": 1, "cancellationFee": 1, "date": 1,
+}
+
+
+def _is_cancellation(payment):
+    return payment.get("status") == "refunded"
+
+
+def _gross(payment):
+    """What the customer actually ended up paying HelpGhar."""
+    if _is_cancellation(payment):
+        return _money(payment.get("cancellationFee"))
+    return _money(payment.get("total"))
+
+
 def _profit(payment):
     """HelpGhar's cut of one payment: the customer-side 5% plus the
-    worker-side 5% (older payments have no workerFee)."""
+    worker-side 5% (older payments have no workerFee), or the kept
+    platform fee when the customer cancelled."""
+    if _is_cancellation(payment):
+        return _money(payment.get("cancellationFee"))
     return _money(payment.get("platformFee")) + _money(payment.get("workerFee"))
 
 
 def _worker_share(payment):
     """What the worker actually received for one payment."""
+    if _is_cancellation(payment):
+        return 0
     if payment.get("workerPayout") is not None:
         return _money(payment.get("workerPayout"))
     gross = _money(payment.get("total"))
@@ -168,8 +198,10 @@ def customer_dashboard(current_customer=Depends(get_current_customer)):
     total_spent = _money(
         sum(
             payment.get("total", 0)
-            for payment in payments
             if payment.get("status") in ("held", "released")
+            else payment.get("cancellationFee", 0)
+            for payment in payments
+            if payment.get("status") in ("held", "released", "refunded")
         )
     )
 
@@ -283,10 +315,12 @@ def _customer_notifications(customer_id: str, limit: int = 6):
                 else "Payment released to worker"
             ),
             "message": (
-                f"Rs. {_money(payment.get('total')):,} "
+                f"Rs. {_money(payment.get('refundAmount', payment.get('total')) if refunded else _money(payment.get('total'))):,} "
                 f"{'refunded for' if refunded else 'paid for'} "
                 f"booking {payment.get('bookingId', '')}."
                 + (" Share your PIN with the worker once the job is done." if held else "")
+                + (f" Rs. {_money(payment.get('cancellationFee')):,} platform fee was kept."
+                   if refunded and payment.get("cancellationFee") else "")
             ),
             "at": _as_utc(payment.get("date")),
         })
@@ -604,12 +638,7 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
         booking_collection.find({}, {"createdAt": 1})
     )
 
-    payments = list(
-        payment_collection.find(
-            {"status": "released"},
-            {"total": 1, "platformFee": 1, "workerFee": 1, "date": 1},
-        )
-    )
+    payments = list(payment_collection.find(EARNING_PAYMENTS, EARNING_FIELDS))
 
     held_in_escrow = _money(
         sum(
@@ -620,7 +649,7 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
         )
     )
 
-    gross_revenue = _money(sum(payment.get("total", 0) for payment in payments))
+    gross_revenue = _money(sum(_gross(payment) for payment in payments))
     platform_earnings = _money(
         sum(_profit(payment) for payment in payments)
     )
@@ -634,7 +663,7 @@ def admin_dashboard(current_admin=Depends(get_current_admin)):
     )
 
     one = lambda _: 1
-    revenue_of = lambda payment: _money(payment.get("total"))
+    revenue_of = _gross
 
     bookings_this_week = _window_total(
         bookings, "createdAt", one, week_start, now
@@ -751,20 +780,18 @@ def admin_earnings(
     }
 
     released = list(
-        payment_collection.find(
-            {"status": "released"},
-            {"total": 1, "amount": 1, "platformFee": 1, "workerFee": 1, "workerPayout": 1, "date": 1},
-        )
+        payment_collection.find(EARNING_PAYMENTS, EARNING_FIELDS)
     )
 
     life = {"bookings": 0, "gross": 0, "workerShare": 0, "profit": 0}
 
     for payment in released:
-        gross = _money(payment.get("total"))
+        gross = _gross(payment)
         fee = _profit(payment)
         share = _worker_share(payment)
+        completed = 0 if _is_cancellation(payment) else 1
 
-        life["bookings"] += 1
+        life["bookings"] += completed
         life["gross"] += gross
         life["workerShare"] += share
         life["profit"] += fee
@@ -775,7 +802,7 @@ def admin_earnings(
 
         bucket = buckets.get(_month_key(moment))
         if bucket is not None:
-            bucket["bookings"] += 1
+            bucket["bookings"] += completed
             bucket["gross"] += gross
             bucket["workerShare"] += share
             bucket["profit"] += fee
@@ -847,17 +874,14 @@ def admin_report(months: int = 60, current_admin=Depends(get_current_admin)):
             }
         return rows[key]
 
-    for payment in payment_collection.find(
-        {"status": "released"},
-        {"total": 1, "amount": 1, "platformFee": 1, "workerFee": 1, "workerPayout": 1, "date": 1},
-    ):
+    for payment in payment_collection.find(EARNING_PAYMENTS, EARNING_FIELDS):
         key = month_of(payment.get("date"))
         if key is None:
             continue
-        gross = _money(payment.get("total"))
+        gross = _gross(payment)
         fee = _profit(payment)
         bucket = row(key)
-        bucket["paidBookings"] += 1
+        bucket["paidBookings"] += 0 if _is_cancellation(payment) else 1
         bucket["gross"] += gross
         bucket["profit"] += fee
         bucket["workerShare"] += _worker_share(payment)

@@ -283,7 +283,10 @@ export default function TransactionsPage() {
                 <span>{t.method}</span>
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-base font-black">Rs. {t.total.toLocaleString()}</p>
+                <div>
+                  <p className="text-base font-black">Rs. {t.total.toLocaleString()}</p>
+                  <RefundNote t={t} />
+                </div>
                 <button
                   onClick={() => downloadReceipt(t.id)}
                   className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary-dark"
@@ -310,7 +313,7 @@ export default function TransactionsPage() {
                   <td className="px-4 py-4 font-semibold">{t.id}<p className="text-xs font-normal text-muted-foreground">Booking #{t.bookingId}</p></td>
                   <td className="px-4 py-4 text-muted-foreground">{new Date(t.date).toLocaleString()}</td>
                   <td className="px-4 py-4">{t.method}</td>
-                  <td className="px-4 py-4 font-bold">Rs. {t.total.toLocaleString()}</td>
+                  <td className="px-4 py-4 font-bold">Rs. {t.total.toLocaleString()}<RefundNote t={t} /></td>
                   <td className="px-4 py-4"><StatusPill s={t.status} /></td>
                   <td className="px-4 py-4">
                     <button
@@ -351,4 +354,17 @@ function StatusPill({ s }: { s: PaymentStatus }) {
     refunded: "Refunded",
   };
   return <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${map[s] ?? "bg-muted text-muted-foreground"}`}>{label[s] ?? s}</span>;
+}
+
+/** For a refunded payment: how much came back, and the platform fee kept
+ *  when the customer cancelled the booking themselves. */
+function RefundNote({ t }: { t: any }) {
+  if (t.status !== "refunded") return null;
+  const refund = t.refundAmount ?? t.total;
+  return (
+    <p className="text-[11px] font-normal text-muted-foreground">
+      Rs. {refund.toLocaleString()} refunded
+      {t.cancellationFee ? ` • Rs. ${t.cancellationFee.toLocaleString()} fee kept` : ""}
+    </p>
+  );
 }
