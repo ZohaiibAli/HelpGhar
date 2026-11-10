@@ -40,7 +40,7 @@ import os
 from dotenv import load_dotenv
 
 from helper.auth_helper import verify_token, _ensure_account_usable
-from helper.cloudinary_helper import upload_chat_attachment
+from helper.cloudinary_helper import upload_chat_attachment, upload_voice_note
 from helper.ws_manager import manager
 from model.message_model import MessageSend, ThreadStart
 from services import messaging_service as svc
@@ -364,6 +364,45 @@ async def send_attachment(
         clientId,
         None,
         message_type,
+    )
+
+    await _broadcast_new_message(thread, role, user_id, message)
+
+    return {"success": True, "message": message}
+
+
+@router.post("/threads/{thread_id}/voice")
+async def send_voice_note(
+    thread_id: str,
+    file: UploadFile = File(...),
+    duration: Optional[float] = Form(default=None),
+    clientId: Optional[str] = Form(default=None),
+    actor: tuple = Depends(_actor),
+):
+    """A recorded voice message. Stored as a single "audio" attachment, so
+    delivery, read receipts, delete and the unread badge all work exactly
+    as they do for photos."""
+
+    role, user_id = actor
+
+    thread = await run_in_threadpool(svc.get_thread_or_404, thread_id, role, user_id)
+
+    # Fail fast on a blocked thread -- before spending a Cloudinary upload
+    # on a message send_message() would refuse anyway.
+    svc.ensure_can_send(thread, role, user_id)
+
+    attachment = await run_in_threadpool(upload_voice_note, file, duration)
+
+    message = await run_in_threadpool(
+        svc.send_message,
+        thread,
+        role,
+        user_id,
+        "",
+        [attachment],
+        clientId,
+        None,
+        "voice",
     )
 
     await _broadcast_new_message(thread, role, user_id, message)

@@ -21,6 +21,7 @@ from helper.payout_helper import payout_collection
 from helper.price_helper import (
     DURATION_LIMITS,
     calculate_booking_price,
+    calculate_worker_fee,
     gig_price,
     gig_unit,
 )
@@ -67,14 +68,15 @@ def _price_booking(gig: dict, duration: int):
     return unit, *calculate_booking_price(gig, duration)
 
 
-def _refund_paid_booking(booking_id: str, refunded_by: str = "system"):
+def _refund_paid_booking(booking_id: str, refunded_by: str = "system",
+                         keep_platform_fee: bool = False):
     """
     If this booking was paid for, the money is still in escrow ("held")
     -- give it back to the customer. Called from every cancel path
     (customer/worker/admin). No-op if the booking was never paid for.
     """
 
-    refund_escrow(booking_id, refunded_by)
+    return refund_escrow(booking_id, refunded_by, keep_platform_fee)
 
 
 @router.post("/")
@@ -134,6 +136,8 @@ def create_booking(
     booking_data["amount"] = amount
     booking_data["platformFee"] = platform_fee
     booking_data["total"] = total
+    # 5% is also deducted from the worker's side when the payment is released.
+    booking_data["workerFee"], booking_data["workerPayout"] = calculate_worker_fee(amount)
 
     customer_record = customer_collection.find_one({"customerId": current_customer["customerId"]})
     booking_data["customerName"] = customer_record.get("fullName") if customer_record else "Customer"
@@ -301,7 +305,20 @@ def customer_cancel_booking(
         {"$set": {"status": "cancelled"}}
     )
 
-    _refund_paid_booking(booking_id, "customer")
+    # Customer cancelled on their own: the platform fee is not refunded.
+    refunded = _refund_paid_booking(booking_id, "customer", keep_platform_fee=True)
+
+    if refunded:
+        payment = payment_collection.find_one({"bookingId": booking_id}) or {}
+        fee = payment.get("cancellationFee", 0)
+        refund = payment.get("refundAmount", 0)
+        return {
+            "success": True,
+            "message": f"Booking cancelled. Rs. {refund:,} refunded "
+                       f"(Rs. {fee:,} platform fee is non-refundable).",
+            "refundAmount": refund,
+            "cancellationFee": fee,
+        }
 
     return {
         "success": True,

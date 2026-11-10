@@ -221,7 +221,7 @@ export async function downloadAdminReport(opts: {
   const best = periods.reduce<Period | null>((b, p) => (!b || p.profit > b.profit ? p : b), null);
   const avgProfit = periods.length ? totals.profit / periods.length : 0;
   const tiles: [string, string, string][] = [
-    ["PLATFORM PROFIT", rs(totals.profit), `${report.feeRate}% cut - avg ${rs(avgProfit)} / ${kind === "monthly" ? "month" : "year"}`],
+    ["PLATFORM PROFIT", rs(totals.profit), `${report.feeRate}% + ${report.feeRate}% cut - avg ${rs(avgProfit)} / ${kind === "monthly" ? "month" : "year"}`],
     ["PAID BY CUSTOMERS", rs(totals.gross), `Workers earned ${rs(totals.workerShare)}`],
     ["NEW USERS", num(totals.newUsers), `${num(totals.newCustomers)} customers, ${num(totals.newWorkers)} workers`],
     ["BOOKINGS", num(totals.bookings), `${num(totals.completed)} completed`],

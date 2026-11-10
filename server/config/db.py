@@ -45,6 +45,9 @@ try:
     job_post_collection = db["job_posts"]
     job_application_collection = db["job_applications"]
 
+    # Workers rating customers after a completed job (routes/customer_review_routes.py).
+    customer_review_collection = db["customer_reviews"]
+
     # Registration only checked "does this email already exist?" with a
     # find_one before insert_one -- two concurrent requests for the same
     # email can both pass that check before either insert completes,
@@ -108,6 +111,14 @@ try:
         job_application_collection.create_index([("workerId", 1), ("createdAt", -1)])
     except Exception as e:
         print("Could not create job indexes:", str(e))
+
+    # One customer review per booking, and fast "all reviews of this customer".
+    try:
+        customer_review_collection.create_index("bookingId", unique=True)
+        customer_review_collection.create_index([("customerId", 1), ("createdAt", -1)])
+        customer_review_collection.create_index([("workerId", 1), ("createdAt", -1)])
+    except Exception as e:
+        print("Could not create customer review indexes:", str(e))
 
     print("MongoDB Connected Successfully")
     print(f"Database: {DB_NAME}")

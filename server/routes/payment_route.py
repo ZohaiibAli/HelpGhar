@@ -10,6 +10,7 @@ from helper.auth_helper import get_current_customer
 from helper.id_helper import generate_transaction_id
 from helper.escrow_helper import generate_pin
 from helper.email_helper import send_completion_pin_email
+from helper.price_helper import worker_payout
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -85,6 +86,9 @@ def make_payment(
     "amount": booking.get("amount", 0),
     "platformFee": booking.get("platformFee", 0),
     "total": booking.get("total", 0),
+    # Worker side of the 5% cut (old bookings: no worker fee).
+    "workerFee": booking.get("workerFee", 0),
+    "workerPayout": worker_payout(booking),
 
     "date": datetime.now(ZoneInfo("Asia/Karachi")).isoformat(),
 

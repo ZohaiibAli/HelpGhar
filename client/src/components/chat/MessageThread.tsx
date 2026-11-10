@@ -65,6 +65,7 @@ export function MessageThread({
   onLoadOlder,
   onSend,
   onSendFiles,
+  onSendVoice,
   onTyping,
   onDeleteMessage,
   onRetryMessage,
@@ -82,6 +83,7 @@ export function MessageThread({
   onLoadOlder: () => void;
   onSend: (text: string) => Promise<void>;
   onSendFiles: (files: File[], text: string) => Promise<void>;
+  onSendVoice: (audio: Blob, duration: number) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
   onDeleteMessage: (messageId: string) => void;
   onRetryMessage: (clientId: string) => void;
@@ -337,10 +339,14 @@ export function MessageThread({
 
       {/* ---------- Composer ---------- */}
       <MessageComposer
+        // Remount per conversation so an in-progress recording (or draft)
+        // can never be sent into a different thread after switching.
+        key={thread.threadId}
         disabled={blocked}
         disabledReason={composerReason}
         onSend={onSend}
         onSendFiles={onSendFiles}
+        onSendVoice={onSendVoice}
         onTyping={onTyping}
       />
     </div>

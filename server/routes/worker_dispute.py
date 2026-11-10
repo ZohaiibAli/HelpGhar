@@ -17,6 +17,7 @@ from helper.auth_helper import get_current_worker
 from helper.id_helper import generate_worker_dispute_id
 from datetime import datetime
 from helper.dispute_helper import booked_counterparts
+from helper.price_helper import worker_payout
 from helper.email_helper import send_plain_email, complaint_received_email
 
 router = APIRouter(
@@ -169,7 +170,7 @@ def create_payment_dispute(
         "customerName": customer.get("fullName") or booking.get("customerName", "Customer"),
         "subject": "Payment dispute: completion PIN not given",
         "description": payload.description.strip(),
-        "amount": booking.get("amount", 0),
+        "amount": worker_payout(booking),
         "status": "Open",
         "filedBy": "worker",
         "createdAt": datetime.utcnow(),
@@ -189,7 +190,7 @@ def create_payment_dispute(
             worker["email"],
             *payment_dispute_received_email(
                 worker.get("fullName"), dispute_id, booking["bookingId"],
-                customer.get("fullName") or "the customer", booking.get("amount", 0),
+                customer.get("fullName") or "the customer", worker_payout(booking),
             ),
         )
 

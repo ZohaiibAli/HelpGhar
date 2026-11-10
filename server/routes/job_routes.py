@@ -12,10 +12,9 @@ from config.db import (
 from model.job_model import JobPostCreate, JobApplicationCreate
 from helper.auth_helper import get_current_customer, get_current_worker
 from helper.id_helper import generate_job_id, generate_job_application_id, generate_booking_id
+from helper.price_helper import PLATFORM_FEE_RATE, calculate_worker_fee
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
-
-PLATFORM_FEE_RATE = 0.05
 
 
 def _applications_count_by_job(job_ids: list[str]) -> dict:
@@ -82,8 +81,23 @@ def get_open_jobs(category: str | None = Query(default=None)):
 
     jobs = list(job_post_collection.find(query).sort("createdAt", -1))
 
+    # Attach each poster's rating from workers, so a worker can judge the
+    # customer before applying (see routes/customer_review_routes.py).
+    customers_by_id = {
+        c["customerId"]: c
+        for c in customer_collection.find(
+            {"customerId": {"$in": list({j["customerId"] for j in jobs})}},
+            {"customerId": 1, "customerRating": 1, "customerReviewsCount": 1},
+        )
+    }
+
     for job in jobs:
         del job["_id"]
+        # Never expose the poster's phone on a public listing.
+        job.pop("customerPhone", None)
+        customer = customers_by_id.get(job["customerId"]) or {}
+        job["customerRating"] = customer.get("customerRating", 0)
+        job["customerReviewsCount"] = customer.get("customerReviewsCount", 0)
 
     return {"success": True, "jobs": jobs}
 
@@ -239,6 +253,7 @@ def accept_application(
     amount = application["proposedPrice"]
     platform_fee = round(amount * PLATFORM_FEE_RATE)
     total = amount + platform_fee
+    worker_fee, worker_payout = calculate_worker_fee(amount)
 
     customer_record = customer_collection.find_one({"customerId": current_customer["customerId"]})
 
@@ -257,6 +272,8 @@ def accept_application(
         "amount": amount,
         "platformFee": platform_fee,
         "total": total,
+        "workerFee": worker_fee,
+        "workerPayout": worker_payout,
         "status": "pending",
         "customerId": current_customer["customerId"],
         "customerName": customer_record.get("fullName") if customer_record else "Customer",

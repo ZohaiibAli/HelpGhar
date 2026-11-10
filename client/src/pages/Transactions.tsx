@@ -5,6 +5,7 @@ import { customerItems } from "@/data/customerMenu";
 import type { PaymentStatus } from "@/types";
 import { Download } from "lucide-react";
 import jsPDF from "jspdf";
+import { addReceiptLogo, RECEIPT_TITLE_X } from "@/lib/receiptLogo";
 import { api } from "@/services/api";
 
 const filters: { id: "all" | PaymentStatus; label: string }[] = [
@@ -75,7 +76,7 @@ export default function TransactionsPage() {
 
       const payment = result.receipt;
 
-      generateReceipt(payment);
+      await generateReceipt(payment);
 
     }
 
@@ -87,24 +88,27 @@ export default function TransactionsPage() {
 
   };
 
-  const generateReceipt = (payment:any) => {
+  const generateReceipt = async (payment:any) => {
     // if (!payment) return;
-  
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-  
+
     // ================= HEADER =================
     doc.setFillColor(16, 185, 129); // Emerald Green
     doc.rect(0, 0, pageWidth, 38, "F");
-  
+
+    const hasLogo = await addReceiptLogo(doc);
+    const titleX = hasLogo ? RECEIPT_TITLE_X : 20;
+
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(24);
-    doc.text("HelpGhar", 20, 18);
-  
+    doc.text("HelpGhar", titleX, 18);
+
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    doc.text("Professional Home Services", 20, 28);
+    doc.text("Professional Home Services", titleX, 28);
   
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
@@ -279,7 +283,10 @@ export default function TransactionsPage() {
                 <span>{t.method}</span>
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-base font-black">Rs. {t.total.toLocaleString()}</p>
+                <div>
+                  <p className="text-base font-black">Rs. {t.total.toLocaleString()}</p>
+                  <RefundNote t={t} />
+                </div>
                 <button
                   onClick={() => downloadReceipt(t.id)}
                   className="flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary-dark"
@@ -306,7 +313,7 @@ export default function TransactionsPage() {
                   <td className="px-4 py-4 font-semibold">{t.id}<p className="text-xs font-normal text-muted-foreground">Booking #{t.bookingId}</p></td>
                   <td className="px-4 py-4 text-muted-foreground">{new Date(t.date).toLocaleString()}</td>
                   <td className="px-4 py-4">{t.method}</td>
-                  <td className="px-4 py-4 font-bold">Rs. {t.total.toLocaleString()}</td>
+                  <td className="px-4 py-4 font-bold">Rs. {t.total.toLocaleString()}<RefundNote t={t} /></td>
                   <td className="px-4 py-4"><StatusPill s={t.status} /></td>
                   <td className="px-4 py-4">
                     <button
@@ -347,4 +354,17 @@ function StatusPill({ s }: { s: PaymentStatus }) {
     refunded: "Refunded",
   };
   return <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${map[s] ?? "bg-muted text-muted-foreground"}`}>{label[s] ?? s}</span>;
+}
+
+/** For a refunded payment: how much came back, and the platform fee kept
+ *  when the customer cancelled the booking themselves. */
+function RefundNote({ t }: { t: any }) {
+  if (t.status !== "refunded") return null;
+  const refund = t.refundAmount ?? t.total;
+  return (
+    <p className="text-[11px] font-normal text-muted-foreground">
+      Rs. {refund.toLocaleString()} refunded
+      {t.cancellationFee ? ` • Rs. ${t.cancellationFee.toLocaleString()} fee kept` : ""}
+    </p>
+  );
 }

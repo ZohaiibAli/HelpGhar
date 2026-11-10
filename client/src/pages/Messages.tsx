@@ -288,6 +288,9 @@ export default function MessagesPage() {
                     .getState()
                     .sendAttachments(activeThread.threadId, files, text)
                 }
+                onSendVoice={(audio, duration) =>
+                  useChatStore.getState().sendVoice(activeThread.threadId, audio, duration)
+                }
                 onTyping={(isTyping) =>
                   useChatStore
                     .getState()

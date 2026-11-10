@@ -4,6 +4,7 @@ import { CreditCard, Wallet, Lock, CheckCircle2, Download, KeyRound } from "luci
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
+import { addReceiptLogo, RECEIPT_TITLE_X } from "@/lib/receiptLogo";
 import { api } from "@/services/api";
 import { HgAlert } from "@/components/ui/HgAlert";
 
@@ -76,7 +77,7 @@ export default function PaymentPage() {
     }
   };
 
-const handleDownloadReceipt = () => {
+const handleDownloadReceipt = async () => {
   if (!payment) return;
 
   const doc = new jsPDF();
@@ -86,14 +87,17 @@ const handleDownloadReceipt = () => {
   doc.setFillColor(16, 185, 129); // Emerald Green
   doc.rect(0, 0, pageWidth, 38, "F");
 
+  const hasLogo = await addReceiptLogo(doc);
+  const titleX = hasLogo ? RECEIPT_TITLE_X : 20;
+
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(24);
-  doc.text("HelpGhar", 20, 18);
+  doc.text("HelpGhar", titleX, 18);
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text("Professional Home Services", 20, 28);
+  doc.text("Professional Home Services", titleX, 28);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);

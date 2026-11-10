@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Paperclip, SendHorizonal, X } from "lucide-react";
+import { Loader2, Mic, Paperclip, SendHorizonal, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatFileSize } from "./chatFormat";
+import {
+  MAX_VOICE_SECONDS,
+  formatVoiceTime,
+  isVoiceRecordingSupported,
+  useVoiceRecorder,
+} from "@/hooks/useVoiceRecorder";
+
+// Shorter than this is almost always an accidental tap on the mic.
+const MIN_VOICE_SECONDS = 1;
 
 const MAX_LENGTH = 4000;
 const MAX_FILES = 5;
@@ -22,17 +31,60 @@ export function MessageComposer({
   disabledReason,
   onSend,
   onSendFiles,
+  onSendVoice,
   onTyping,
 }: {
   disabled?: boolean;
   disabledReason?: string;
   onSend: (text: string) => Promise<void>;
   onSendFiles: (files: File[], text: string) => Promise<void>;
+  onSendVoice: (audio: Blob, duration: number) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
 }) {
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+
+  const voiceSupported = isVoiceRecordingSupported();
+  const sendVoiceRef = useRef<() => void>(() => {});
+  const recorder = useVoiceRecorder({ onAutoStop: () => sendVoiceRef.current() });
+
+  const startRecording = async () => {
+    if (busy || disabled) return;
+    stopTyping();
+    try {
+      await recorder.start();
+    } catch (error: any) {
+      if (error?.name === "NotAllowedError" || error?.name === "SecurityError") {
+        toast.error("Microphone access is blocked. Allow it in your browser settings to send voice messages.");
+      } else if (error?.name === "NotFoundError") {
+        toast.error("No microphone was found on this device.");
+      } else {
+        toast.error("Could not start recording.");
+      }
+    }
+  };
+
+  const sendVoice = async () => {
+    if (!recorder.recording) return;
+
+    const result = await recorder.stop();
+
+    if (!result || result.duration < MIN_VOICE_SECONDS || result.blob.size === 0) {
+      toast.error("Voice message was too short.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await onSendVoice(result.blob, result.duration);
+    } catch (error: any) {
+      toast.error(error?.message ?? "Voice message could not be sent.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  sendVoiceRef.current = sendVoice;
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,6 +199,65 @@ export function MessageComposer({
     );
   }
 
+  if (recorder.recording || (busy && !text.trim() && files.length === 0)) {
+    const nearLimit = recorder.elapsed >= MAX_VOICE_SECONDS - 10;
+
+    return (
+      <div className="border-t border-border bg-card p-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={recorder.cancel}
+            disabled={!recorder.recording}
+            aria-label="Discard recording"
+            title="Discard"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border text-muted-foreground transition hover:bg-accent hover:text-destructive disabled:opacity-40"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+
+          <div
+            className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-background px-3 text-sm"
+            aria-live="polite"
+          >
+            {recorder.recording ? (
+              <>
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                </span>
+                <span className={`font-semibold tabular-nums ${nearLimit ? "text-destructive" : ""}`}>
+                  {formatVoiceTime(recorder.elapsed)}
+                </span>
+                <span className="truncate text-muted-foreground">
+                  Recording… max {formatVoiceTime(MAX_VOICE_SECONDS)}
+                </span>
+              </>
+            ) : (
+              <>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                <span className="truncate text-muted-foreground">Sending voice message…</span>
+              </>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={sendVoice}
+            disabled={!recorder.recording}
+            aria-label="Send voice message"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary-dark disabled:opacity-40"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // WhatsApp-style: an empty composer offers the mic, typing swaps it for Send.
+  const showMic = voiceSupported && !text.trim() && files.length === 0;
+
   return (
     <div
       className="border-t border-border bg-card p-3"
@@ -228,19 +339,32 @@ export function MessageComposer({
           className="max-h-40 min-h-10 flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary"
         />
 
-        <button
-          type="button"
-          onClick={submit}
-          disabled={busy || (!text.trim() && files.length === 0)}
-          aria-label="Send message"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {busy ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <SendHorizonal className="h-4 w-4" />
-          )}
-        </button>
+        {showMic ? (
+          <button
+            type="button"
+            onClick={startRecording}
+            disabled={busy}
+            aria-label="Record a voice message"
+            title="Record a voice message"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Mic className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={submit}
+            disabled={busy || (!text.trim() && files.length === 0)}
+            aria-label="Send message"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <SendHorizonal className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
 
       {text.length > MAX_LENGTH - 200 && (

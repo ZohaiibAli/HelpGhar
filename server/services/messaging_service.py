@@ -498,6 +498,31 @@ def list_messages(
     }
 
 
+def ensure_can_send(thread: dict, role: str, user_id: str):
+    """Raises 403 if either side has blocked the other."""
+
+    blocked_by = thread.get("blockedBy", [])
+
+    if not blocked_by:
+        return
+
+    me = connection_key(role, user_id)
+    other_role = OTHER_ROLE[role]
+    them = connection_key(other_role, thread[ID_FIELD[other_role]])
+
+    if me in blocked_by:
+        raise HTTPException(
+            status_code=403,
+            detail="You blocked this user. Unblock them to send a message."
+        )
+
+    if them in blocked_by:
+        raise HTTPException(
+            status_code=403,
+            detail="You can no longer send messages in this conversation."
+        )
+
+
 def send_message(
     thread: dict,
     role: str,
@@ -518,24 +543,7 @@ def send_message(
     if not text and not attachments:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    blocked_by = thread.get("blockedBy", [])
-
-    if blocked_by:
-        me = connection_key(role, user_id)
-        other_role = OTHER_ROLE[role]
-        them = connection_key(other_role, thread[ID_FIELD[other_role]])
-
-        if me in blocked_by:
-            raise HTTPException(
-                status_code=403,
-                detail="You blocked this user. Unblock them to send a message."
-            )
-
-        if them in blocked_by:
-            raise HTTPException(
-                status_code=403,
-                detail="You can no longer send messages in this conversation."
-            )
+    ensure_can_send(thread, role, user_id)
 
     # A retry of a send whose response was lost must not post twice. The
     # unique (threadId, clientId) index is the real guard; this check
@@ -625,6 +633,8 @@ def _attachment_preview(attachments: List[dict]) -> str:
 
     if len(attachments) == 1:
         kind = attachments[0].get("type", "file")
+        if kind == "audio":
+            return "🎤 Voice message"
         return "📷 Photo" if kind == "image" else f"📎 {attachments[0].get('name', 'Attachment')}"
 
     return f"📎 {len(attachments)} attachments"

@@ -65,6 +65,7 @@ interface ChatState {
     files: File[],
     text?: string
   ) => Promise<void>;
+  sendVoice: (threadId: string, audio: Blob, duration: number) => Promise<void>;
   retryMessage: (threadId: string, clientId: string) => Promise<void>;
 
   markRead: (threadId: string) => Promise<void>;
@@ -338,6 +339,8 @@ export const useChatStore = create<ChatState>()((set, get) => {
     if (!message.attachments?.length) return "";
 
     if (message.attachments.length === 1) {
+      if (message.attachments[0].type === "audio") return "🎤 Voice message";
+
       return message.attachments[0].type === "image"
         ? "📷 Photo"
         : `📎 ${message.attachments[0].name}`;
@@ -797,6 +800,17 @@ export const useChatStore = create<ChatState>()((set, get) => {
           },
         }));
       }
+    },
+
+    sendVoice: async (threadId: string, audio: Blob, duration: number) => {
+      const saved = await messagingService.sendVoice(threadId, audio, duration, newClientId());
+
+      set((state) => ({
+        messagesByThread: {
+          ...state.messagesByThread,
+          [threadId]: upsertMessage(state.messagesByThread[threadId] ?? [], saved),
+        },
+      }));
     },
 
     sendAttachments: async (threadId: string, files: File[], text = "") => {

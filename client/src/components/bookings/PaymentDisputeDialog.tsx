@@ -20,7 +20,7 @@ export function PaymentDisputeDialog({
   onClose,
   onSubmitted,
 }: {
-  booking: { id: string; customerName?: string; amount?: number; total?: number } | null;
+  booking: { id: string; customerName?: string; amount?: number; total?: number; workerPayout?: number } | null;
   onClose: () => void;
   onSubmitted: (message: string) => void;
 }) {
@@ -55,7 +55,7 @@ export function PaymentDisputeDialog({
     }
   };
 
-  const amount = booking.amount ?? booking.total ?? 0;
+  const amount = booking.workerPayout ?? booking.amount ?? booking.total ?? 0;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>

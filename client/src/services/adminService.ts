@@ -76,7 +76,7 @@ export interface EarningsMonth {
   gross: number;
   /** What workers receive. */
   workerShare: number;
-  /** The 5% platform cut -- HelpGhar's profit. */
+  /** HelpGhar's profit: 5% from the customer + 5% from the worker. */
   profit: number;
   growth: number | null;
 }

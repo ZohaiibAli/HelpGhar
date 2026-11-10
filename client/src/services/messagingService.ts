@@ -23,9 +23,13 @@ export interface ChatParticipant {
 export interface ChatAttachment {
   url: string;
   name: string;
-  type: "image" | "file";
+  type: "image" | "file" | "audio";
   mime: string;
   size: number;
+  /** Voice notes only: mp3 rendition that plays on every browser (incl. Safari). */
+  playbackUrl?: string;
+  /** Voice notes only: length in seconds. */
+  duration?: number;
 }
 
 export interface ChatMessage {
@@ -34,7 +38,7 @@ export interface ChatMessage {
   senderRole: ChatRole;
   senderId: string;
   senderName: string;
-  type: "text" | "image" | "file" | "system";
+  type: "text" | "image" | "file" | "voice" | "system";
   text: string;
   attachments: ChatAttachment[];
   bookingId: string | null;
@@ -165,6 +169,25 @@ export const messagingService = {
           headers: { "Content-Type": "multipart/form-data" },
         }
       )
+      .then((res) => res.data.message);
+  },
+
+  sendVoice: (threadId: string, audio: Blob, duration: number, clientId: string) => {
+    const form = new FormData();
+    // Strip the ";codecs=opus" suffix: it isn't part of the MIME type the
+    // server allow-lists, and some proxies mangle it.
+    const mime = (audio.type || "audio/webm").split(";")[0];
+    const ext = mime.includes("mp4") ? "m4a" : mime.includes("ogg") ? "ogg" : mime.includes("mpeg") ? "mp3" : "webm";
+
+    form.append("file", new File([audio], `voice-message.${ext}`, { type: mime }));
+    form.append("duration", String(Math.round(duration * 10) / 10));
+    form.append("clientId", clientId);
+
+    return api
+      .post<{ message: ChatMessage }>(`/messages/threads/${threadId}/voice`, form, {
+        timeout: 60_000,
+        headers: { "Content-Type": "multipart/form-data" },
+      })
       .then((res) => res.data.message);
   },
 

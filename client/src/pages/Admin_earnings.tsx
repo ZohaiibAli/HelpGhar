@@ -96,8 +96,8 @@ export default function AdminEarningsPage() {
         <div>
           <h1 className="text-2xl font-black md:text-3xl">Earnings & profit</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Customer pays the job amount + {data?.feeRate ?? 5}%. The worker gets the amount; the {data?.feeRate ?? 5}% cut is
-            HelpGhar's profit. Only completed (released) bookings count.
+            Customer pays the job amount + {data?.feeRate ?? 5}%, and the worker gets the amount − {data?.feeRate ?? 5}%. Both
+            cuts are HelpGhar's profit. Only completed (released) bookings count.
           </p>
         </div>
 
@@ -117,7 +117,7 @@ export default function AdminEarningsPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <Card
                   icon={PiggyBank}
-                  label="Total profit (5% cut)"
+                  label="Total profit (5% + 5%)"
                   value={rs(data.lifetime.profit)}
                   note={`${data.lifetime.bookings} completed bookings`}
                   highlight
@@ -259,7 +259,7 @@ export default function AdminEarningsPage() {
                         <th className="text-right">Bookings</th>
                         <th className="text-right">Paid by customers</th>
                         <th className="text-right">Worker earnings</th>
-                        <th className="text-right">Profit ({data.feeRate}%)</th>
+                        <th className="text-right">Profit ({data.feeRate}% + {data.feeRate}%)</th>
                         <th className="text-right">Growth</th>
                       </tr>
                     </thead>
