@@ -122,6 +122,10 @@ def generate_job_application_id():
     seq = _next_sequence("job_application_id")
     return f"JAP-{seq:04d}"
 
+def generate_customer_review_id():
+    seq = _next_sequence("customer_review_id")
+    return f"HGCR-{seq:04d}"
+
 def generate_review_id():
 
     counter = counter_collection.find_one_and_update(

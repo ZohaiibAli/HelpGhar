@@ -19,6 +19,7 @@ from routes.review_routes import router as review_router
 from routes.dashboard_route import router as dashboard_router
 from routes.recommendation_routes import router as recommendation_router
 from routes.job_routes import router as job_router
+from routes.customer_review_routes import router as customer_review_router
 from routes.payout_routes import worker_router as payout_worker_router, admin_router as payout_admin_router
 
 from helper.seed_helper import seed_default_card
@@ -111,6 +112,7 @@ app.include_router(review_router)
 app.include_router(dashboard_router)
 app.include_router(recommendation_router)
 app.include_router(job_router)
+app.include_router(customer_review_router)
 app.include_router(payout_worker_router)
 app.include_router(payout_admin_router)
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, MapPin, MessageSquare, Phone, X, CheckCircle2, Lock, ShieldCheck, Scale } from "lucide-react";
+import { Calendar, MapPin, MessageSquare, Phone, X, CheckCircle2, Lock, ShieldCheck, Scale, Star } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { workerItems } from "@/data/workerMenu";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { HgAlert } from "@/components/ui/HgAlert";
 import { messagesPath } from "@/lib/startChat";
 import { CompletePinDialog } from "@/components/bookings/CompletePinDialog";
 import { PaymentDisputeDialog } from "@/components/bookings/PaymentDisputeDialog";
+import { RateCustomerDialog } from "@/components/bookings/RateCustomerDialog";
+import { customerReviewService } from "@/services/customerReviewService";
 
 const tabs: { id: "upcoming" | "completed" | "cancelled"; label: string }[] = [
   { id: "upcoming", label: "Upcoming" },
@@ -39,6 +41,9 @@ export default function WorkerBookingsPage() {
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
   const [disputingId, setDisputingId] = useState<string | null>(null);
+  const [ratingId, setRatingId] = useState<string | null>(null);
+  // bookingId -> the star rating this worker gave the customer.
+  const [givenRatings, setGivenRatings] = useState<Record<string, number>>({});
 
   const [alertState, setAlertState] = useState<AlertState>({
     open: false, type: "error", title: "", description: "",
@@ -67,6 +72,16 @@ export default function WorkerBookingsPage() {
 
   useEffect(() => {
     loadBookings();
+    customerReviewService
+      .getGiven()
+      .then((reviews) =>
+        setGivenRatings(
+          Object.fromEntries(reviews.filter((r) => r.bookingId).map((r) => [r.bookingId as string, r.rating]))
+        )
+      )
+      .catch(() => {
+        /* Non-critical: the server still rejects a duplicate review. */
+      });
   }, []);
 
   const confirmCancel = (bookingId: string) => {
@@ -135,6 +150,7 @@ export default function WorkerBookingsPage() {
 
   const completingBooking = bookings.find(b => b.id === completingId);
   const disputingBooking = bookings.find(b => b.id === disputingId) ?? null;
+  const ratingBooking = bookings.find(b => b.id === ratingId) ?? null;
 
   const filtered = bookings.filter(b => tab === "upcoming" ? isUpcoming(b.status) : b.status === tab);
 
@@ -183,6 +199,8 @@ export default function WorkerBookingsPage() {
               onCancelBooking={() => confirmCancel(b.id)}
               onCompleteBooking={() => setCompletingId(b.id)}
               onRaiseDispute={() => setDisputingId(b.id)}
+              givenRating={givenRatings[b.id]}
+              onRateCustomer={() => setRatingId(b.id)}
             />
           ))}
         </div>
@@ -209,6 +227,16 @@ export default function WorkerBookingsPage() {
         }}
       />
 
+      <RateCustomerDialog
+        booking={ratingBooking}
+        onClose={() => setRatingId(null)}
+        onSubmitted={(review, message) => {
+          setRatingId(null);
+          setGivenRatings((prev) => ({ ...prev, [review.bookingId ?? ""]: review.rating }));
+          setAlertState({ open: true, type: "success", title: "Review submitted", description: message });
+        }}
+      />
+
       <HgAlert
         open={alertState.open}
         onClose={closeAlert}
@@ -232,6 +260,8 @@ function BookingRow({
   onCancelBooking,
   onCompleteBooking,
   onRaiseDispute,
+  givenRating,
+  onRateCustomer,
 }: {
   booking: any;
   isRescheduling: boolean;
@@ -241,6 +271,8 @@ function BookingRow({
   onCancelBooking: () => void;
   onCompleteBooking: () => void;
   onRaiseDispute: () => void;
+  givenRating?: number;
+  onRateCustomer: () => void;
 }) {
   const todayStr = new Date().toISOString().split("T")[0];
   const underReview = disputeOpen(booking);
@@ -319,6 +351,17 @@ function BookingRow({
             <Button size="sm" className="rounded-xl bg-primary hover:bg-primary-dark" onClick={onCompleteBooking}>
               <CheckCircle2 className="mr-1 h-3 w-3" />Mark as done
             </Button>
+          )}
+          {booking.status === "completed" && (
+            givenRating ? (
+              <span className="inline-flex items-center gap-1 rounded-xl bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                You rated <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" /> {givenRating}
+              </span>
+            ) : (
+              <Button size="sm" className="rounded-xl bg-primary hover:bg-primary-dark" onClick={onRateCustomer}>
+                <Star className="mr-1 h-3 w-3" />Rate customer
+              </Button>
+            )
           )}
           {canDispute && (
             <Button size="sm" variant="outline" className="rounded-xl" onClick={onRaiseDispute}>

@@ -253,6 +253,24 @@ export interface JobPost {
   status: JobStatus;
   applicationsCount?: number;
   alreadyApplied?: boolean;
+  /** Only on the public job board: the poster's average rating from workers. */
+  customerRating?: number;
+  customerReviewsCount?: number;
+  createdAt: string;
+}
+
+/** A worker's review of a customer, left after a completed booking. */
+export interface CustomerReview {
+  reviewId: string;
+  bookingId?: string;
+  category?: string;
+  workerId: string;
+  workerName: string;
+  workerAvatar?: string;
+  customerId: string;
+  customerName: string;
+  rating: number;
+  comment: string;
   createdAt: string;
 }
 

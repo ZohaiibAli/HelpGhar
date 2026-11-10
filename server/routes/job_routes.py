@@ -81,8 +81,23 @@ def get_open_jobs(category: str | None = Query(default=None)):
 
     jobs = list(job_post_collection.find(query).sort("createdAt", -1))
 
+    # Attach each poster's rating from workers, so a worker can judge the
+    # customer before applying (see routes/customer_review_routes.py).
+    customers_by_id = {
+        c["customerId"]: c
+        for c in customer_collection.find(
+            {"customerId": {"$in": list({j["customerId"] for j in jobs})}},
+            {"customerId": 1, "customerRating": 1, "customerReviewsCount": 1},
+        )
+    }
+
     for job in jobs:
         del job["_id"]
+        # Never expose the poster's phone on a public listing.
+        job.pop("customerPhone", None)
+        customer = customers_by_id.get(job["customerId"]) or {}
+        job["customerRating"] = customer.get("customerRating", 0)
+        job["customerReviewsCount"] = customer.get("customerReviewsCount", 0)
 
     return {"success": True, "jobs": jobs}
 

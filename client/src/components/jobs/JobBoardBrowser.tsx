@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { JobPostCard } from "@/components/jobs/JobPostCard";
 import { JobApplyModal } from "@/components/jobs/JobApplyModal";
+import { CustomerReviewsDialog } from "@/components/jobs/CustomerReviewsDialog";
 import { HgAlert } from "@/components/ui/HgAlert";
 import { useJobStore } from "@/store/jobStore";
 import { useAuthStore } from "@/store/authStore";
@@ -33,6 +34,7 @@ export function JobBoardBrowser() {
   const [applyOpen, setApplyOpen] = useState(false);
   const [successAlert, setSuccessAlert] = useState(false);
   const [wrongAccountAlert, setWrongAccountAlert] = useState(false);
+  const [reviewsTarget, setReviewsTarget] = useState<JobPost | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -101,6 +103,8 @@ export function JobBoardBrowser() {
             <JobPostCard
               key={job.jobId}
               job={job}
+              // Written reviews are worker-only; everyone else sees just the stars.
+              onViewCustomer={isWorker ? () => setReviewsTarget(job) : undefined}
               footer={
                 <Button
                   size="sm"
@@ -125,6 +129,8 @@ export function JobBoardBrowser() {
           load();
         }}
       />
+
+      <CustomerReviewsDialog customer={reviewsTarget} onClose={() => setReviewsTarget(null)} />
 
       <HgAlert
         open={successAlert}

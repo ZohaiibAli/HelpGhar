@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { MapPin, Calendar, Clock } from "lucide-react";
+import { MapPin, Calendar, Clock, Star, UserRound } from "lucide-react";
 import type { JobPost, JobStatus } from "@/types";
 
 const STATUS_STYLES: Record<JobStatus, string> = {
@@ -20,11 +20,17 @@ export function JobStatusBadge({ status }: { status: JobStatus }) {
 export function JobPostCard({
   job,
   footer,
+  onViewCustomer,
 }: {
   job: JobPost;
   /** Actions specific to the page this card is rendered on (Apply, View applicants, Cancel...). */
   footer?: ReactNode;
+  /** When set, the poster's rating becomes a button that opens their reviews. */
+  onViewCustomer?: () => void;
 }) {
+  // Only the public job board sends the poster's rating.
+  const showCustomer = job.customerRating !== undefined;
+  const reviewsCount = job.customerReviewsCount ?? 0;
   return (
     <article className="rounded-2xl border border-border bg-card p-5 shadow-soft">
       <div className="flex items-start justify-between gap-3">
@@ -36,6 +42,40 @@ export function JobPostCard({
         </div>
         <JobStatusBadge status={job.status} />
       </div>
+
+      {showCustomer && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+          <span className="inline-flex min-w-0 items-center gap-1 font-semibold">
+            <UserRound className="h-3 w-3 shrink-0 text-muted-foreground" />
+            <span className="truncate">{job.customerName}</span>
+          </span>
+          {(() => {
+            const badge =
+              reviewsCount > 0 ? (
+                <>
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                  <span className="font-bold">{(job.customerRating ?? 0).toFixed(1)}</span>
+                  <span className="text-muted-foreground">
+                    ({reviewsCount} review{reviewsCount === 1 ? "" : "s"})
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">New customer · no reviews yet</span>
+              );
+            return onViewCustomer ? (
+              <button
+                type="button"
+                onClick={onViewCustomer}
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 transition hover:bg-primary-soft"
+              >
+                {badge}
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">{badge}</span>
+            );
+          })()}
+        </div>
+      )}
 
       <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{job.description}</p>
 
